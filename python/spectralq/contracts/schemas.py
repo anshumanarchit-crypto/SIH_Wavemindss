@@ -294,11 +294,18 @@ class EvidenceItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     evidence_id: str = Field(..., min_length=1)
+    hypothesis_id: Optional[str] = None
     source: str = Field(..., min_length=1)
     check_name: str = Field(..., min_length=1)
     status: EvidenceStatus
-    value: Any
+    value: Any = None
+    numeric_value: Optional[float] = None
+    normalized_value: Optional[float] = None
+    threshold: Optional[float] = None
+    provenance: Optional[Dict[str, Any]] = None
+    run_id: Optional[str] = None
     explanation: str = Field(..., min_length=1)
+    failure_reason: Optional[str] = None
 
 
 class ProvenanceBlock(BaseModel):
@@ -330,6 +337,8 @@ class ResultContract(BaseModel):
     rule_ml_penalty: float = Field(..., ge=0.0, le=1.0)
     cross_window_agreement: float = Field(..., ge=0.0, le=1.0)
     evidence: List[EvidenceItem] = Field(default_factory=list)
+    failed_checks: List[str] = Field(default_factory=list)
+    unavailable_checks: List[str] = Field(default_factory=list)
     final_confidence: float = Field(..., ge=0.0, le=1.0)
     confidence_version: str = Field(..., min_length=1)
     unknown: bool

@@ -34,6 +34,7 @@ from spectralq.contracts.schemas import (
     validate_result_dict,
 )
 from spectralq.pipeline.octave_bridge import OctaveBridge
+from spectralq.evidence import EvidenceLedger, compute_ladder_level
 
 
 def compute_file_hash(file_path: str) -> str:
@@ -79,17 +80,17 @@ def get_stub_classifier_output(capture_id: str, analysis: AnalysisContract) -> C
 
 
 def get_stub_decoder_output(capture_id: str, analysis: AnalysisContract) -> DecoderOutputContract:
-    """Provides a deterministic stubbed decoder output."""
+    """Provides a deterministic stubbed decoder output pending Arpit's real decoder delivery."""
     raw = {
         "schema_version": "1.0.0",
         "capture_id": capture_id,
-        "status": DecoderStatus.OK.value,
+        "status": DecoderStatus.UNSUPPORTED.value,
         "interleaver_used": "none",
         "fec_used": "none",
-        "decoded_bits": "1010110011110000",
-        "crc_status": CrcStatus.PASS.value,
-        "reencode_ber": 0.002,
-        "failure_reason": None,
+        "decoded_bits": 0,
+        "crc_status": CrcStatus.NOT_RUN.value,
+        "reencode_ber": None,
+        "failure_reason": "Decoder module stubbed pending Arpit delivery",
     }
     return validate_decoder_output_dict(raw)
 
@@ -128,11 +129,92 @@ def run(
     stage_status["Demodulator & Decoder"] = "STUB"
     decoder_out = get_stub_decoder_output(analysis.capture_id, analysis)
 
-    # Stage 5: Decision Engine (Archit - pass-through stub for Phase 2)
+    # Stage 5: Decision Engine (Archit - Phase 4 Evidence Ledger & Ladder Level)
     stage_status["Decision Engine"] = "STUB"
 
     input_hash = compute_file_hash(capture_path)
     now_utc = datetime.now(timezone.utc).isoformat()
+    run_id = f"RUN_{input_hash[:8]}_{seed}"
+
+    # Initialize EvidenceLedger
+    ledger = EvidenceLedger(run_id=run_id)
+
+    # Record Evidence across stages
+    # 1. Ingest & Forensics
+    ledger.record(
+        evidence_id=f"EV_INGEST_{analysis.capture_id}",
+        source="Sinchana (Ingest)",
+        check_name="burst_energy_check",
+        status=EvidenceStatus.PASS if analysis.bursts else EvidenceStatus.FAIL,
+        numeric_value=analysis.bursts[0].power if analysis.bursts else -99.0,
+        normalized_value=1.0 if analysis.bursts else 0.0,
+        explanation=f"Burst energy verified via {stage_status['Ingest & Forensics']} ingest",
+    )
+
+    # 2. Blind Parameter Estimation
+    est = analysis.estimates
+    has_intervals = (
+        est.baud.ci_lo <= est.baud.ci_hi and
+        est.cfo.ci_lo <= est.cfo.ci_hi and
+        est.bandwidth.ci_lo <= est.bandwidth.ci_hi and
+        est.snr.ci_lo <= est.snr.ci_hi
+    )
+    ledger.record(
+        evidence_id=f"EV_EST_{analysis.capture_id}",
+        source="Sinchana (Blind Estimation)",
+        check_name="parameter_interval_check",
+        status=EvidenceStatus.PASS if has_intervals else EvidenceStatus.FAIL,
+        numeric_value=est.snr.value,
+        explanation=f"Estimated SNR ({est.snr.value:.1f} dB) and baud with valid 95% confidence intervals",
+    )
+
+    # 3. Classifier Probability Evidence
+    top_ml = classifier_out.ml_prediction
+    top_prob = classifier_out.ml_probabilities.get(top_ml, 0.85)
+    ledger.record(
+        evidence_id=f"EV_ML_{analysis.capture_id}",
+        source="Harsh (Stage 5 Classifier)",
+        check_name="ml_confidence_check",
+        status=EvidenceStatus.PASS if top_prob >= 0.50 else EvidenceStatus.FAIL,
+        numeric_value=top_prob,
+        normalized_value=top_prob,
+        threshold=0.50,
+        explanation=f"Classifier assigned majority probability to {top_ml} ({top_prob:.4f})",
+    )
+
+    # 4. Decoder Integrity Evidence
+    if decoder_out.crc_status == CrcStatus.PASS:
+        crc_ev_status = EvidenceStatus.PASS
+        crc_expl = "Payload CRC checksum verified with zero syndrome errors"
+    elif decoder_out.crc_status == CrcStatus.FAIL:
+        crc_ev_status = EvidenceStatus.FAIL
+        crc_expl = "Payload CRC checksum verification failed"
+    else:
+        crc_ev_status = EvidenceStatus.NOT_RUN
+        crc_expl = "Payload CRC checksum was not executed"
+
+    ledger.record(
+        evidence_id=f"EV_CRC_{analysis.capture_id}",
+        source="Arpit (Decoder)",
+        check_name="crc_checksum_check",
+        status=crc_ev_status,
+        explanation=crc_expl,
+    )
+
+    # 5. Compute Deterministic Ladder Level
+    ladder_level, ladder_explanation = compute_ladder_level(
+        analysis=analysis,
+        decoder_output=decoder_out,
+        second_tool_agreed=False,
+    )
+    ledger.record(
+        evidence_id=f"EV_LADDER_{analysis.capture_id}",
+        source="Archit (Evidence Ladder)",
+        check_name="ladder_level_evaluation",
+        status=EvidenceStatus.PASS,
+        value=ladder_level.value,
+        explanation=ladder_explanation,
+    )
 
     # Determine source mode
     if analysis.source_mode == SourceMode.REPLAY:
@@ -151,7 +233,7 @@ def run(
         "capture_id": analysis.capture_id,
         "source_mode": pipeline_source_mode.value,
         "capability_available": is_live,
-        "ladder_level": LadderLevel.L2.value if pipeline_source_mode == SourceMode.STUB else LadderLevel.L3.value,
+        "ladder_level": ladder_level.value,
         "top_hypothesis": {
             "modulation": classifier_out.ml_prediction,
             "interleaver": decoder_out.interleaver_used,
@@ -170,32 +252,17 @@ def run(
             }
         ],
         "ml_prediction": classifier_out.ml_prediction,
-        "ml_probability": classifier_out.ml_probabilities.get(classifier_out.ml_prediction, 0.85),
+        "ml_probability": top_prob,
         "calibrated_ml_probability": classifier_out.calibrated_probability,
         "rule_prediction": "QPSK",
         "rule_ml_agreement": True,
         "rule_ml_penalty": 0.0,
         "cross_window_agreement": 0.95,
-        "evidence": [
-            {
-                "evidence_id": "EV_INGEST_001",
-                "source": "octave_bridge",
-                "check_name": "burst_energy_check",
-                "status": EvidenceStatus.PASS.value,
-                "value": analysis.bursts[0].power if analysis.bursts else 0.0,
-                "explanation": f"Burst energy verified via {stage_status['Ingest & Forensics']} ingest",
-            },
-            {
-                "evidence_id": "EV_DECODE_001",
-                "source": "decoder_stub",
-                "check_name": "crc_status",
-                "status": EvidenceStatus.PASS.value,
-                "value": decoder_out.crc_status.value,
-                "explanation": "Frame integrity check pass",
-            },
-        ],
+        "evidence": ledger.get_items(),
+        "failed_checks": ledger.get_failed_checks(),
+        "unavailable_checks": ledger.get_unavailable_checks(),
         "final_confidence": 0.82,
-        "confidence_version": "phase2-plumbing-1.0.0",
+        "confidence_version": "phase4-ledger-1.0.0",
         "unknown": False,
         "unknown_reason": None,
         "provenance": {
