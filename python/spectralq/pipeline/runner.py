@@ -127,6 +127,8 @@ def run(
     seed: int = 42,
     mode: str = "auto",
     replay_cache: Optional[ReplayCache] = None,
+    analysis_override: Optional[AnalysisContract] = None,
+    decoder_override: Optional[DecoderOutputContract] = None,
 ) -> PipelineResult:
     """
     Executes the end-to-end SpectralQ pipeline plumbing.
@@ -138,7 +140,12 @@ def run(
 
     # Stage 1 & 2: Ingest, Forensics & Feature Extraction (Mode Dispatched)
     mode_normalized = mode.lower()
-    if mode_normalized == "replay":
+    if analysis_override is not None:
+        analysis = analysis_override
+        stage_status["Ingest & Forensics"] = mode.upper()
+        stage_status["Feature Extraction"] = mode.upper()
+        is_live = (mode_normalized == "live")
+    elif mode_normalized == "replay":
         analysis, _ = cache.load_analysis(capture_path)
         stage_status["Ingest & Forensics"] = "REPLAY"
         stage_status["Feature Extraction"] = "REPLAY"
@@ -189,8 +196,12 @@ def run(
     rule_out = rule_classifier.classify(analysis)
 
     # Stage 4: Demodulator & Decoder (Arpit)
-    stage_status["Demodulator & Decoder"] = "STUB"
-    decoder_out = get_stub_decoder_output(analysis.capture_id, analysis)
+    if decoder_override is not None:
+        decoder_out = decoder_override
+        stage_status["Demodulator & Decoder"] = "LIVE" if decoder_override.status.value == "ok" else "STUB"
+    else:
+        stage_status["Demodulator & Decoder"] = "STUB"
+        decoder_out = get_stub_decoder_output(analysis.capture_id, analysis)
 
     # Stage 5: Decision Engine (Archit - Phase 5 N5 Consensus & Evidence Ledger)
     stage_status["Decision Engine"] = "LIVE" if is_live else "STUB"
