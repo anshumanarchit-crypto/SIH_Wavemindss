@@ -47,12 +47,12 @@ Both the analytic rule path and ML probability path run independently and are pr
 $$\text{Consensus Check} = (\text{Rule Prediction} \stackrel{?}{=} \text{ML Prediction})$$
 Disagreement is treated as active evidence of ambiguity and strictly penalizes confidence down to $[0.05, 0.40]$.
 
-### N2 Calibrated Confidence Fusion
+### N2 Computed Confidence Fusion
 Confidence is computed via a multi-evidence logistic regression mapping:
 $$z = w_0 + w_{\text{ML}} P_{\text{ML, cal}} + w_{\text{N5}} S_{\text{N5}} + w_{\text{win}} S_{\text{window}} + w_{\text{verif}} S_{\text{verif}} - w_{\text{EVM}} \text{EVM}_{\text{norm}} + w_{\text{SNR}} \text{SNR}_{\text{norm}}$$
 $$\text{Confidence} = \frac{1}{1 + e^{-z}} \in [0.0, 1.0]$$
 
-*Hardcoded constants (e.g. 95%) or uncalibrated pass-through probabilities are strictly forbidden.*
+*Hardcoded constants (e.g. 95%) or uncalibrated pass-through probabilities are strictly forbidden. Note: Synthetic calibration is validated via held-out instance sweeps (ECE 0.0908), while full operational calibration is strictly held pending over-the-air field RF data.*
 
 ### Deterministic Evidence Ladder (`ladder_level`)
 Computed purely from genuine, verified stage data availability:
@@ -73,19 +73,26 @@ If confidence falls below operational threshold ($T = 0.60$), SNR $< 1.0$ dB, cr
 - Python 3.10+ (Tested on Python 3.13)
 - NumPy, SciPy, scikit-learn, Pydantic v2, Matplotlib, pytest
 
-### Setup
+### Setup & Clone
 ```bash
-# In the repository root
+# Clone the repository
+git clone https://github.com/anshumanarchit-crypto/machine-learning-SIH.git
+cd machine-learning-SIH
+
+# Install SpectralQ package in editable mode
 pip install -e .
 ```
 
 ### Running SpectralQ Pipeline
 ```bash
-# Process a capture analysis file
-python -m spectralq.cli run --input fixtures/bpsk_clean.json --output result.json
+# Process a capture analysis file in auto mode
+python -m spectralq.cli analyze fixtures/qpsk_verified.json --mode auto --output result.json
 
-# Deterministic Replay Mode with fixed RNG seed
-python -m spectralq.cli replay --input fixtures/qpsk_verified.json --seed 42 --output result.json
+# Process in explicit stub mode
+python -m spectralq.cli analyze fixtures/qpsk_verified.json --mode stub --output result.json
+
+# Replay Mode with deterministic cache and fixed RNG seed
+python -m spectralq.cli analyze fixtures/qpsk_verified.json --mode replay --seed 42 --output result.json
 ```
 
 ---
