@@ -40,7 +40,7 @@ from spectralq.integration import (
     RuleBasedClassifier,
     evaluate_n5_consensus,
 )
-from spectralq.confidence import ConfidenceEngine
+from spectralq.confidence import ConfidenceEngine, AbstentionSystem
 
 
 def compute_file_hash(file_path: str) -> str:
@@ -245,6 +245,15 @@ def run(
         calibrated_ml_probability=None,
     )
 
+    # Phase 8 UNKNOWN Abstention System
+    abstention_system = AbstentionSystem()
+    abstention_decision = abstention_system.evaluate(
+        analysis=analysis,
+        confidence_result=conf_res,
+        ledger=ledger,
+        capture_id=analysis.capture_id,
+    )
+
     # Assemble ResultContract
     result_data = {
         "schema_version": "1.0.0",
@@ -281,8 +290,8 @@ def run(
         "unavailable_checks": ledger.get_unavailable_checks(),
         "final_confidence": conf_res.final_confidence,
         "confidence_version": conf_res.confidence_version,
-        "unknown": False,
-        "unknown_reason": None,
+        "unknown": abstention_decision.is_unknown,
+        "unknown_reason": abstention_decision.unknown_reason,
         "provenance": {
             "input_hash": input_hash,
             "seed": seed,

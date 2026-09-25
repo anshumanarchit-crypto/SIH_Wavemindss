@@ -1,0 +1,205 @@
+{
+  "version": "1.0.0-empirical-sweep",
+  "selected_threshold": 0.8,
+  "operating_point": {
+    "criterion": "Minimize FAR subject to FRR <= 10.0%",
+    "false_accept_rate": 0.9696969696969697,
+    "false_reject_rate": 0.0196078431372549,
+    "accuracy_when_accepted": 0.7575757575757576,
+    "threshold": 0.8
+  },
+  "dataset_metadata": {
+    "n_instances_per_class": 30,
+    "total_val_samples": 135,
+    "total_correct": 102,
+    "total_incorrect": 33,
+    "seed": 2026,
+    "split_method": "by_signal_instance_disjoint"
+  },
+  "sweep_curve": [
+    {
+      "threshold": 0.4,
+      "false_accept_rate": 1.0,
+      "false_reject_rate": 0.0,
+      "accuracy_when_accepted": 0.7556,
+      "accepted_count": 135,
+      "rejected_count": 0
+    },
+    {
+      "threshold": 0.425,
+      "false_accept_rate": 1.0,
+      "false_reject_rate": 0.0,
+      "accuracy_when_accepted": 0.7556,
+      "accepted_count": 135,
+      "rejected_count": 0
+    },
+    {
+      "threshold": 0.45,
+      "false_accept_rate": 1.0,
+      "false_reject_rate": 0.0,
+      "accuracy_when_accepted": 0.7556,
+      "accepted_count": 135,
+      "rejected_count": 0
+    },
+    {
+      "threshold": 0.475,
+      "false_accept_rate": 1.0,
+      "false_reject_rate": 0.0,
+      "accuracy_when_accepted": 0.7556,
+      "accepted_count": 135,
+      "rejected_count": 0
+    },
+    {
+      "threshold": 0.5,
+      "false_accept_rate": 1.0,
+      "false_reject_rate": 0.0,
+      "accuracy_when_accepted": 0.7556,
+      "accepted_count": 135,
+      "rejected_count": 0
+    },
+    {
+      "threshold": 0.525,
+      "false_accept_rate": 1.0,
+      "false_reject_rate": 0.0,
+      "accuracy_when_accepted": 0.7556,
+      "accepted_count": 135,
+      "rejected_count": 0
+    },
+    {
+      "threshold": 0.55,
+      "false_accept_rate": 1.0,
+      "false_reject_rate": 0.0,
+      "accuracy_when_accepted": 0.7556,
+      "accepted_count": 135,
+      "rejected_count": 0
+    },
+    {
+      "threshold": 0.575,
+      "false_accept_rate": 1.0,
+      "false_reject_rate": 0.0,
+      "accuracy_when_accepted": 0.7556,
+      "accepted_count": 135,
+      "rejected_count": 0
+    },
+    {
+      "threshold": 0.6,
+      "false_accept_rate": 1.0,
+      "false_reject_rate": 0.0,
+      "accuracy_when_accepted": 0.7556,
+      "accepted_count": 135,
+      "rejected_count": 0
+    },
+    {
+      "threshold": 0.625,
+      "false_accept_rate": 0.9697,
+      "false_reject_rate": 0.0098,
+      "accuracy_when_accepted": 0.7594,
+      "accepted_count": 133,
+      "rejected_count": 2
+    },
+    {
+      "threshold": 0.65,
+      "false_accept_rate": 0.9697,
+      "false_reject_rate": 0.0098,
+      "accuracy_when_accepted": 0.7594,
+      "accepted_count": 133,
+      "rejected_count": 2
+    },
+    {
+      "threshold": 0.675,
+      "false_accept_rate": 0.9697,
+      "false_reject_rate": 0.0098,
+      "accuracy_when_accepted": 0.7594,
+      "accepted_count": 133,
+      "rejected_count": 2
+    },
+    {
+      "threshold": 0.7,
+      "false_accept_rate": 0.9697,
+      "false_reject_rate": 0.0098,
+      "accuracy_when_accepted": 0.7594,
+      "accepted_count": 133,
+      "rejected_count": 2
+    },
+    {
+      "threshold": 0.725,
+      "false_accept_rate": 0.9697,
+      "false_reject_rate": 0.0098,
+      "accuracy_when_accepted": 0.7594,
+      "accepted_count": 133,
+      "rejected_count": 2
+    },
+    {
+      "threshold": 0.75,
+      "false_accept_rate": 0.9697,
+      "false_reject_rate": 0.0098,
+      "accuracy_when_accepted": 0.7594,
+      "accepted_count": 133,
+      "rejected_count": 2
+    },
+    {
+      "threshold": 0.775,
+      "false_accept_rate": 0.9697,
+      "false_reject_rate": 0.0098,
+      "accuracy_when_accepted": 0.7594,
+      "accepted_count": 133,
+      "rejected_count": 2
+    },
+    {
+      "threshold": 0.8,
+      "false_accept_rate": 0.9697,
+      "false_reject_rate": 0.0196,
+      "accuracy_when_accepted": 0.7576,
+      "accepted_count": 132,
+      "rejected_count": 3
+    },
+    {
+      "threshold": 0.825,
+      "false_accept_rate": 0.0303,
+      "false_reject_rate": 0.1176,
+      "accuracy_when_accepted": 0.989,
+      "accepted_count": 91,
+      "rejected_count": 44
+    },
+    {
+      "threshold": 0.85,
+      "false_accept_rate": 0.0,
+      "false_reject_rate": 0.2157,
+      "accuracy_when_accepted": 1.0,
+      "accepted_count": 80,
+      "rejected_count": 55
+    },
+    {
+      "threshold": 0.875,
+      "false_accept_rate": 0.0,
+      "false_reject_rate": 0.2843,
+      "accuracy_when_accepted": 1.0,
+      "accepted_count": 73,
+      "rejected_count": 62
+    },
+    {
+      "threshold": 0.9,
+      "false_accept_rate": 0.0,
+      "false_reject_rate": 0.4608,
+      "accuracy_when_accepted": 1.0,
+      "accepted_count": 55,
+      "rejected_count": 80
+    },
+    {
+      "threshold": 0.925,
+      "false_accept_rate": 0.0,
+      "false_reject_rate": 1.0,
+      "accuracy_when_accepted": 1.0,
+      "accepted_count": 0,
+      "rejected_count": 135
+    },
+    {
+      "threshold": 0.95,
+      "false_accept_rate": 0.0,
+      "false_reject_rate": 1.0,
+      "accuracy_when_accepted": 1.0,
+      "accepted_count": 0,
+      "rejected_count": 135
+    }
+  ]
+}
