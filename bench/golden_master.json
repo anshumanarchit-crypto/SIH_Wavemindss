@@ -1,0 +1,107 @@
+{
+  "16QAM_12dB": {
+    "confidence": 0.92,
+    "modulation": "64QAM",
+    "unknown": true
+  },
+  "16QAM_20dB": {
+    "confidence": 0.91,
+    "modulation": "16QAM",
+    "unknown": false
+  },
+  "16QAM_4dB": {
+    "confidence": 0.68,
+    "modulation": "QPSK",
+    "unknown": true
+  },
+  "2FSK_12dB": {
+    "confidence": 0.92,
+    "modulation": "4FSK",
+    "unknown": false
+  },
+  "2FSK_20dB": {
+    "confidence": 0.92,
+    "modulation": "2FSK",
+    "unknown": false
+  },
+  "2FSK_4dB": {
+    "confidence": 0.7,
+    "modulation": "16QAM",
+    "unknown": true
+  },
+  "4FSK_12dB": {
+    "confidence": 0.92,
+    "modulation": "4FSK",
+    "unknown": false
+  },
+  "4FSK_20dB": {
+    "confidence": 0.92,
+    "modulation": "4FSK",
+    "unknown": false
+  },
+  "4FSK_4dB": {
+    "confidence": 0.7,
+    "modulation": "16QAM",
+    "unknown": true
+  },
+  "64QAM_12dB": {
+    "confidence": 0.91,
+    "modulation": "64QAM",
+    "unknown": true
+  },
+  "64QAM_20dB": {
+    "confidence": 0.92,
+    "modulation": "64QAM",
+    "unknown": false
+  },
+  "64QAM_4dB": {
+    "confidence": 0.68,
+    "modulation": "QPSK",
+    "unknown": true
+  },
+  "8PSK_12dB": {
+    "confidence": 0.91,
+    "modulation": "8PSK",
+    "unknown": false
+  },
+  "8PSK_20dB": {
+    "confidence": 0.92,
+    "modulation": "8PSK",
+    "unknown": false
+  },
+  "8PSK_4dB": {
+    "confidence": 0.91,
+    "modulation": "64QAM",
+    "unknown": true
+  },
+  "BPSK_12dB": {
+    "confidence": 0.92,
+    "modulation": "BPSK",
+    "unknown": false
+  },
+  "BPSK_20dB": {
+    "confidence": 0.92,
+    "modulation": "BPSK",
+    "unknown": false
+  },
+  "BPSK_4dB": {
+    "confidence": 0.92,
+    "modulation": "BPSK",
+    "unknown": false
+  },
+  "QPSK_12dB": {
+    "confidence": 0.92,
+    "modulation": "QPSK",
+    "unknown": false
+  },
+  "QPSK_20dB": {
+    "confidence": 0.92,
+    "modulation": "QPSK",
+    "unknown": false
+  },
+  "QPSK_4dB": {
+    "confidence": 0.7,
+    "modulation": "16QAM",
+    "unknown": true
+  }
+}

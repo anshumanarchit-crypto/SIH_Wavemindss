@@ -189,13 +189,14 @@ class RuleBasedClassifier:
         )
 
         # ---------------------------------------------------------------------
-        # Branch 3: QPSK Separation (Positive C40)
+        # Branch 3: QPSK Separation (Positive C40 and Unit-Magnitude C42)
         # ---------------------------------------------------------------------
         thresholds_applied["tau_qpsk_c40_min"] = cfg.tau_qpsk_c40_min
-        if rho_40 >= cfg.tau_qpsk_c40_min:
+        if rho_40 >= cfg.tau_qpsk_c40_min and abs(rho_42) >= 0.78:
             decision_path.append(
-                f"Step 3: Check QPSK (Normalized C40/C21^2 = {rho_40:.3f} >= threshold {cfg.tau_qpsk_c40_min:.3f}). "
-                "Theoretical QPSK C40 is +1.0; 4-quadrant symmetric structure confirmed -> Classified as QPSK."
+                f"Step 3: Check QPSK (Normalized C40/C21^2 = {rho_40:.3f} >= threshold {cfg.tau_qpsk_c40_min:.3f}, "
+                f"|C42|/C21^2 = {abs(rho_42):.3f} >= 0.780). "
+                "Theoretical QPSK C40 is +1.0; 4-quadrant symmetric constant-modulus structure confirmed -> Classified as QPSK."
             )
             return RuleClassificationResult(
                 predicted_class="QPSK",
@@ -206,7 +207,7 @@ class RuleBasedClassifier:
             )
 
         decision_path.append(
-            f"Step 3: Check QPSK (Normalized C40/C21^2 = {rho_40:.3f} < threshold {cfg.tau_qpsk_c40_min:.3f}). "
+            f"Step 3: Check QPSK (Normalized C40/C21^2 = {rho_40:.3f} or |C42|/C21^2 = {abs(rho_42):.3f} < 0.780). "
             "Not QPSK; proceed to 8-PSK and QAM separation."
         )
 

@@ -296,12 +296,24 @@ def run(
     else:
         pipeline_source_mode = SourceMode.STUB
 
+    # Phase 6 Multi-window Agreement
+    cw_agreement = 1.0
+    if analysis.sub_windows and len(analysis.sub_windows) >= 2:
+        from spectralq.integration.cross_window import evaluate_cross_window
+        cw_report = evaluate_cross_window(
+            windows_input=analysis.sub_windows,
+            classifier_adapter=classifier_adapter,
+            rule_classifier=rule_classifier,
+            capture_id=analysis.capture_id,
+        )
+        cw_agreement = cw_report.agreement_ratio
+
     # Compute N2 Defensible Confidence
     confidence_engine = ConfidenceEngine()
     conf_res = confidence_engine.compute_confidence(
         prediction=n5_result.ml_prediction,
         ml_probability=n5_result.ml_probability,
-        cross_window_agreement=1.0,
+        cross_window_agreement=cw_agreement,
         rule_prediction=n5_result.rule_prediction,
         ml_prediction=n5_result.ml_prediction,
         rule_ml_agreement=n5_result.agreement,
@@ -348,7 +360,7 @@ def run(
         "rule_prediction": n5_result.rule_prediction,
         "rule_ml_agreement": n5_result.agreement,
         "rule_ml_penalty": n5_result.penalty,
-        "cross_window_agreement": 1.0,
+        "cross_window_agreement": cw_agreement,
         "evidence": ledger.get_items(),
         "failed_checks": ledger.get_failed_checks(),
         "unavailable_checks": ledger.get_unavailable_checks(),

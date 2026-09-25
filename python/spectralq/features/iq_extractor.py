@@ -94,11 +94,42 @@ class IQFeatures:
 
 
 def _normalize_iq(iq: np.ndarray) -> np.ndarray:
-    """Power-normalize IQ samples to unit mean power."""
-    pwr = np.mean(np.abs(iq) ** 2)
-    if pwr < 1e-12:
-        return iq.copy()
-    return iq / np.sqrt(pwr)
+    """
+    Power-normalizes IQ samples to unit mean power while removing DC offset
+    and correcting mild-to-moderate receiver IQ imbalance for 2D complex signals.
+    """
+    n = len(iq)
+    if n < 16:
+        pwr = np.mean(np.abs(iq) ** 2)
+        return iq if pwr < 1e-12 else iq / np.sqrt(pwr)
+
+    # 1. DC offset removal (mean-subtraction)
+    I = iq.real - np.mean(iq.real)
+    Q = iq.imag - np.mean(iq.imag)
+
+    p_i = float(np.mean(I ** 2))
+    p_q = float(np.mean(Q ** 2))
+    if p_i < 1e-12 or p_q < 1e-12:
+        z = (I + 1j * Q)
+        pwr = np.mean(np.abs(z) ** 2)
+        return z if pwr < 1e-12 else z / np.sqrt(pwr)
+
+    # Check power ratio between I and Q
+    ratio = p_i / p_q
+    # 2. Only perform circularity/IQ balance correction if 2D complex signal (not 1D BPSK)
+    if 0.30 <= ratio <= 3.33:
+        rho = float(np.mean(I * Q))
+        corr = rho / np.sqrt(p_i * p_q)
+        if abs(corr) <= 0.40:
+            I_c = I / np.sqrt(p_i)
+            denom = p_q - (rho ** 2) / p_i
+            if denom > 1e-12:
+                Q_c = (Q - (rho / p_i) * I) / np.sqrt(denom)
+                return ((I_c + 1j * Q_c) / np.sqrt(2)).astype(np.complex64)
+
+    z = (I + 1j * Q)
+    pwr = np.mean(np.abs(z) ** 2)
+    return (z / np.sqrt(pwr)).astype(np.complex64) if pwr >= 1e-12 else z
 
 
 def extract_cumulants(iq: np.ndarray) -> Dict[str, float]:
@@ -152,15 +183,25 @@ def extract_cumulants(iq: np.ndarray) -> Dict[str, float]:
     m80 = np.mean(z ** 8)
     C80 = float(np.real(m80 - 28.0 * m60 * m20 + 210.0 * m40 * m20 ** 2 - 630.0 * m20 ** 4))
 
+    # Phase-rotation invariant features:
+    # All complex cumulant values are returned as their MAGNITUDES |C|.
+    # Rationale (Swami & Sadler 2000):
+    #   - |C20| = |E[z^2]|: zero for circular mods (QPSK/8PSK/QAM), non-zero for BPSK
+    #     because BPSK symbols are real → |E[z^2]| = 1 at any rotation angle
+    #   - |C40|: identifies PSK order — BPSK≈2.0, QPSK≈1.0, 8PSK≈0, 16QAM≈0.68
+    #   - C42 is already real (E[|z|^4] - real amplitude-only terms)
+    #   - C21 = E[|z|^2]: always real-positive, phase-invariant by construction
+    # Using |C| instead of Re(C) ensures invariance to e^(j*theta) for ANY theta.
     return {
-        "C20": float(np.real(m20)),
+        "C20": float(np.abs(m20)),
         "C21": float(np.real(m21)),
-        "C40": float(np.real(C40)),
+        "C40": float(np.abs(C40)),
         "C42": float(np.real(C42)),
-        "C60": float(np.real(C60)),
+        "C60": float(np.abs(C60)),
         "C63": float(np.real(C63)),
-        "C80": float(np.real(C80)),
+        "C80": float(np.abs(C80)),
     }
+
 
 
 def estimate_snr_m2m4(iq: np.ndarray) -> float:
@@ -185,15 +226,22 @@ def estimate_snr_m2m4(iq: np.ndarray) -> float:
     M4 = float(np.mean(r ** 4))
 
     discriminant = 2.0 * M2 ** 2 - M4
-    if discriminant < 0:
-        # Pure noise case: Gaussian noise has M4 = 2*M2^2
+    if discriminant <= 0:
+        # Pure noise case: Gaussian noise has M4 >= 2*M2^2
         return -10.0
 
-    snr_linear_num = np.sqrt(max(0.0, discriminant))
+    ratio = M4 / (M2 ** 2) if M2 > 1e-12 else 2.0
+    if ratio > 1.22:
+        # Non-constant-modulus QAM constellation (16QAM ka≈1.32, 64QAM ka≈1.38)
+        k_a = 1.32 if ratio < 1.36 else 1.38
+        snr_linear_num = np.sqrt(discriminant / (2.0 - k_a))
+    else:
+        snr_linear_num = np.sqrt(discriminant)
+
     snr_linear_den = M2 - snr_linear_num
 
     if snr_linear_den <= 1e-12 or snr_linear_num <= 1e-12:
-        return -10.0
+        return 35.0  # Negligible noise floor
 
     snr_linear = snr_linear_num / snr_linear_den
     snr_db = 10.0 * np.log10(max(snr_linear, 1e-10))
@@ -219,6 +267,30 @@ def estimate_constellation_clusters(
         return (2, 0.1, 0.5, 0.5)
 
     symbols = z[sps // 2::sps][:n_sym]
+
+    # Continuous phase rotation check: in FSK, the phase rotates continuously on the circle,
+    # so the all-sample angle histogram peak-to-average ratio (PAR) is moderate (< 2.2 vs >= 3.5 for PSK),
+    # the envelope is constant (std(|z|) < 0.22), and instantaneous frequency deviation is distinct (std >= 0.10).
+    # In PSK/QAM, samples cluster near discrete symbol phases, or have multi-amplitude rings / small phase velocity.
+    std_r = float(np.std(np.abs(z)))
+    sample_z = z[:min(len(z), 4000)]
+    all_angles = np.angle(sample_z)
+    hist, _ = np.histogram(all_angles, bins=36)
+    par_angle = float(np.max(hist) / max(1e-6, np.mean(hist)))
+    if par_angle < 2.2 and std_r < 0.22 and len(symbols) >= 32:
+        diff_phase = np.diff(np.unwrap(np.angle(z)))
+        diff_smoothed = np.convolve(diff_phase, np.ones(5) / 5, mode="valid")
+        f_sample = diff_smoothed[::sps]
+        if float(np.std(f_sample)) >= 0.10:
+            f_sample_col = f_sample.reshape(-1, 1)
+            if len(f_sample_col) >= 32:
+                from sklearn.cluster import KMeans
+                km2 = KMeans(n_clusters=2, n_init=3, random_state=42).fit(f_sample_col)
+                fsk_k = 4 if km2.inertia_ > 5.0 else 2
+            else:
+                fsk_k = 2
+            return (fsk_k, 0.22, 0.45, 0.80)
+
     pts = np.column_stack([np.real(symbols), np.imag(symbols)])
 
     # Cap points for speed (representative subset)
@@ -450,6 +522,33 @@ def iq_to_analysis_contract(
     cluster_count = int(np.clip(cluster_count, 1, 64))
     silhouette = float(np.clip(silhouette, -1.0, 1.0))
 
+    # Temporal sub-windows for cross-window agreement (Phase 6)
+    sub_windows = []
+    w_len = n_samples // 4
+    if w_len >= 128:
+        for w_i in range(4):
+            w_iq = iq[w_i * w_len : (w_i + 1) * w_len]
+            w_c = extract_cumulants(w_iq)
+            w_k, w_sil, w_intra, w_inter = estimate_constellation_clusters(w_iq, sps=sps)
+            sub_windows.append({
+                "window_id": w_i,
+                "C20": w_c["C20"],
+                "C21": w_c["C21"],
+                "C40": w_c["C40"],
+                "C42": w_c["C42"],
+                "C60": w_c["C60"],
+                "C63": w_c["C63"],
+                "C80": w_c["C80"],
+                "cluster_count": float(w_k),
+                "silhouette": float(w_sil),
+                "intra_var": float(w_intra),
+                "inter_dist": float(w_inter),
+                "evm": float(evm),
+                "phase_ambiguity_quality": float(phase_q),
+                "snr": float(snr_db),
+                "baud": float(baud_hz),
+            })
+
     return validate_analysis_dict({
         "schema_version": "1.0.0",
         "capture_id": capture_id,
@@ -503,4 +602,5 @@ def iq_to_analysis_contract(
             "phase_ambiguity_quality": phase_q,
             "cyclic": None,
         },
+        "sub_windows": sub_windows if sub_windows else None,
     })
