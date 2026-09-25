@@ -20,6 +20,7 @@ class SourceMode(str, Enum):
     REAL = "real"
     SYNTHETIC = "synthetic"
     REPLAY = "replay"
+    STUB = "stub"
 
 
 class FsSource(str, Enum):
@@ -157,6 +158,7 @@ class AnalysisContract(BaseModel):
     bursts: List[BurstRecord] = Field(..., description="Detected signal bursts")
     estimates: EstimatesBlock = Field(..., description="Blind parameter estimates")
     features: FeaturesBlock = Field(..., description="Extracted physical & statistical features")
+    capability_available: Optional[bool] = Field(None, description="Whether live DSP capability was available")
 
     @field_validator("schema_version")
     @classmethod
@@ -333,6 +335,7 @@ class ResultContract(BaseModel):
     unknown: bool
     unknown_reason: Optional[str] = None
     provenance: ProvenanceBlock
+    capability_available: Optional[bool] = Field(None, description="Whether live DSP capability was available")
 
     @field_validator("schema_version")
     @classmethod

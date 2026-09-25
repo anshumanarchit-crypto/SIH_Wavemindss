@@ -361,19 +361,23 @@ def test_source_mode_cannot_be_arbitrary_string(valid_analysis_data):
     valid_analysis_data["source_mode"] = "live_unverified"  # Invalid state
     with pytest.raises(ValidationError) as exc_info:
         validate_analysis_dict(valid_analysis_data)
-    assert "Input should be 'real', 'synthetic' or 'replay'" in str(exc_info.value)
+    assert "Input should be 'real', 'synthetic', 'replay' or 'stub'" in str(exc_info.value)
 
 
 def test_epistemic_state_integrity():
-    # Explicitly test that real, synthetic, and replay states are mutually exclusive
+    # Explicitly test that real, synthetic, replay, and stub states are mutually exclusive
     assert SourceMode.REAL != SourceMode.SYNTHETIC
     assert SourceMode.REAL != SourceMode.REPLAY
+    assert SourceMode.REAL != SourceMode.STUB
     assert SourceMode.SYNTHETIC != SourceMode.REPLAY
+    assert SourceMode.SYNTHETIC != SourceMode.STUB
+    assert SourceMode.REPLAY != SourceMode.STUB
 
     # Ensure states parse strictly
     assert SourceMode("real") == SourceMode.REAL
     assert SourceMode("synthetic") == SourceMode.SYNTHETIC
     assert SourceMode("replay") == SourceMode.REPLAY
+    assert SourceMode("stub") == SourceMode.STUB
 
     with pytest.raises(ValueError):
         SourceMode("fabricated")
