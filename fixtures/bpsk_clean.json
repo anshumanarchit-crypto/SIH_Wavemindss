@@ -1,0 +1,52 @@
+{
+  "capture_id": "CAP_BPSK_001",
+  "provenance": "synthetic",
+  "is_valid_burst": true,
+  "center_freq_hz": 433920000.0,
+  "bandwidth_hz": 100000.0,
+  "baud_rate": 50000.0,
+  "snr_m2m4_db": 22.5,
+  "evm": 0.045,
+  "phase_ambiguity_quality": 0.95,
+  "envelope_variance": 0.05,
+  "phase_entropy": 0.69,
+  "cumulants": {
+    "C20": 0.98,
+    "C21": 1.0,
+    "C40": -1.95,
+    "C42": -1.96,
+    "C60": 0.0,
+    "C63": 0.0,
+    "C80": 0.0
+  },
+  "cluster_metrics": {
+    "cluster_count": 2,
+    "silhouette_score": 0.92,
+    "intra_cluster_dist": 0.08,
+    "inter_cluster_dist": 1.95,
+    "cluster_count_stability": 0.98
+  },
+  "sub_windows": [
+    {
+      "window_idx": 0,
+      "estimated_snr_db": 22.8,
+      "estimated_c42": -1.95,
+      "estimated_c20": 0.98,
+      "cluster_count": 2
+    },
+    {
+      "window_idx": 1,
+      "estimated_snr_db": 22.3,
+      "estimated_c42": -1.97,
+      "estimated_c20": 0.97,
+      "cluster_count": 2
+    },
+    {
+      "window_idx": 2,
+      "estimated_snr_db": 22.4,
+      "estimated_c42": -1.96,
+      "estimated_c20": 0.99,
+      "cluster_count": 2
+    }
+  ]
+}

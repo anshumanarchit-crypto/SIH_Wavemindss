@@ -1,0 +1,92 @@
+{
+  "total_eval_samples": 490,
+  "expected_calibration_error_ece": 0.0883,
+  "brier_score": 0.0954,
+  "mean_confidence": 0.9863,
+  "mean_empirical_accuracy": 0.898,
+  "unknown_count": 0,
+  "unknown_rate": 0.0,
+  "bin_breakdown": [
+    {
+      "bin_idx": 0,
+      "bin_range": "[0.00, 0.10]",
+      "count": 0,
+      "mean_confidence": 0.05,
+      "mean_accuracy": 0.0,
+      "calibration_gap": 0.0
+    },
+    {
+      "bin_idx": 1,
+      "bin_range": "[0.10, 0.20]",
+      "count": 0,
+      "mean_confidence": 0.15000000000000002,
+      "mean_accuracy": 0.0,
+      "calibration_gap": 0.0
+    },
+    {
+      "bin_idx": 2,
+      "bin_range": "[0.20, 0.30]",
+      "count": 0,
+      "mean_confidence": 0.25,
+      "mean_accuracy": 0.0,
+      "calibration_gap": 0.0
+    },
+    {
+      "bin_idx": 3,
+      "bin_range": "[0.30, 0.40]",
+      "count": 0,
+      "mean_confidence": 0.35000000000000003,
+      "mean_accuracy": 0.0,
+      "calibration_gap": 0.0
+    },
+    {
+      "bin_idx": 4,
+      "bin_range": "[0.40, 0.50]",
+      "count": 0,
+      "mean_confidence": 0.45,
+      "mean_accuracy": 0.0,
+      "calibration_gap": 0.0
+    },
+    {
+      "bin_idx": 5,
+      "bin_range": "[0.50, 0.60]",
+      "count": 0,
+      "mean_confidence": 0.55,
+      "mean_accuracy": 0.0,
+      "calibration_gap": 0.0
+    },
+    {
+      "bin_idx": 6,
+      "bin_range": "[0.60, 0.70]",
+      "count": 0,
+      "mean_confidence": 0.6500000000000001,
+      "mean_accuracy": 0.0,
+      "calibration_gap": 0.0
+    },
+    {
+      "bin_idx": 7,
+      "bin_range": "[0.70, 0.80]",
+      "count": 2,
+      "mean_confidence": 0.7678499999999999,
+      "mean_accuracy": 0.0,
+      "calibration_gap": 0.7678499999999999
+    },
+    {
+      "bin_idx": 8,
+      "bin_range": "[0.80, 0.90]",
+      "count": 0,
+      "mean_confidence": 0.8500000000000001,
+      "mean_accuracy": 0.0,
+      "calibration_gap": 0.0
+    },
+    {
+      "bin_idx": 9,
+      "bin_range": "[0.90, 1.00]",
+      "count": 488,
+      "mean_confidence": 0.9871811475409837,
+      "mean_accuracy": 0.9016393442622951,
+      "calibration_gap": 0.08554180327868866
+    }
+  ],
+  "diagram_artifact": "reports\\calibration_reliability_diagram.png"
+}

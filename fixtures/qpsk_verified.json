@@ -1,0 +1,45 @@
+{
+  "capture_id": "CAP_QPSK_002",
+  "provenance": "synthetic",
+  "is_valid_burst": true,
+  "center_freq_hz": 868000000.0,
+  "bandwidth_hz": 200000.0,
+  "baud_rate": 100000.0,
+  "snr_m2m4_db": 18.0,
+  "evm": 0.07,
+  "phase_ambiguity_quality": 0.92,
+  "envelope_variance": 0.06,
+  "phase_entropy": 1.38,
+  "cumulants": {
+    "C20": 0.02,
+    "C21": 1.0,
+    "C40": 0.96,
+    "C42": -0.98,
+    "C60": 0.0,
+    "C63": 0.0,
+    "C80": 0.0
+  },
+  "cluster_metrics": {
+    "cluster_count": 4,
+    "silhouette_score": 0.88,
+    "intra_cluster_dist": 0.12,
+    "inter_cluster_dist": 1.41,
+    "cluster_count_stability": 0.95
+  },
+  "sub_windows": [
+    {
+      "window_idx": 0,
+      "estimated_snr_db": 18.2,
+      "estimated_c42": -0.98,
+      "estimated_c20": 0.02,
+      "cluster_count": 4
+    },
+    {
+      "window_idx": 1,
+      "estimated_snr_db": 17.9,
+      "estimated_c42": -0.97,
+      "estimated_c20": 0.01,
+      "cluster_count": 4
+    }
+  ]
+}

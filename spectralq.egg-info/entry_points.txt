@@ -1,0 +1,2 @@
+[console_scripts]
+spectralq = spectralq.cli:main

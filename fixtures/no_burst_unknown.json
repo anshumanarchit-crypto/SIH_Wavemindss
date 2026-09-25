@@ -1,0 +1,30 @@
+{
+  "capture_id": "CAP_NO_BURST_005",
+  "provenance": "synthetic",
+  "is_valid_burst": false,
+  "center_freq_hz": null,
+  "bandwidth_hz": null,
+  "baud_rate": null,
+  "snr_m2m4_db": -5.0,
+  "evm": 1.2,
+  "phase_ambiguity_quality": 0.0,
+  "envelope_variance": 0.8,
+  "phase_entropy": 3.0,
+  "cumulants": {
+    "C20": 0.0,
+    "C21": 0.0,
+    "C40": 0.0,
+    "C42": 0.0,
+    "C60": 0.0,
+    "C63": 0.0,
+    "C80": 0.0
+  },
+  "cluster_metrics": {
+    "cluster_count": 1,
+    "silhouette_score": 0.0,
+    "intra_cluster_dist": 0.0,
+    "inter_cluster_dist": 0.0,
+    "cluster_count_stability": 0.0
+  },
+  "sub_windows": []
+}
