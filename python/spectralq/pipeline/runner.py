@@ -35,6 +35,11 @@ from spectralq.contracts.schemas import (
 )
 from spectralq.pipeline.octave_bridge import OctaveBridge
 from spectralq.evidence import EvidenceLedger, compute_ladder_level
+from spectralq.integration import (
+    ClassifierAdapter,
+    RuleBasedClassifier,
+    evaluate_n5_consensus,
+)
 
 
 def compute_file_hash(file_path: str) -> str:
@@ -121,16 +126,20 @@ def run(
 
     analysis: AnalysisContract = bridge.run(capture_path)
 
-    # Stage 3: Classifier (Harsh)
-    stage_status["Classifier"] = "STUB"
-    classifier_out = get_stub_classifier_output(analysis.capture_id, analysis)
+    # Stage 3: Classifier (Harsh) & Rule Engine (Archit)
+    stage_status["Classifier"] = "LIVE" if is_live else "STUB"
+    classifier_adapter = ClassifierAdapter()
+    classifier_out = classifier_adapter.predict(analysis, capture_id=analysis.capture_id)
+
+    rule_classifier = RuleBasedClassifier()
+    rule_out = rule_classifier.classify(analysis)
 
     # Stage 4: Demodulator & Decoder (Arpit)
     stage_status["Demodulator & Decoder"] = "STUB"
     decoder_out = get_stub_decoder_output(analysis.capture_id, analysis)
 
-    # Stage 5: Decision Engine (Archit - Phase 4 Evidence Ledger & Ladder Level)
-    stage_status["Decision Engine"] = "STUB"
+    # Stage 5: Decision Engine (Archit - Phase 5 N5 Consensus & Evidence Ledger)
+    stage_status["Decision Engine"] = "LIVE" if is_live else "STUB"
 
     input_hash = compute_file_hash(capture_path)
     now_utc = datetime.now(timezone.utc).isoformat()
@@ -168,18 +177,13 @@ def run(
         explanation=f"Estimated SNR ({est.snr.value:.1f} dB) and baud with valid 95% confidence intervals",
     )
 
-    # 3. Classifier Probability Evidence
-    top_ml = classifier_out.ml_prediction
-    top_prob = classifier_out.ml_probabilities.get(top_ml, 0.85)
-    ledger.record(
-        evidence_id=f"EV_ML_{analysis.capture_id}",
-        source="Harsh (Stage 5 Classifier)",
-        check_name="ml_confidence_check",
-        status=EvidenceStatus.PASS if top_prob >= 0.50 else EvidenceStatus.FAIL,
-        numeric_value=top_prob,
-        normalized_value=top_prob,
-        threshold=0.50,
-        explanation=f"Classifier assigned majority probability to {top_ml} ({top_prob:.4f})",
+    # 3. N5 Hybrid Consensus Evidence (Rule AMC vs ML Classifier)
+    n5_result = evaluate_n5_consensus(
+        rule_result=rule_out,
+        ml_output=classifier_out,
+        capture_id=analysis.capture_id,
+        ledger=ledger,
+        run_id=run_id,
     )
 
     # 4. Decoder Integrity Evidence
@@ -235,7 +239,7 @@ def run(
         "capability_available": is_live,
         "ladder_level": ladder_level.value,
         "top_hypothesis": {
-            "modulation": classifier_out.ml_prediction,
+            "modulation": n5_result.ml_prediction,
             "interleaver": decoder_out.interleaver_used,
             "fec": decoder_out.fec_used,
         },
@@ -251,18 +255,18 @@ def run(
                 "rejection_reason": "Cumulant distance favors QPSK",
             }
         ],
-        "ml_prediction": classifier_out.ml_prediction,
-        "ml_probability": top_prob,
-        "calibrated_ml_probability": classifier_out.calibrated_probability,
-        "rule_prediction": "QPSK",
-        "rule_ml_agreement": True,
-        "rule_ml_penalty": 0.0,
-        "cross_window_agreement": 0.95,
+        "ml_prediction": n5_result.ml_prediction,
+        "ml_probability": n5_result.ml_probability,
+        "calibrated_ml_probability": None,
+        "rule_prediction": n5_result.rule_prediction,
+        "rule_ml_agreement": n5_result.agreement,
+        "rule_ml_penalty": n5_result.penalty,
+        "cross_window_agreement": 1.0,
         "evidence": ledger.get_items(),
         "failed_checks": ledger.get_failed_checks(),
         "unavailable_checks": ledger.get_unavailable_checks(),
         "final_confidence": 0.82,
-        "confidence_version": "phase4-ledger-1.0.0",
+        "confidence_version": "phase5-n5-1.0.0",
         "unknown": False,
         "unknown_reason": None,
         "provenance": {
