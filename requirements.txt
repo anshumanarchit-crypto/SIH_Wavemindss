@@ -1,0 +1,10 @@
+# SpectralQ Environment Dependencies
+# Pinned to exact active environment versions tested on Python 3.13.3
+numpy==2.2.6
+scipy==1.16.3
+scikit-learn==1.8.0
+matplotlib==3.10.7
+streamlit==1.55.0
+pytest==9.1.1
+pydantic==2.10.3
+joblib==1.5.3
