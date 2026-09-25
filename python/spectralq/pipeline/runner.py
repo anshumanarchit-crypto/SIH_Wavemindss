@@ -41,6 +41,13 @@ from spectralq.integration import (
     evaluate_n5_consensus,
 )
 from spectralq.confidence import ConfidenceEngine, AbstentionSystem
+from spectralq.replay import (
+    ReplayCache,
+    ReplayCacheError,
+    CacheNotFoundError,
+    CacheCorruptedError,
+    CacheMismatchError,
+)
 
 
 def compute_file_hash(file_path: str) -> str:
@@ -102,30 +109,76 @@ def get_stub_decoder_output(capture_id: str, analysis: AnalysisContract) -> Deco
 
 
 class PipelineResult:
-    """Encapsulates the ResultContract and per-stage execution status metadata."""
-    def __init__(self, result: ResultContract, stage_status: Dict[str, str]):
+    """Encapsulates the ResultContract, AnalysisContract, and per-stage execution status metadata."""
+    def __init__(
+        self,
+        result: ResultContract,
+        stage_status: Dict[str, str],
+        analysis: Optional[AnalysisContract] = None,
+    ):
         self.result = result
         self.stage_status = stage_status
+        self.analysis = analysis
 
 
 def run(
     capture_path: str,
     bridge: Optional[OctaveBridge] = None,
     seed: int = 42,
+    mode: str = "auto",
+    replay_cache: Optional[ReplayCache] = None,
 ) -> PipelineResult:
     """
     Executes the end-to-end SpectralQ pipeline plumbing.
     Per-stage execution is tracked as LIVE, STUB, or REPLAY.
     """
     bridge = bridge or OctaveBridge()
+    cache = replay_cache or ReplayCache()
     stage_status: Dict[str, str] = {}
 
-    # Stage 1 & 2: Ingest, Forensics & Feature Extraction
-    is_live = bridge.is_live_capable()
-    stage_status["Ingest & Forensics"] = "LIVE" if is_live else "STUB"
-    stage_status["Feature Extraction"] = "LIVE" if is_live else "STUB"
-
-    analysis: AnalysisContract = bridge.run(capture_path)
+    # Stage 1 & 2: Ingest, Forensics & Feature Extraction (Mode Dispatched)
+    mode_normalized = mode.lower()
+    if mode_normalized == "replay":
+        analysis, _ = cache.load_analysis(capture_path)
+        stage_status["Ingest & Forensics"] = "REPLAY"
+        stage_status["Feature Extraction"] = "REPLAY"
+        is_live = False
+    elif mode_normalized == "live":
+        if not bridge.is_live_capable():
+            stage_status["Ingest & Forensics"] = "ERROR"
+            stage_status["Feature Extraction"] = "ERROR"
+            raise RuntimeError("Live mode requested, but Octave DSP capability is unavailable.")
+        analysis = bridge.run(capture_path)
+        stage_status["Ingest & Forensics"] = "LIVE"
+        stage_status["Feature Extraction"] = "LIVE"
+        cache.save_analysis(capture_path, analysis)
+        is_live = True
+    elif mode_normalized == "stub":
+        analysis = bridge.run_stub(capture_path)
+        stage_status["Ingest & Forensics"] = "STUB"
+        stage_status["Feature Extraction"] = "STUB"
+        is_live = False
+    elif mode_normalized == "auto":
+        if bridge.is_live_capable():
+            analysis = bridge.run(capture_path)
+            stage_status["Ingest & Forensics"] = "LIVE"
+            stage_status["Feature Extraction"] = "LIVE"
+            cache.save_analysis(capture_path, analysis)
+            is_live = True
+        elif cache.has_cache(capture_path):
+            # Surfacing state change explicitly
+            analysis, _ = cache.load_analysis(capture_path)
+            stage_status["Ingest & Forensics"] = "REPLAY"
+            stage_status["Feature Extraction"] = "REPLAY"
+            stage_status["Auto Fallback"] = "LIVE_UNAVAILABLE_FALLBACK_TO_REPLAY"
+            is_live = False
+        else:
+            analysis = bridge.run(capture_path)
+            stage_status["Ingest & Forensics"] = "STUB"
+            stage_status["Feature Extraction"] = "STUB"
+            is_live = False
+    else:
+        raise ValueError(f"Unsupported execution mode '{mode}'. Choose from 'auto', 'live', 'replay', 'stub'.")
 
     # Stage 3: Classifier (Harsh) & Rule Engine (Archit)
     stage_status["Classifier"] = "LIVE" if is_live else "STUB"
@@ -301,4 +354,4 @@ def run(
     }
 
     result = validate_result_dict(result_data)
-    return PipelineResult(result=result, stage_status=stage_status)
+    return PipelineResult(result=result, stage_status=stage_status, analysis=analysis)

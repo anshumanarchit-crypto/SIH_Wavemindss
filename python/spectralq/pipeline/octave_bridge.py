@@ -254,3 +254,7 @@ class OctaveBridge:
         }
 
         return validate_analysis_dict(stub_data)
+
+    def run_stub(self, capture_path: str) -> AnalysisContract:
+        """Alias for generate_deterministic_stub."""
+        return self.generate_deterministic_stub(capture_path)
