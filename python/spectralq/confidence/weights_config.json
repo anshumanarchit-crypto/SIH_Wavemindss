@@ -1,0 +1,22 @@
+{
+  "version": "1.0.0-fitted-logistic",
+  "weight_source": "fitted",
+  "manual_weights": false,
+  "weights": {
+    "ml_probability": 0.7453045055887815,
+    "cross_window_agreement": 0.44457121166965946,
+    "evidence_score": 0.7393225603298669,
+    "rule_ml_agreement": 1.05559628025638
+  },
+  "intercept": -0.48843117847497314,
+  "min_held_out_instances_required": 50,
+  "fitted_instances_count": 120,
+  "split_method": "by_signal_instance",
+  "features_order": [
+    "ml_probability",
+    "cross_window_agreement",
+    "evidence_score",
+    "rule_ml_agreement"
+  ],
+  "fitted_at_utc": "2026-09-25T11:54:42.147815+00:00"
+}

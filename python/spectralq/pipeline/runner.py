@@ -40,6 +40,7 @@ from spectralq.integration import (
     RuleBasedClassifier,
     evaluate_n5_consensus,
 )
+from spectralq.confidence import ConfidenceEngine
 
 
 def compute_file_hash(file_path: str) -> str:
@@ -231,6 +232,19 @@ def run(
     else:
         pipeline_source_mode = SourceMode.STUB
 
+    # Compute N2 Defensible Confidence
+    confidence_engine = ConfidenceEngine()
+    conf_res = confidence_engine.compute_confidence(
+        prediction=n5_result.ml_prediction,
+        ml_probability=n5_result.ml_probability,
+        cross_window_agreement=1.0,
+        rule_prediction=n5_result.rule_prediction,
+        ml_prediction=n5_result.ml_prediction,
+        rule_ml_agreement=n5_result.agreement,
+        ledger=ledger,
+        calibrated_ml_probability=None,
+    )
+
     # Assemble ResultContract
     result_data = {
         "schema_version": "1.0.0",
@@ -265,8 +279,8 @@ def run(
         "evidence": ledger.get_items(),
         "failed_checks": ledger.get_failed_checks(),
         "unavailable_checks": ledger.get_unavailable_checks(),
-        "final_confidence": 0.82,
-        "confidence_version": "phase5-n5-1.0.0",
+        "final_confidence": conf_res.final_confidence,
+        "confidence_version": conf_res.confidence_version,
         "unknown": False,
         "unknown_reason": None,
         "provenance": {

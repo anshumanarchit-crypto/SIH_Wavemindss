@@ -18,7 +18,7 @@ Invariants:
 - Unsupported or NOT_RUN evidence must NEVER silently become a positive score.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from spectralq.contracts.schemas import EvidenceItem, EvidenceStatus
 
 
@@ -87,39 +87,34 @@ class EvidenceLedger:
         """Returns all evidence items with CONFLICT status."""
         return [item for item in self._items if item.status == EvidenceStatus.CONFLICT]
 
+    def compute_evidence_ratio(self) -> Tuple[float, bool]:
+        """
+        Computes the Phase 6 evidence score strictly over {PASS, FAIL, CONFLICT}:
+        evidence_score = count(PASS) / (count(PASS) + count(FAIL) + count(CONFLICT))
+        Excludes NOT_RUN and UNAVAILABLE from the denominator.
+        
+        Returns:
+            (evidence_score, no_verification_possible)
+        """
+        n_pass = sum(1 for item in self._items if item.status == EvidenceStatus.PASS)
+        n_fail = sum(1 for item in self._items if item.status in [EvidenceStatus.FAIL, EvidenceStatus.CONFLICT])
+        denominator = n_pass + n_fail
+
+        if denominator == 0:
+            return 0.0, True
+
+        return float(n_pass / denominator), False
+
     def calculate_evidence_score(self) -> float:
         """
-        Computes a physical evidence verification aggregate score in [0.0, 1.0].
+        Computes the physical evidence verification aggregate score in [0.0, 1.0].
         
         CRITICAL ARCHITECTURAL INVARIANT:
         Unsupported, UNAVAILABLE, NOT_RUN, or FAIL items must NEVER contribute positively
         to the score. Only genuine PASS evidence can produce a positive contribution.
         """
-        if not self._items:
-            return 0.0
-
-        pass_points = 0.0
-        total_evaluable_checks = 0
-
-        for item in self._items:
-            # NOT_RUN and UNAVAILABLE contribute exactly 0.0 positive points
-            if item.status in [EvidenceStatus.NOT_RUN, EvidenceStatus.UNAVAILABLE]:
-                continue
-
-            total_evaluable_checks += 1
-
-            if item.status == EvidenceStatus.PASS:
-                # Add normalized value if present, else 1.0 point
-                pts = item.normalized_value if item.normalized_value is not None else 1.0
-                pass_points += max(0.0, pts)
-            elif item.status in [EvidenceStatus.FAIL, EvidenceStatus.CONFLICT]:
-                # Failure or conflict contributes 0 positive score
-                pass_points += 0.0
-
-        if total_evaluable_checks == 0:
-            return 0.0
-
-        return float(min(1.0, max(0.0, pass_points / float(total_evaluable_checks))))
+        score, _ = self.compute_evidence_ratio()
+        return score
 
     def to_dict_list(self) -> List[Dict[str, Any]]:
         """Serializes all ledger items to a list of dicts."""
