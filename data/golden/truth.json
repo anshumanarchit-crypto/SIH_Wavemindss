@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0.0",
+  "modulation": "QPSK",
+  "sps": 4.0,
+  "roll_off": 0.35,
+  "snr_db": 20.0,
+  "cfo_hz": 500.0,
+  "phase": 0.0,
+  "interleaver": "block",
+  "fec": "conv_viterbi_k7",
+  "timing_bits": [
+    1,
+    1,
+    0,
+    0,
+    1,
+    0,
+    1,
+    0
+  ],
+  "source_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

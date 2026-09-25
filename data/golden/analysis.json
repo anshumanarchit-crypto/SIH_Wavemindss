@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "GOLDEN_001_QPSK",
+  "source_mode": "synthetic",
+  "fs_hz": 20000000.0,
+  "fs_source": "header",
+  "bursts": [
+    {
+      "start_ms": 5.0,
+      "end_ms": 120.0,
+      "power": -12.4
+    }
+  ],
+  "estimates": {
+    "baud": {
+      "value": 1000000.0,
+      "ci_lo": 990000.0,
+      "ci_hi": 1010000.0,
+      "method": "cyclic_autocorr"
+    },
+    "cfo": {
+      "value": 500.0,
+      "ci_lo": 450.0,
+      "ci_hi": 550.0,
+      "method": "fft_peak"
+    },
+    "bandwidth": {
+      "value": 1250000.0,
+      "ci_lo": 1200000.0,
+      "ci_hi": 1300000.0,
+      "method": "power_envelope_99"
+    },
+    "snr": {
+      "value": 20.0,
+      "ci_lo": 19.0,
+      "ci_hi": 21.0,
+      "method": "M2M4"
+    }
+  },
+  "features": {
+    "cumulants": {
+      "C20": 0.01,
+      "C21": 1.0,
+      "C40": 0.97,
+      "C42": -0.99,
+      "C60": 0.0,
+      "C63": 0.0,
+      "C80": 0.0
+    },
+    "cluster": {
+      "count": 4,
+      "silhouette": 0.91,
+      "intra_var": 0.06,
+      "inter_dist": 1.41
+    },
+    "evm": 0.035,
+    "phase_ambiguity_quality": 0.96,
+    "cyclic": null
+  }
+}

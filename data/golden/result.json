@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "GOLDEN_001_QPSK",
+  "source_mode": "synthetic",
+  "ladder_level": "L5",
+  "top_hypothesis": {
+    "modulation": "QPSK",
+    "interleaver": "block",
+    "fec": "conv_viterbi_k7"
+  },
+  "alternate_hypotheses": [
+    {
+      "modulation": "QPSK",
+      "interleaver": "none",
+      "fec": "ldpc",
+      "prior_score": 0.85,
+      "verification_score": 0.0,
+      "total_score": 0.0,
+      "status": "UNSUPPORTED",
+      "rejection_reason": "FEC scheme 'LDPC' is unsupported in current release (never fabricated)"
+    }
+  ],
+  "ml_prediction": "QPSK",
+  "ml_probability": 0.95,
+  "calibrated_ml_probability": 0.94,
+  "rule_prediction": "QPSK",
+  "rule_ml_agreement": true,
+  "rule_ml_penalty": 0.0,
+  "cross_window_agreement": 0.99,
+  "evidence": [
+    {
+      "evidence_id": "EV_001",
+      "source": "Sinchana",
+      "check_name": "burst_power",
+      "status": "PASS",
+      "value": -12.4,
+      "explanation": "Valid burst energy detected above background noise floor"
+    }
+  ],
+  "final_confidence": 0.975,
+  "confidence_version": "n2-logistic-1.0.0",
+  "unknown": false,
+  "unknown_reason": null,
+  "provenance": {
+    "input_hash": "b2c3d4e5f6789012",
+    "seed": 42,
+    "software_version": "1.0.0",
+    "generated_at": "2026-09-25T11:30:00Z"
+  }
+}

@@ -25,14 +25,12 @@ gui = [
     "streamlit>=1.28.0"
 ]
 
-[project.scripts]
-spectralq = "spectralq.cli:main"
-
 [tool.setuptools.packages.find]
+where = ["python"]
 include = ["spectralq*"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-ra -q --strict-markers"
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = ["python"]

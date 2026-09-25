@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "GOLDEN_001_QPSK",
+  "status": "ok",
+  "interleaver_used": "block",
+  "fec_used": "conv_viterbi_k7",
+  "decoded_bits": "110010101111000010101100",
+  "crc_status": "pass",
+  "reencode_ber": 0.0005,
+  "failure_reason": null
+}

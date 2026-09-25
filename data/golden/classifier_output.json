@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "GOLDEN_001_QPSK",
+  "window_id": 0,
+  "ml_prediction": "QPSK",
+  "ml_probabilities": {
+    "BPSK": 0.01,
+    "QPSK": 0.95,
+    "8-PSK": 0.02,
+    "16-QAM": 0.01,
+    "64-QAM": 0.005,
+    "2-FSK": 0.002,
+    "4-FSK": 0.003
+  },
+  "calibrated_probability": 0.94,
+  "model_version": "rf-baseline-1.0.0",
+  "feature_vector_used": {
+    "C20": 0.01,
+    "C40": 0.97,
+    "C42": -0.99,
+    "snr": 20.0,
+    "evm": 0.035
+  }
+}
