@@ -1,0 +1,67 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "REAL_ISM_2400M_BURST",
+  "source_mode": "real",
+  "fs_hz": 10000000.0,
+  "fs_source": "header",
+  "bursts": [
+    {
+      "start_ms": 1.2,
+      "end_ms": 5.4,
+      "power": -18.5
+    }
+  ],
+  "estimates": {
+    "baud": {
+      "value": 1000000.0,
+      "ci_lo": 980000.0,
+      "ci_hi": 1020000.0,
+      "method": "spectral_energy_envelope"
+    },
+    "cfo": {
+      "value": -12000.0,
+      "ci_lo": -15000.0,
+      "ci_hi": -9000.0,
+      "method": "fft_cross_correlator"
+    },
+    "bandwidth": {
+      "value": 2200000.0,
+      "ci_lo": 2100000.0,
+      "ci_hi": 2300000.0,
+      "method": "power_envelope_99"
+    },
+    "snr": {
+      "value": 11.2,
+      "ci_lo": 10.5,
+      "ci_hi": 11.9,
+      "method": "M2M4"
+    }
+  },
+  "features": {
+    "cumulants": {
+      "C20": 0.02,
+      "C21": 1.0,
+      "C40": 0.05,
+      "C42": -0.92,
+      "C60": 0.0,
+      "C63": 0.0,
+      "C80": 0.0
+    },
+    "cluster": {
+      "count": 4,
+      "silhouette": 0.28,
+      "intra_var": 0.35,
+      "inter_dist": 0.75
+    },
+    "evm": 0.22,
+    "phase_ambiguity_quality": null,
+    "cyclic": null
+  },
+  "sub_windows": [
+    {
+      "window_index": 0,
+      "snr_db": 11.1
+    }
+  ],
+  "notes": "real IQ capture, protocol not independently verified. Recorded over 2.4 GHz ISM band via HackRF One. Measured parameters not independently verified against IEEE 802.15.4 specification."
+}

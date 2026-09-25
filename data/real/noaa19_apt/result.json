@@ -1,0 +1,236 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "REAL_NOAA19_APT_137M1",
+  "source_mode": "real",
+  "ladder_level": "L3",
+  "top_hypothesis": {
+    "modulation": "2-FSK",
+    "interleaver": "none",
+    "fec": "none"
+  },
+  "alternate_hypotheses": [
+    {
+      "modulation": "2-FSK",
+      "interleaver": "pseudo-random",
+      "fec": "rs_255_223",
+      "prior_score": 0.93,
+      "verification_score": 0.1,
+      "total_score": 0.43200000000000005,
+      "status": "EVALUATED",
+      "rejection_reason": null
+    },
+    {
+      "modulation": "2-FSK",
+      "interleaver": "pseudo-random",
+      "fec": "none",
+      "prior_score": 0.93,
+      "verification_score": 0.1,
+      "total_score": 0.43200000000000005,
+      "status": "EVALUATED",
+      "rejection_reason": null
+    },
+    {
+      "modulation": "2-FSK",
+      "interleaver": "pseudo-random",
+      "fec": "conv_viterbi_k7",
+      "prior_score": 0.93,
+      "verification_score": 0.1,
+      "total_score": 0.43200000000000005,
+      "status": "EVALUATED",
+      "rejection_reason": null
+    },
+    {
+      "modulation": "2-FSK",
+      "interleaver": "pseudo-random",
+      "fec": "concatenated",
+      "prior_score": 0.93,
+      "verification_score": 0.1,
+      "total_score": 0.43200000000000005,
+      "status": "EVALUATED",
+      "rejection_reason": null
+    },
+    {
+      "modulation": "2-FSK",
+      "interleaver": "none",
+      "fec": "rs_255_223",
+      "prior_score": 0.93,
+      "verification_score": 0.1,
+      "total_score": 0.43200000000000005,
+      "status": "EVALUATED",
+      "rejection_reason": null
+    }
+  ],
+  "ml_prediction": "2-FSK",
+  "ml_probability": 0.93,
+  "calibrated_ml_probability": 0.915,
+  "rule_prediction": "2-FSK",
+  "rule_ml_agreement": true,
+  "rule_ml_penalty": 0.0,
+  "cross_window_agreement": 1.0,
+  "evidence": [
+    {
+      "evidence_id": "EV_INGEST_REAL_NOAA19_APT_137M1",
+      "hypothesis_id": null,
+      "source": "Sinchana (Ingest)",
+      "check_name": "burst_energy_check",
+      "status": "PASS",
+      "value": null,
+      "numeric_value": -14.2,
+      "normalized_value": 1.0,
+      "threshold": null,
+      "provenance": null,
+      "run_id": "RUN_REAL_REAL_NOAA19__42",
+      "explanation": "Burst energy detected (-14.2 dBm) via real ingest",
+      "failure_reason": null
+    },
+    {
+      "evidence_id": "EV_EST_REAL_NOAA19_APT_137M1",
+      "hypothesis_id": null,
+      "source": "Sinchana (Blind Estimation)",
+      "check_name": "parameter_uncertainty_check",
+      "status": "PASS",
+      "value": null,
+      "numeric_value": 14.2,
+      "normalized_value": null,
+      "threshold": null,
+      "provenance": null,
+      "run_id": "RUN_REAL_REAL_NOAA19__42",
+      "explanation": "Estimated SNR (14.2 dB) and baud (4160 Hz) with 95% confidence bounds",
+      "failure_reason": null
+    },
+    {
+      "evidence_id": "EV_FEAT_PHASE_AMB_REAL_NOAA19_APT_137M1",
+      "hypothesis_id": null,
+      "source": "Sinchana (Features)",
+      "check_name": "phase_ambiguity_quality_check",
+      "status": "UNAVAILABLE",
+      "value": null,
+      "numeric_value": null,
+      "normalized_value": null,
+      "threshold": null,
+      "provenance": null,
+      "run_id": "RUN_REAL_REAL_NOAA19__42",
+      "explanation": "Phase ambiguity quality was not computed by Sinchana; marked UNAVAILABLE per contract",
+      "failure_reason": null
+    },
+    {
+      "evidence_id": "EV_FEAT_CYCLIC_REAL_NOAA19_APT_137M1",
+      "hypothesis_id": null,
+      "source": "Sinchana (Features)",
+      "check_name": "cyclic_prefix_check",
+      "status": "UNAVAILABLE",
+      "value": null,
+      "numeric_value": null,
+      "normalized_value": null,
+      "threshold": null,
+      "provenance": null,
+      "run_id": "RUN_REAL_REAL_NOAA19__42",
+      "explanation": "Cyclic prefix feature is absent in upstream analysis; marked UNAVAILABLE per contract",
+      "failure_reason": null
+    },
+    {
+      "evidence_id": "EV_N5_REAL_NOAA19_APT_137M1",
+      "hypothesis_id": "HYP_2-FSK",
+      "source": "N5_Hybrid_Consensus",
+      "check_name": "rule_ml_agreement",
+      "status": "PASS",
+      "value": true,
+      "numeric_value": 1.0,
+      "normalized_value": 1.0,
+      "threshold": 1.0,
+      "provenance": {
+        "rule_prediction": "2-FSK",
+        "ml_prediction": "2-FSK",
+        "rule_config_version": "1.0.0-synthetic-sweep",
+        "ml_model_version": "rf-baseline-1.0.0",
+        "penalty_applied": 0.0,
+        "rule_decision_path": [
+          "Step 1: Check BPSK (|C20|/C21 = 0.015 < threshold 0.600). Signal is 2D complex circular constellation; proceed to FSK/QAM/PSK branch.",
+          "Step 2: Check FSK (Constellation silhouette 0.260 < threshold 0.400, cluster count 2 <= 2). Continuous phase tone signature -> Classified as 2-FSK."
+        ]
+      },
+      "run_id": "RUN_REAL_REAL_NOAA19__42",
+      "explanation": "Consensus reached: Rule engine and ML classifier both identified 2-FSK (ML probability: 0.9300, agreement=True)",
+      "failure_reason": null
+    },
+    {
+      "evidence_id": "EV_CRC_REAL_NOAA19_APT_137M1",
+      "hypothesis_id": null,
+      "source": "Arpit (Decoder)",
+      "check_name": "crc_checksum_check",
+      "status": "NOT_RUN",
+      "value": null,
+      "numeric_value": null,
+      "normalized_value": null,
+      "threshold": null,
+      "provenance": null,
+      "run_id": "RUN_REAL_REAL_NOAA19__42",
+      "explanation": "Payload CRC checksum check was not executed",
+      "failure_reason": null
+    },
+    {
+      "evidence_id": "EV_BER_REAL_NOAA19_APT_137M1",
+      "hypothesis_id": null,
+      "source": "Arpit (Decoder)",
+      "check_name": "reencode_ber_check",
+      "status": "UNAVAILABLE",
+      "value": null,
+      "numeric_value": null,
+      "normalized_value": null,
+      "threshold": null,
+      "provenance": null,
+      "run_id": "RUN_REAL_REAL_NOAA19__42",
+      "explanation": "Re-encode residual BER not available from decoder output",
+      "failure_reason": null
+    },
+    {
+      "evidence_id": "EV_LADDER_REAL_NOAA19_APT_137M1",
+      "hypothesis_id": null,
+      "source": "Archit (Evidence Ladder)",
+      "check_name": "ladder_level_evaluation",
+      "status": "PASS",
+      "value": "L3",
+      "numeric_value": null,
+      "normalized_value": null,
+      "threshold": null,
+      "provenance": null,
+      "run_id": "RUN_REAL_REAL_NOAA19__42",
+      "explanation": "Demodulated to bits with internal constellation consistency (L3); frame structure / CRC not verified",
+      "failure_reason": null
+    },
+    {
+      "evidence_id": "EV_CONF_PASS_REAL_NOAA19_APT_137M1",
+      "hypothesis_id": null,
+      "source": "Abstention_Guard",
+      "check_name": "confidence_threshold_guard",
+      "status": "PASS",
+      "value": 0.9193,
+      "numeric_value": 0.9193,
+      "normalized_value": null,
+      "threshold": 0.8,
+      "provenance": {
+        "guard": "confidence_threshold_guard"
+      },
+      "run_id": "RUN_REAL_REAL_NOAA19__42",
+      "explanation": "Confidence check passed: final_confidence (0.9193) >= operational threshold (0.8000)",
+      "failure_reason": null
+    }
+  ],
+  "failed_checks": [],
+  "unavailable_checks": [
+    "phase_ambiguity_quality_check",
+    "cyclic_prefix_check",
+    "reencode_ber_check"
+  ],
+  "final_confidence": 0.9193,
+  "confidence_version": "fitted-1.0.0-fitted-logistic",
+  "unknown": false,
+  "unknown_reason": null,
+  "provenance": {
+    "input_hash": "b1a1e070a54cd456e47f9693f4904adaf6b5090a88636d5e601a4eba8ec704c9",
+    "seed": 42,
+    "software_version": "1.0.0",
+    "generated_at": "2026-09-25T12:26:26.730730+00:00"
+  },
+  "capability_available": true
+}

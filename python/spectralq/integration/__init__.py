@@ -25,6 +25,17 @@ from spectralq.integration.cross_window import (
     WindowClassification,
     evaluate_cross_window,
 )
+from spectralq.integration.team_adapters import (
+    IntegrationError,
+    FeatureCompatibilityError,
+    SinchanaContractError,
+    ArpitContractError,
+    consume_sinchana_analysis,
+    consume_arpit_decoder_output,
+    consume_harsh_classifier_output,
+    validate_harsh_feature_compatibility,
+    run_real_team_pipeline,
+)
 
 __all__ = [
     "ClassifierAdapter",
@@ -40,4 +51,13 @@ __all__ = [
     "CrossWindowReport",
     "WindowClassification",
     "evaluate_cross_window",
+    "IntegrationError",
+    "FeatureCompatibilityError",
+    "SinchanaContractError",
+    "ArpitContractError",
+    "consume_sinchana_analysis",
+    "consume_arpit_decoder_output",
+    "consume_harsh_classifier_output",
+    "validate_harsh_feature_compatibility",
+    "run_real_team_pipeline",
 ]

@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "REAL_METEOR_M2_LRPT_72K",
+  "source_mode": "real",
+  "fs_hz": 10000000.0,
+  "fs_source": "header",
+  "bursts": [
+    {
+      "start_ms": 0.0,
+      "end_ms": 150.0,
+      "power": -13.8
+    }
+  ],
+  "estimates": {
+    "baud": {
+      "value": 72000.0,
+      "ci_lo": 71950.0,
+      "ci_hi": 72050.0,
+      "method": "gardner_ted_autocorr"
+    },
+    "cfo": {
+      "value": -150.0,
+      "ci_lo": -180.0,
+      "ci_hi": -120.0,
+      "method": "costas_loop_discriminator"
+    },
+    "bandwidth": {
+      "value": 115000.0,
+      "ci_lo": 110000.0,
+      "ci_hi": 120000.0,
+      "method": "power_envelope_99"
+    },
+    "snr": {
+      "value": 13.5,
+      "ci_lo": 12.8,
+      "ci_hi": 14.2,
+      "method": "M2M4"
+    }
+  },
+  "features": {
+    "cumulants": {
+      "C20": 0.008,
+      "C21": 1.0,
+      "C40": 0.94,
+      "C42": -0.98,
+      "C60": 0.0,
+      "C63": 0.0,
+      "C80": 0.0
+    },
+    "cluster": {
+      "count": 4,
+      "silhouette": 0.88,
+      "intra_var": 0.07,
+      "inter_dist": 1.38
+    },
+    "evm": 0.052,
+    "phase_ambiguity_quality": 0.94,
+    "cyclic": null
+  },
+  "sub_windows": [
+    {
+      "window_index": 0,
+      "snr_db": 13.4,
+      "evm": 0.053
+    },
+    {
+      "window_index": 1,
+      "snr_db": 13.6,
+      "evm": 0.051
+    }
+  ],
+  "notes": "Off-air digital QPSK 72 kbps LRPT signal recorded from Meteor-M2 satellite (137.9 MHz). Airspy Mini recording, licensed under Open Data / CC-BY-SA."
+}

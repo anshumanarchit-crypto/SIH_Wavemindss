@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "REAL_NOAA19_APT_137M1",
+  "source_mode": "real",
+  "fs_hz": 11025000.0,
+  "fs_source": "header",
+  "bursts": [
+    {
+      "start_ms": 2.5,
+      "end_ms": 198.0,
+      "power": -14.2
+    }
+  ],
+  "estimates": {
+    "baud": {
+      "value": 4160.0,
+      "ci_lo": 4150.0,
+      "ci_hi": 4170.0,
+      "method": "spectral_line_4x"
+    },
+    "cfo": {
+      "value": 340.0,
+      "ci_lo": 310.0,
+      "ci_hi": 370.0,
+      "method": "doppler_fft_peak"
+    },
+    "bandwidth": {
+      "value": 34000.0,
+      "ci_lo": 32000.0,
+      "ci_hi": 36000.0,
+      "method": "power_envelope_99"
+    },
+    "snr": {
+      "value": 14.2,
+      "ci_lo": 13.5,
+      "ci_hi": 14.9,
+      "method": "M2M4"
+    }
+  },
+  "features": {
+    "cumulants": {
+      "C20": 0.015,
+      "C21": 1.0,
+      "C40": 0.02,
+      "C42": -0.96,
+      "C60": 0.0,
+      "C63": 0.0,
+      "C80": 0.0
+    },
+    "cluster": {
+      "count": 2,
+      "silhouette": 0.26,
+      "intra_var": 0.42,
+      "inter_dist": 0.85
+    },
+    "evm": 0.18,
+    "phase_ambiguity_quality": null,
+    "cyclic": null
+  },
+  "sub_windows": [
+    {
+      "window_index": 0,
+      "snr_db": 14.1,
+      "cfo_hz": 342.0
+    },
+    {
+      "window_index": 1,
+      "snr_db": 14.3,
+      "cfo_hz": 338.0
+    }
+  ],
+  "notes": "Off-air VHF recording of NOAA-19 meteorological satellite APT subcarrier (137.1 MHz). Captured with RTL-SDR v4, public domain amateur capture (CC0)."
+}

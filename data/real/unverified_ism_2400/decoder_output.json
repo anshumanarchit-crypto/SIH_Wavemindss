@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "REAL_ISM_2400M_BURST",
+  "status": "unsupported",
+  "interleaver_used": "none",
+  "fec_used": "none",
+  "decoded_bits": 0,
+  "crc_status": "not_run",
+  "reencode_ber": null,
+  "failure_reason": "Protocol not independently verified against IEEE 802.15.4 PHY; frame decoding unsupported"
+}

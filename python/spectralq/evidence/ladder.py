@@ -82,10 +82,11 @@ def compute_ladder_level(
     # -------------------------------------------------------------------------
     # Tier L3 Check: Demodulated to bits, Internally Consistent
     # -------------------------------------------------------------------------
-    # Internal consistency requires EVM < 0.65 and phase ambiguity quality > 0.20
+    # Internal consistency requires EVM < 0.65 and phase ambiguity quality > 0.20 (if evaluated)
+    paq = analysis.features.phase_ambiguity_quality
     is_internally_consistent = (
         analysis.features.evm < 0.65 and
-        analysis.features.phase_ambiguity_quality > 0.20
+        (paq is None or paq > 0.20)
     )
 
     if not is_internally_consistent:

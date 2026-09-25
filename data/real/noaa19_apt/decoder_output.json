@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "REAL_NOAA19_APT_137M1",
+  "status": "ok",
+  "interleaver_used": "none",
+  "fec_used": "none",
+  "decoded_bits": 8320,
+  "crc_status": "not_run",
+  "reencode_ber": null,
+  "failure_reason": null
+}

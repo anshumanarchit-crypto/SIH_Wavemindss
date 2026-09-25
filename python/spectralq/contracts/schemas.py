@@ -140,7 +140,7 @@ class FeaturesBlock(BaseModel):
     cumulants: CumulantsBlock
     cluster: ClusterBlock
     evm: float = Field(..., ge=0.0, description="Error Vector Magnitude (linear or ratio)")
-    phase_ambiguity_quality: float = Field(..., ge=0.0, le=1.0, description="Phase ambiguity resolution score")
+    phase_ambiguity_quality: Optional[float] = Field(None, ge=0.0, le=1.0, description="Phase ambiguity resolution score")
     cyclic: Optional[Dict[str, Any]] = None
 
 
@@ -158,6 +158,8 @@ class AnalysisContract(BaseModel):
     bursts: List[BurstRecord] = Field(..., description="Detected signal bursts")
     estimates: EstimatesBlock = Field(..., description="Blind parameter estimates")
     features: FeaturesBlock = Field(..., description="Extracted physical & statistical features")
+    sub_windows: Optional[List[Dict[str, Any]]] = Field(None, description="Optional temporal sub-window forensic metrics")
+    notes: Optional[str] = Field(None, description="Ingest and provenance notes")
     capability_available: Optional[bool] = Field(None, description="Whether live DSP capability was available")
 
     @field_validator("schema_version")

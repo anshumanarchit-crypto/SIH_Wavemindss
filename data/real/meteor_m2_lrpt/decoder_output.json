@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "REAL_METEOR_M2_LRPT_72K",
+  "status": "ok",
+  "interleaver_used": "block",
+  "fec_used": "conv_viterbi_k7",
+  "decoded_bits": 8192,
+  "crc_status": "pass",
+  "reencode_ber": 0.0008,
+  "failure_reason": null
+}
