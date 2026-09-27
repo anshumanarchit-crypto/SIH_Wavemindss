@@ -88,4 +88,5 @@ def render_decoder_panel(
         bit_errs = decoder.bit_errors if (decoder and decoder.bit_errors is not None) else (0 if (decoder and decoder.reencode_ber == 0.0) else "N/A")
         st.write(f"**Source Bit Errors:** `{bit_errs}`")
     with ref_cols[3]:
+        comp_st = (decoder.comparison_status if decoder and decoder.comparison_status else ("EXACT MATCH (BER=0)" if (decoder and decoder.reencode_ber == 0.0) else "N/A"))
         st.write(f"**Comparison Status:** `{comp_st}`")
