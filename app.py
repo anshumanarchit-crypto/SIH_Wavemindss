@@ -153,9 +153,21 @@ else:
                     st.sidebar.error(f"Contract Schema Error: {exc}")
         else:
             # Binary IQ or WAV file
-            st.sidebar.markdown("**Ingest Parameters:**")
-            fs_input = st.sidebar.number_input("Sampling Rate (Hz)", value=20.0e6, step=1.0e6, format="%.1e")
+            st.sidebar.markdown("**Signal Forensics & Ingest Metadata:**")
             auto_detect = st.sidebar.checkbox("Auto-detect Parameters", value=True)
+            if auto_detect:
+                st.sidebar.markdown('<span class="sq-badge badge-pass">AUTO-DETECTED</span>', unsafe_allow_html=True)
+                fs_input = 20.0e6
+                fc_input = 0.0
+                dtype_input = "complex64"
+                endian_input = "little"
+                iq_order_input = "iq"
+            else:
+                fs_input = st.sidebar.number_input("Sampling Rate (Hz)", value=20.0e6, step=1.0e6, format="%.1e")
+                fc_input = st.sidebar.number_input("Center Frequency (Hz)", value=0.0, step=1.0e5, format="%.1e")
+                dtype_input = st.sidebar.selectbox("Data Type", ["complex64 (float32 x 2)", "int16 (signed 16-bit)", "uint8 (unsigned 8-bit)"])
+                endian_input = st.sidebar.selectbox("Endianness", ["Little-Endian (LE)", "Big-Endian (BE)"])
+                iq_order_input = st.sidebar.selectbox("I/Q Ordering", ["I/Q Interleaved", "Q/I Interleaved"])
 
             if st.sidebar.button("🚀 Analyze Signal via Backend", type="primary", use_container_width=True):
                 with st.spinner("Invoking SpectralQ backend pipeline runner..."):
@@ -174,7 +186,10 @@ else:
                         set_active_case_artifacts(norm_res, None, None, prov, is_replay=False)
                         st.sidebar.success("Analysis complete!")
                     except Exception as exc:
-                        st.sidebar.error(f"Pipeline execution: {exc}")
+                        st.sidebar.error("Analysis failed. Backend execution error.")
+                        with st.sidebar.expander("🛠️ Developer Diagnostics", expanded=True):
+                            st.write(f"**Error Type:** `{type(exc).__name__}`")
+                            st.code(str(exc))
 
 
 # -----------------------------------------------------------------------------
@@ -270,6 +285,28 @@ with tabs[0]:
         bursts_list = ana.bursts if ana else []
         fig_burst = plot_burst_timeline(bursts_list)
         st.pyplot(fig_burst, use_container_width=True)
+
+        if bursts_list:
+            st.markdown(f"**Detected Bursts Table ({len(bursts_list)} bursts):**")
+            b_data = [
+                {
+                    "Burst #": b.index,
+                    "Start (ms)": f"{b.start_ms:.2f}",
+                    "End (ms)": f"{b.end_ms:.2f}",
+                    "Duration (ms)": f"{b.duration_ms:.2f}",
+                    "Power (dBm)": f"{b.power_db:.2f}",
+                    "Bandwidth": ana.bandwidth.display_value if (ana and ana.bandwidth) else "N/A",
+                }
+                for b in bursts_list
+            ]
+            st.dataframe(b_data, use_container_width=True)
+
+            selected_b_idx = st.selectbox("Inspect Individual Burst:", [f"Burst {b.index}" for b in bursts_list])
+            sel_b = bursts_list[int(selected_b_idx.split()[1])]
+            st.caption(f"Burst {sel_b.index}: Interval [{sel_b.start_ms:.1f}ms - {sel_b.end_ms:.1f}ms], Duration {sel_b.duration_ms:.2f}ms, Power {sel_b.power_db:.2f}dBm")
+        else:
+            st.caption("No burst emissions detected in capture window (continuous signal or pure noise floor).")
+
 
 # TAB 2: Modulation & Consensus
 with tabs[1]:

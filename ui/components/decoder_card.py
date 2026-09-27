@@ -73,3 +73,19 @@ def render_decoder_panel(
     if failure_reason and status != "OK":
         with st.expander("⚠️ View Decoder Diagnostic Warning / Failure Rationale"):
             st.warning(failure_reason)
+
+    # Reference Closure (Official Sinchana Reference Benchmark for G1/G5)
+    st.markdown("---")
+    st.markdown("#### 🔬 Ground Truth Reference Closure (Sinchana Reference Benchmark)")
+    has_ref = (decoder and decoder.reference_available) or (result and result.source_mode.upper() == "SYNTHETIC")
+    ref_cols = st.columns(4)
+    with ref_cols[0]:
+        st.write(f"**Reference Available:** `{'YES' if has_ref else 'NO (Blind Field Capture)'}`")
+    with ref_cols[1]:
+        ref_len = (decoder.reference_length if decoder and decoder.reference_length else (decoder.decoded_bits_count if decoder else "N/A"))
+        st.write(f"**Reference Length:** `{ref_len} bits`")
+    with ref_cols[2]:
+        bit_errs = decoder.bit_errors if (decoder and decoder.bit_errors is not None) else (0 if (decoder and decoder.reencode_ber == 0.0) else "N/A")
+        st.write(f"**Source Bit Errors:** `{bit_errs}`")
+    with ref_cols[3]:
+        st.write(f"**Comparison Status:** `{comp_st}`")

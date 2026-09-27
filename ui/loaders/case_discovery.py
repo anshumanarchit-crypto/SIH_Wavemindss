@@ -105,4 +105,32 @@ def discover_available_cases(repo_root: Optional[Path] = None) -> List[Discovere
                 analysis_path=fix,
             )
 
+    # 5. Discover handoff and official sinchana artifacts (Section 4 & 33)
+    handoff_dir = root / "data" / "handoff"
+    if handoff_dir.exists():
+        for f in handoff_dir.glob("*.json"):
+            cid = f"HANDOFF_{f.stem.upper()}"
+            discovered[cid] = DiscoveredCase(
+                case_id=cid,
+                name=f"Handoff: {f.stem}",
+                category="Team Handoff",
+                description=f"Team handoff artifact at data/handoff/{f.name}",
+                decoder_path=f if "decoder" in f.name else None,
+                analysis_path=f if "analysis" in f.name else None,
+                result_path=f if "result" in f.name else None,
+            )
+
+    official_sinchana = root / "data" / "official" / "sinchana"
+    if official_sinchana.exists():
+        for f in official_sinchana.glob("*.json"):
+            cid = f"OFFICIAL_SINCHANA_{f.stem.upper()}"
+            discovered[cid] = DiscoveredCase(
+                case_id=cid,
+                name=f"Official Sinchana: {f.stem}",
+                category="Official Reference",
+                description=f"Official reference closure at data/official/sinchana/{f.name}",
+                analysis_path=f if "analysis" in f.name else None,
+                result_path=f if "result" in f.name else None,
+            )
+
     return list(discovered.values())

@@ -27,6 +27,10 @@ class NormalizedDecoder:
     reencode_ber: Optional[float]
     failure_reason: Optional[str]
     source_exact_match: Optional[bool] = None
+    reference_available: Optional[bool] = None
+    reference_length: Optional[int] = None
+    bit_errors: Optional[int] = None
+    comparison_status: Optional[str] = None
     raw_dict: Dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -118,6 +122,10 @@ def adapt_decoder(raw_data: Any) -> NormalizedDecoder:
         crc_status=contract.crc_status.value.upper(),
         reencode_ber=contract.reencode_ber,
         failure_reason=contract.failure_reason,
-        source_exact_match=True if (contract.status.value == "ok" and contract.reencode_ber == 0.0) else None,
+        source_exact_match=True if (contract.status.value == "ok" and contract.reencode_ber == 0.0) else (False if (contract.reencode_ber is not None and contract.reencode_ber > 0) else None),
+        reference_available=raw_dict.get("reference_available", True if raw_dict.get("source_bit_errors") is not None or raw_dict.get("reference_length") is not None else None),
+        reference_length=raw_dict.get("reference_length"),
+        bit_errors=raw_dict.get("bit_errors", raw_dict.get("source_bit_errors")),
+        comparison_status=raw_dict.get("comparison_status", "EXACT MATCH" if contract.reencode_ber == 0.0 else ("BIT ERRORS DETECTED" if (contract.reencode_ber is not None and contract.reencode_ber > 0) else None)),
         raw_dict=raw_dict,
     )
