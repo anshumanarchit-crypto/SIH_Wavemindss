@@ -114,7 +114,8 @@ if current_ws == "Mission Control":
     render_mission_control(result=res, analysis=ana, decoder=dec)
 
 elif current_ws == "Signal Observatory":
-    render_signal_observatory(artifacts=artifacts, analysis=ana, result=res)
+    render_signal_observatory(artifacts=artifacts, analysis=ana, result=res, decoder=dec)
+
 
 elif current_ws == "Modulation & Hypotheses":
     render_modulation_hypotheses(result=res, analysis=ana)

@@ -25,6 +25,14 @@ class NormalizedHypothesis:
     status: str = "CONFIRMED"
     rejection_reason: Optional[str] = None
 
+    @property
+    def likelihood(self) -> float:
+        if self.total_score is not None:
+            return float(self.total_score)
+        if self.prior_score is not None:
+            return float(self.prior_score)
+        return 0.0
+
 
 @dataclass
 class NormalizedEvidence:

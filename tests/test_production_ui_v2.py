@@ -82,7 +82,7 @@ def test_workspaces_render_without_exception():
     # Workspace 1
     render_mission_control(res, ana, dec)
     # Workspace 2
-    render_signal_observatory(artifacts, ana, res)
+    render_signal_observatory(artifacts, ana, res, decoder=dec)
     # Workspace 3
     render_modulation_hypotheses(res, ana)
     # Workspace 4
@@ -91,6 +91,56 @@ def test_workspaces_render_without_exception():
     render_evidence_decision(res, ana, dec)
     # Workspace 6
     render_provenance_export(res, ana, dec, artifacts, prov)
+
+
+def test_reference_dashboard_hierarchy_and_epistemics():
+    """
+    Verifies adherence to the SpectraQ Reference Dashboard hierarchy:
+    1. IQ waveform
+    2. Frequency spectrum
+    3. Extracted parameters table
+    4. Receiver validation
+    And strict epistemic requirements: real contracts, confidence intervals, no fake data.
+    """
+    cases = discover_available_cases(REPO_ROOT)
+    meteor_case = next(c for c in cases if c.case_id == "METEOR_M2_LRPT" or "Real: Meteor" in c.name)
+    res, ana, dec, prov = load_case_artifacts(meteor_case)
+    artifacts = load_case_observatory(meteor_case, ana)
+
+    # 1. Extracted parameters come from real backend contracts
+    assert ana.baud is not None
+    assert ana.baud.display_value == "72.00 kBaud"
+    assert ana.cfo is not None
+    assert ana.snr is not None
+    assert ana.bandwidth is not None
+    assert ana.features is not None
+    assert "C40" in ana.features.cumulants or "c40" in ana.features.cumulants
+    assert "C42" in ana.features.cumulants or "c42" in ana.features.cumulants
+
+    # Confidence interval verification
+    assert hasattr(ana.snr, "ci_lo")
+    assert hasattr(ana.snr, "ci_hi")
+    assert hasattr(ana.cfo, "ci_lo")
+    assert hasattr(ana.cfo, "ci_hi")
+
+    # 2. Receiver validation consumes Arpit's real decoder telemetry
+    assert dec is not None
+    assert dec.status == "OK"
+    assert dec.decoded_bits_count == 8192
+    assert "viterbi" in dec.fec_used.lower()
+    assert dec.crc_status.upper() == "PASS"
+
+    # 3. Test rendering with confirmed decoder
+    render_signal_observatory(artifacts, ana, res, decoder=dec)
+
+    # 4. Test rendering with pending decoder (shows honest 'Pending integration')
+    render_signal_observatory(artifacts, ana, res, decoder=None)
+
+    # 5. Zero fake data when raw samples absent
+    assert artifacts.raw_available is False
+    assert create_waveform_plot(artifacts) is None
+    assert create_spectrum_plot(artifacts) is None
+
 
 
 # =============================================================================

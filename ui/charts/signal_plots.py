@@ -31,39 +31,43 @@ def create_waveform_plot(
     fig = go.Figure()
 
     times = artifacts.waveform_times_ms
+    # Real / Channel 1 (In-Phase) - Gold/Yellow
     fig.add_trace(go.Scatter(
         x=times,
         y=artifacts.waveform_i,
-        name="I (In-phase)",
-        line=dict(color=tokens["primary"], width=1.2),
+        name="Real (Channel 1) [I]",
+        line=dict(color="#f1e05a" if tokens["plotly_template"] == "plotly_dark" else "#b08800", width=1.3),
         mode="lines",
     ))
+    # Imag / Channel 2 (Quadrature) - Cyan/Blue
     fig.add_trace(go.Scatter(
         x=times,
         y=artifacts.waveform_q,
-        name="Q (Quadrature)",
-        line=dict(color=tokens["warn_color"], width=1.2),
+        name="Imag (Channel 2) [Q]",
+        line=dict(color="#58a6ff" if tokens["plotly_template"] == "plotly_dark" else "#0969da", width=1.3),
         mode="lines",
     ))
 
-    title_text = "Time-Domain I/Q Waveform"
+    title_text = "IQ waveform <span style='font-size:12px;color:#8b949e;'>(Raw signal visualization)</span>"
     if artifacts.downsampled:
-        title_text += " <span style='font-size:11px;color:#8b949e;'>(Decimated for Display)</span>"
+        title_text += " <span style='font-size:10px;color:#8b949e;'>[Decimated]</span>"
 
     layout = get_plotly_layout_defaults()
     layout.update({
         "title": title_text,
         "xaxis_title": "Time (ms)",
-        "yaxis_title": "Normalized Amplitude",
+        "yaxis_title": "Amplitude",
         "hovermode": "x unified",
-        "legend": dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        "height": 340,
+        "legend": dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10)),
+        "height": 330,
+        "margin": dict(l=45, r=15, t=40, b=35),
     })
     if layout_overrides:
         layout.update(layout_overrides)
 
     fig.update_layout(layout)
     return fig
+
 
 
 def create_spectrum_plot(
@@ -113,23 +117,25 @@ def create_spectrum_plot(
         )
 
 
-    title_text = "Power Spectral Density (PSD)"
+    title_text = "Frequency spectrum <span style='font-size:12px;color:#8b949e;'>(Spectral characteristics)</span>"
     if spec.downsampled:
-        title_text += " <span style='font-size:11px;color:#8b949e;'>(Decimated)</span>"
+        title_text += " <span style='font-size:10px;color:#8b949e;'>[Decimated]</span>"
 
     layout = get_plotly_layout_defaults()
     layout.update({
         "title": title_text,
-        "xaxis_title": "Frequency Offset (MHz)",
-        "yaxis_title": "Power (dB/Hz)",
+        "xaxis_title": "Frequency (MHz)",
+        "yaxis_title": "Power (dB)",
         "hovermode": "x",
-        "height": 340,
+        "height": 330,
+        "margin": dict(l=45, r=15, t=40, b=35),
     })
     if layout_overrides:
         layout.update(layout_overrides)
 
     fig.update_layout(layout)
     return fig
+
 
 
 def create_waterfall_plot(

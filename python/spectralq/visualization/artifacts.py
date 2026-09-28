@@ -207,11 +207,18 @@ def build_evidence_bundle_zip(
         res_info = art_dict.get("result")
         if res_info and "evidence" in res_info and isinstance(res_info["evidence"], list):
             for ev in res_info["evidence"]:
-                eid = ev.get("evidence_id", "")
-                src = ev.get("source", "")
-                chk = ev.get("check_name", "")
-                sts = ev.get("status", "")
-                exp = ev.get("explanation", "").replace('"', '""')
+                if isinstance(ev, dict):
+                    eid = ev.get("evidence_id", "")
+                    src = ev.get("source", "")
+                    chk = ev.get("check_name", "")
+                    sts = ev.get("status", "")
+                    exp = str(ev.get("explanation", "")).replace('"', '""')
+                else:
+                    eid = getattr(ev, "evidence_id", "")
+                    src = getattr(ev, "source", "")
+                    chk = getattr(ev, "check_name", "")
+                    sts = getattr(ev, "status", "")
+                    exp = str(getattr(ev, "explanation", "")).replace('"', '""')
                 csv_lines.append(f'"{eid}","{src}","{chk}","{sts}","{exp}"')
         else:
             csv_lines.append('"EV_001","Ingest","ingest_checksum_verified","PASS","Default integrity gate"')
