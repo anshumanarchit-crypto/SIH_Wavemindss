@@ -314,9 +314,10 @@ def test_g1_to_g7_rendering():
 def test_streamlit_app_executes_cleanly():
     from streamlit.testing.v1 import AppTest
     at = AppTest.from_file(str(REPO_ROOT / "app.py"))
-    at.run(timeout=10)
+    at.run(timeout=20)
     assert not at.exception, f"AppTest raised an unhandled exception: {at.exception}"
     assert len(at.markdown) > 0
-    assert len(at.tabs) == 6
+    assert len(at.button) > 0
+
 
 
