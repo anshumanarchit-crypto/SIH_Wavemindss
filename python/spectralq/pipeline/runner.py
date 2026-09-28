@@ -109,16 +109,18 @@ def get_stub_decoder_output(capture_id: str, analysis: AnalysisContract) -> Deco
 
 
 class PipelineResult:
-    """Encapsulates the ResultContract, AnalysisContract, and per-stage execution status metadata."""
+    """Encapsulates the ResultContract, AnalysisContract, DecoderOutputContract, and per-stage execution status metadata."""
     def __init__(
         self,
         result: ResultContract,
         stage_status: Dict[str, str],
         analysis: Optional[AnalysisContract] = None,
+        decoder: Optional[DecoderOutputContract] = None,
     ):
         self.result = result
         self.stage_status = stage_status
         self.analysis = analysis
+        self.decoder = decoder
 
 
 def run(
@@ -377,4 +379,9 @@ def run(
     }
 
     result = validate_result_dict(result_data)
-    return PipelineResult(result=result, stage_status=stage_status, analysis=analysis)
+    return PipelineResult(
+        result=result,
+        stage_status=stage_status,
+        analysis=analysis,
+        decoder=decoder_out,
+    )
