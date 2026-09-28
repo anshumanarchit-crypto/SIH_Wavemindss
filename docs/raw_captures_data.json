@@ -1,0 +1,222 @@
+[
+  {
+    "path": "data\\official\\sinchana\\golden\\G1_QPSK_uncoded.cf32",
+    "type": "CF32",
+    "size": 131072,
+    "sha256": "e2becef449e81ea48309b0b815fbbc4ef31ade7ef975ad3209042fd022c2b0c9",
+    "sample_count": 16384,
+    "sample_rate": "N/A",
+    "center_freq": "N/A",
+    "meta_src": "Companion .truth.json or user-specified",
+    "can_viz": true
+  },
+  {
+    "path": "data\\official\\sinchana\\golden\\G2_BPSK_conv_block.cf32",
+    "type": "CF32",
+    "size": 34816,
+    "sha256": "e8648923f8f1c9b1c7612f6841022347b0a2d80781e7eff1c8b417fbe6164e69",
+    "sample_count": 4352,
+    "sample_rate": "N/A",
+    "center_freq": "N/A",
+    "meta_src": "Companion .truth.json or user-specified",
+    "can_viz": true
+  },
+  {
+    "path": "data\\official\\sinchana\\golden\\G3_8PSK_RS_diagonal.cf32",
+    "type": "CF32",
+    "size": 43520,
+    "sha256": "97b154c3e557a49e81e3305f1c433b32d1601026c2a6e56a3467033a28407871",
+    "sample_count": 5440,
+    "sample_rate": "N/A",
+    "center_freq": "N/A",
+    "meta_src": "Companion .truth.json or user-specified",
+    "can_viz": true
+  },
+  {
+    "path": "data\\official\\sinchana\\golden\\G4_16QAM_LDPC_pseudorandom.cf32",
+    "type": "CF32",
+    "size": 1536,
+    "sha256": "f468df6c1a95ea7c87ba94e314514220c65a769562a2e3f49ae93ec9208f74e2",
+    "sample_count": 192,
+    "sample_rate": "N/A",
+    "center_freq": "N/A",
+    "meta_src": "Companion .truth.json or user-specified",
+    "can_viz": true
+  },
+  {
+    "path": "data\\official\\sinchana\\golden\\G5_2FSK_RS_Conv_interleaved.cf32",
+    "type": "CF32",
+    "size": 265728,
+    "sha256": "b69f616917d79c6e9a5c6cefc59e707f00e5beb2af730b6b1ce0edd37cc6cd7e",
+    "sample_count": 33216,
+    "sample_rate": "N/A",
+    "center_freq": "N/A",
+    "meta_src": "Companion .truth.json or user-specified",
+    "can_viz": true
+  },
+  {
+    "path": "data\\official\\sinchana\\golden\\G5_2FSK_uncoded.cf32",
+    "type": "CF32",
+    "size": 262144,
+    "sha256": "234a8390be4a60bf1fcc420513128dc1c3939a1fa8dcd15ac40cd057b88b30b9",
+    "sample_count": 32768,
+    "sample_rate": "N/A",
+    "center_freq": "N/A",
+    "meta_src": "Companion .truth.json or user-specified",
+    "can_viz": true
+  },
+  {
+    "path": "data\\official\\sinchana\\golden\\G6_BPSK_conv_interleaved.cf32",
+    "type": "CF32",
+    "size": 35072,
+    "sha256": "e2d39c7370b33bc5dc0b76be84f6ecdc6571d411983463d16bcde0bfa7bac30b",
+    "sample_count": 4384,
+    "sample_rate": "N/A",
+    "center_freq": "N/A",
+    "meta_src": "Companion .truth.json or user-specified",
+    "can_viz": true
+  },
+  {
+    "path": "data\\official\\sinchana\\golden\\G7_QPSK_conv_near_threshold.cf32",
+    "type": "CF32",
+    "size": 16768,
+    "sha256": "3dd4a0dd37d29de23ac1df3809553454c5d4db4714f068d4962dac098f2b2055",
+    "sample_count": 2096,
+    "sample_rate": "N/A",
+    "center_freq": "N/A",
+    "meta_src": "Companion .truth.json or user-specified",
+    "can_viz": true
+  },
+  {
+    "path": "data\\synthetic\\16qam_snr22db.iq",
+    "type": "IQ",
+    "size": 8448,
+    "sha256": "1060ae294f06ebe8d6a526cd8a36c82fbd5af28fb59a9bea03116fcf5ce5f984",
+    "sample_count": 1056,
+    "sample_rate": "100000.0 Hz",
+    "center_freq": "N/A",
+    "meta_src": "Companion .json or user-specified",
+    "can_viz": true
+  },
+  {
+    "path": "data\\synthetic\\16qam_snr22db.wav",
+    "type": "WAV",
+    "size": 8506,
+    "sha256": "7f659fe5b6a0d6c439dc5a05581e4d7e4c3de13fc4c504a6033a0e993ef652c9",
+    "sample_count": "N/A",
+    "sample_rate": "100000.0 Hz",
+    "center_freq": "N/A",
+    "meta_src": "None",
+    "can_viz": true
+  },
+  {
+    "path": "data\\synthetic\\2fsk_snr18db.iq",
+    "type": "IQ",
+    "size": 40704,
+    "sha256": "26e24dda2f144d33d57e500ad55cb836f85b6891cd3e603e3073834d32ad510a",
+    "sample_count": 5088,
+    "sample_rate": "100000.0 Hz",
+    "center_freq": "N/A",
+    "meta_src": "Companion .json or user-specified",
+    "can_viz": true
+  },
+  {
+    "path": "data\\synthetic\\2fsk_snr18db.wav",
+    "type": "WAV",
+    "size": 40762,
+    "sha256": "e3b1164af3eeb149b20a626e81f0853cd99c9a656580fefcb2dc53ba5044377d",
+    "sample_count": "N/A",
+    "sample_rate": "100000.0 Hz",
+    "center_freq": "N/A",
+    "meta_src": "None",
+    "can_viz": true
+  },
+  {
+    "path": "data\\synthetic\\bpsk_fec_viterbi.iq",
+    "type": "IQ",
+    "size": 44928,
+    "sha256": "6b027418b27c19560bebb1ad6381f037de095940a13769587430d49a1e9ee495",
+    "sample_count": 5616,
+    "sample_rate": "100000.0 Hz",
+    "center_freq": "N/A",
+    "meta_src": "Companion .json or user-specified",
+    "can_viz": true
+  },
+  {
+    "path": "data\\synthetic\\bpsk_fec_viterbi.wav",
+    "type": "WAV",
+    "size": 44986,
+    "sha256": "05a6b8c1bdf427d623c3b36a0ee55800a0165ff627cc826e3a0100cd62298512",
+    "sample_count": "N/A",
+    "sample_rate": "100000.0 Hz",
+    "center_freq": "N/A",
+    "meta_src": "None",
+    "can_viz": true
+  },
+  {
+    "path": "data\\synthetic\\bpsk_snr20db_clean.iq",
+    "type": "IQ",
+    "size": 19904,
+    "sha256": "a79aec9a610d49522fcaf721d1e91558a2ccaf17fa57c9b9623612fcc63d3aad",
+    "sample_count": 2488,
+    "sample_rate": "100000.0 Hz",
+    "center_freq": "N/A",
+    "meta_src": "Companion .json or user-specified",
+    "can_viz": true
+  },
+  {
+    "path": "data\\synthetic\\bpsk_snr20db_clean.wav",
+    "type": "WAV",
+    "size": 19962,
+    "sha256": "9fc5401ab7c91a1aab9993e20634dd49714d4d84d2423be778db6b8dd1143305",
+    "sample_count": "N/A",
+    "sample_rate": "100000.0 Hz",
+    "center_freq": "N/A",
+    "meta_src": "None",
+    "can_viz": true
+  },
+  {
+    "path": "data\\synthetic\\qpsk_low_snr5db.iq",
+    "type": "IQ",
+    "size": 13120,
+    "sha256": "a22bd38e29f44a06b28841bfff067e1853c869062f17251da18a449cfe86682b",
+    "sample_count": 1640,
+    "sample_rate": "100000.0 Hz",
+    "center_freq": "N/A",
+    "meta_src": "Companion .json or user-specified",
+    "can_viz": true
+  },
+  {
+    "path": "data\\synthetic\\qpsk_low_snr5db.wav",
+    "type": "WAV",
+    "size": 13178,
+    "sha256": "b815b15b1b31f68f006f4122e2cfa9cb2ceb89a3faa2e461ff41a056f673da0c",
+    "sample_count": "N/A",
+    "sample_rate": "100000.0 Hz",
+    "center_freq": "N/A",
+    "meta_src": "None",
+    "can_viz": true
+  },
+  {
+    "path": "data\\synthetic\\qpsk_snr15db_cfo.iq",
+    "type": "IQ",
+    "size": 12864,
+    "sha256": "a174a31b9b03e19026127650a591e2c373935b236a58dfc0e300886b74d1f57b",
+    "sample_count": 1608,
+    "sample_rate": "100000.0 Hz",
+    "center_freq": "N/A",
+    "meta_src": "Companion .json or user-specified",
+    "can_viz": true
+  },
+  {
+    "path": "data\\synthetic\\qpsk_snr15db_cfo.wav",
+    "type": "WAV",
+    "size": 12922,
+    "sha256": "88bd2ee83f95aa1f4fc915ce0175d44f88d8f70712efeb172535331dcc069a5a",
+    "sample_count": "N/A",
+    "sample_rate": "100000.0 Hz",
+    "center_freq": "N/A",
+    "meta_src": "None",
+    "can_viz": true
+  }
+]

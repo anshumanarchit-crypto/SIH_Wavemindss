@@ -176,12 +176,27 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
                     except Exception as exc:
                         st.sidebar.error(f"Contract Schema Error: {exc}")
             else:
-                # Raw IQ or WAV file
-                st.sidebar.markdown("**Signal Forensics & Ingest Metadata:**")
-                auto_detect = st.sidebar.checkbox("Auto-detect Parameters", value=True)
-                fs_input = 20.0e6
-                if not auto_detect:
-                    fs_input = st.sidebar.number_input("Sampling Rate (Hz)", value=20.0e6, step=1.0e6, format="%.1e")
+                # Raw IQ, CF32, or WAV file
+                st.sidebar.markdown("**Signal Ingest & Sampling Rate:**")
+                is_wav = uploaded_file.name.lower().endswith(".wav")
+                user_fs = None
+                fs_source_label = "HEADER"
+
+                if is_wav:
+                    st.sidebar.info("🎵 WAV file: Sampling rate will be read directly from WAV RIFF header.")
+                    fs_source_label = "HEADER"
+                else:
+                    st.sidebar.caption("Headerless raw IQ/CF32 requires sampling rate specification:")
+                    user_fs = st.sidebar.number_input(
+                        "Sampling Rate (Hz):",
+                        min_value=1_000.0,
+                        max_value=1_000_000_000.0,
+                        value=100_000.0,
+                        step=10_000.0,
+                        format="%.0f",
+                        help="Raw binary files carry no intrinsic sampling rate header. Provide the hardware SDR sample rate.",
+                    )
+                    fs_source_label = "USER PROVIDED"
 
                 if st.sidebar.button("🚀 Analyze Signal via Backend", type="primary", use_container_width=True):
                     with st.spinner("Invoking SpectralQ backend pipeline runner..."):
@@ -194,7 +209,7 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
                         from spectralq.pipeline.runner import run
                         from spectralq.visualization.artifacts import prepare_observatory_artifacts
                         try:
-                            pipe_out = run(capture_path=str(tmp_cap), mode="auto")
+                            pipe_out = run(capture_path=str(tmp_cap), mode="live")
                             norm_res = adapt_result(pipe_out.result) if pipe_out.result else None
                             norm_ana = adapt_analysis(pipe_out.analysis) if pipe_out.analysis else None
                             norm_dec = adapt_decoder(pipe_out.decoder) if pipe_out.decoder else None
@@ -202,13 +217,14 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
                             obs_artifacts = prepare_observatory_artifacts(
                                 capture_path=str(tmp_cap),
                                 analysis=norm_ana,
-                                fs_hz=fs_input,
+                                fs_hz=norm_ana.fs_hz if norm_ana else (user_fs or 100_000.0),
                                 source_mode="LIVE SDR CAPTURE",
                             )
                             prov = {
                                 "uploaded_file": uploaded_file.name,
                                 "sha256": sha256_hash,
                                 "size_bytes": len(file_bytes),
+                                "fs_source": fs_source_label,
                             }
                             set_active_case_artifacts(
                                 norm_res,

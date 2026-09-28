@@ -34,4 +34,6 @@ __all__ = [
     "AbstentionSystem",
     "AbstentionDecision",
     "DEFAULT_ABSTENTION_THRESHOLD",
+    "calculate_deterministic_confidence",
 ]
+from spectralq.confidence.arpit_confidence import calculate_deterministic_confidence

@@ -129,6 +129,23 @@ def load_case_artifacts(
         except Exception as e:
             provenance["decoder_error"] = str(e)
 
+    # Live execution fallback for raw captures without precomputed JSON
+    if (norm_res is None or norm_ana is None) and case.raw_path and case.raw_path.exists():
+        try:
+            from spectralq.pipeline.runner import run
+            pipe_res = run(str(case.raw_path), mode="live")
+            if norm_res is None and pipe_res.result:
+                norm_res = adapt_result(pipe_res.result.__dict__)
+            if norm_ana is None and pipe_res.analysis:
+                norm_ana = adapt_analysis(pipe_res.analysis.__dict__)
+            if norm_dec is None and pipe_res.decoder:
+                norm_dec = adapt_decoder(pipe_res.decoder.__dict__)
+            provenance["pipeline_execution"] = "LIVE_RAW_PIPELINE"
+            provenance["input_hash"] = pipe_res.provenance.input_hash
+            provenance["stage_status"] = str(pipe_res.stage_status)
+        except Exception as e:
+            provenance["pipeline_error"] = str(e)
+
     return norm_res, norm_ana, norm_dec, provenance
 
 

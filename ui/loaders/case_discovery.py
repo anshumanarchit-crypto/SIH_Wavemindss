@@ -149,4 +149,36 @@ def discover_available_cases(repo_root: Optional[Path] = None) -> List[Discovere
                 result_path=f if "result" in f.name else None,
             )
 
+    # 6. Discover raw official golden captures (.cf32)
+    official_golden = root / "data" / "official" / "sinchana" / "golden"
+    if official_golden.exists():
+        for cf in sorted(official_golden.glob("*.cf32")):
+            cid = cf.stem.upper()
+            name_clean = cf.stem.replace("_", " ")
+            truth_file = cf.with_suffix(".truth.json")
+            discovered[cid] = DiscoveredCase(
+                case_id=cid,
+                name=f"Golden: {name_clean} (Raw .cf32)",
+                category="Golden Reference (Raw CF32)",
+                description=f"Official Sinchana golden capture at data/official/sinchana/golden/{cf.name}",
+                raw_path=cf,
+                truth_path=truth_file if truth_file.exists() else None,
+            )
+
+    # 7. Discover raw synthetic captures (.wav)
+    synth_dir = root / "data" / "synthetic"
+    if synth_dir.exists():
+        for wav_file in sorted(synth_dir.glob("*.wav")):
+            cid = f"SYNTH_{wav_file.stem.upper()}"
+            name_clean = wav_file.stem.replace("_", " ").title()
+            json_meta = wav_file.with_suffix(".json")
+            discovered[cid] = DiscoveredCase(
+                case_id=cid,
+                name=f"Live Capture: {name_clean} (.wav)",
+                category="Live Signal Capture",
+                description=f"Raw RF signal capture at data/synthetic/{wav_file.name}",
+                raw_path=wav_file,
+                truth_path=json_meta if json_meta.exists() else None,
+            )
+
     return list(discovered.values())

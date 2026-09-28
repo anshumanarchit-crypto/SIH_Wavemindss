@@ -153,15 +153,29 @@ def run(
         stage_status["Feature Extraction"] = "REPLAY"
         is_live = False
     elif mode_normalized == "live":
-        if not bridge.is_live_capable():
+        if bridge.is_live_capable():
+            analysis = bridge.run(capture_path)
+            stage_status["Ingest & Forensics"] = "LIVE"
+            stage_status["Feature Extraction"] = "LIVE"
+            cache.save_analysis(capture_path, analysis)
+            is_live = True
+        elif Path(capture_path).exists() and Path(capture_path).is_file():
+            import core.io
+            from spectralq.features.iq_extractor import iq_to_analysis_contract
+            sig = core.io.load_signal(capture_path)
+            analysis = iq_to_analysis_contract(
+                sig.samples,
+                fs_hz=sig.sample_rate or 100000.0,
+                capture_id=Path(capture_path).stem,
+            )
+            stage_status["Ingest & Forensics"] = "LIVE"
+            stage_status["Feature Extraction"] = "LIVE"
+            cache.save_analysis(capture_path, analysis)
+            is_live = True
+        else:
             stage_status["Ingest & Forensics"] = "ERROR"
             stage_status["Feature Extraction"] = "ERROR"
-            raise RuntimeError("Live mode requested, but Octave DSP capability is unavailable.")
-        analysis = bridge.run(capture_path)
-        stage_status["Ingest & Forensics"] = "LIVE"
-        stage_status["Feature Extraction"] = "LIVE"
-        cache.save_analysis(capture_path, analysis)
-        is_live = True
+            raise RuntimeError(f"Live mode requested, but capture file '{capture_path}' does not exist.")
     elif mode_normalized == "stub":
         analysis = bridge.run_stub(capture_path)
         stage_status["Ingest & Forensics"] = "STUB"
@@ -182,7 +196,7 @@ def run(
             stage_status["Auto Fallback"] = "LIVE_UNAVAILABLE_FALLBACK_TO_REPLAY"
             is_live = False
         else:
-            analysis = bridge.run(capture_path)
+            analysis = bridge.run_stub(capture_path)
             stage_status["Ingest & Forensics"] = "STUB"
             stage_status["Feature Extraction"] = "STUB"
             is_live = False
@@ -191,7 +205,11 @@ def run(
 
     # Stage 3: Classifier (Harsh) & Rule Engine (Archit)
     stage_status["Classifier"] = "LIVE" if is_live else "STUB"
-    classifier_adapter = ClassifierAdapter()
+    model_path = Path("models/baseline_rf.joblib")
+    if model_path.exists():
+        classifier_adapter = ClassifierAdapter.load_from_file(str(model_path))
+    else:
+        classifier_adapter = ClassifierAdapter()
     classifier_out = classifier_adapter.predict(analysis, capture_id=analysis.capture_id)
 
     rule_classifier = RuleBasedClassifier()
@@ -201,9 +219,24 @@ def run(
     if decoder_override is not None:
         decoder_out = decoder_override
         stage_status["Demodulator & Decoder"] = "LIVE" if decoder_override.status.value == "ok" else "STUB"
+    elif is_live:
+        from spectralq.decoder.service import run_arpit_decoder
+        candidate_mod = classifier_out.ml_prediction or (rule_out.predicted_modulation if rule_out else None)
+        decoder_out = run_arpit_decoder(
+            capture_input=capture_path,
+            capture_id=analysis.capture_id,
+            analysis=analysis,
+            candidate_modulation=candidate_mod,
+        )
+        if decoder_out.status == DecoderStatus.OK:
+            stage_status["Demodulator & Decoder"] = "REAL"
+        elif Path(capture_path).exists():
+            stage_status["Demodulator & Decoder"] = "LIVE"
+        else:
+            stage_status["Demodulator & Decoder"] = "UNAVAILABLE"
     else:
-        stage_status["Demodulator & Decoder"] = "STUB"
         decoder_out = get_stub_decoder_output(analysis.capture_id, analysis)
+        stage_status["Demodulator & Decoder"] = "STUB"
 
     # Stage 5: Decision Engine (Archit - Phase 5 N5 Consensus & Evidence Ledger)
     stage_status["Decision Engine"] = "LIVE" if is_live else "STUB"

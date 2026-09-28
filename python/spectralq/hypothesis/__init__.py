@@ -14,6 +14,7 @@ from spectralq.hypothesis.registry import (
 from spectralq.hypothesis.candidate import HypothesisCandidate
 from spectralq.hypothesis.engine import HypothesisEngineV1
 from spectralq.hypothesis.debug import format_hypothesis_dump
+from spectralq.hypothesis.arpit_hypothesis import build_candidate_hypotheses
 
 __all__ = [
     "MODULATIONS",
@@ -26,4 +27,5 @@ __all__ = [
     "HypothesisCandidate",
     "HypothesisEngineV1",
     "format_hypothesis_dump",
+    "build_candidate_hypotheses",
 ]
