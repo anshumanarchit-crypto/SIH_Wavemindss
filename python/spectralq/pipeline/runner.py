@@ -365,6 +365,12 @@ def run(
         capture_id=analysis.capture_id,
     )
 
+    # Phase 7 Calibrated Probability
+    calibrated_prob = conf_res.calibrated_ml_probability
+    if calibrated_prob is None:
+        cal_factor = 1.0 if n5_result.agreement else (1.0 - n5_result.penalty * 0.2)
+        calibrated_prob = round(float(min(1.0, max(0.0, n5_result.ml_probability * cal_factor))), 4)
+
     # Assemble ResultContract
     result_data = {
         "schema_version": "1.0.0",
@@ -391,7 +397,7 @@ def run(
         ],
         "ml_prediction": n5_result.ml_prediction,
         "ml_probability": n5_result.ml_probability,
-        "calibrated_ml_probability": None,
+        "calibrated_ml_probability": calibrated_prob,
         "rule_prediction": n5_result.rule_prediction,
         "rule_ml_agreement": n5_result.agreement,
         "rule_ml_penalty": n5_result.penalty,

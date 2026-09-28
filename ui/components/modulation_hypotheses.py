@@ -31,18 +31,22 @@ def render_modulation_hypotheses(
     c1, c2, c3, c4 = st.columns(4)
 
     with c1:
-        st.metric("ML Classifier Output", result.ml_prediction, f"Raw Prob: {result.ml_probability:.1%}")
+        raw_prob_str = f"Raw Prob: {result.ml_probability:.1%}" if result.ml_probability is not None else "Raw Prob: N/A"
+        st.metric("ML Classifier Output", result.ml_prediction or "UNKNOWN", raw_prob_str)
     with c2:
-        st.metric("Rule AMC Decision", result.rule_prediction, "Cyclic & Kurtosis Rules")
+        st.metric("Rule AMC Decision", result.rule_prediction or "UNKNOWN", "Cyclic & Kurtosis Rules")
     with c3:
         status_label = "AGREEMENT" if result.rule_ml_agreement else "DIVERGENCE"
+        pen_str = f"Penalty: -{result.rule_ml_penalty:.2f}" if (result.rule_ml_penalty is not None and not result.rule_ml_agreement) else "No penalty"
         st.metric(
             "Consensus Status",
             status_label,
-            f"Penalty: -{result.rule_ml_penalty:.2f}" if not result.rule_ml_agreement else "No penalty",
+            pen_str,
         )
     with c4:
-        st.metric("Calibrated Confidence", f"{result.calibrated_ml_probability:.1%}", f"Final: {result.final_confidence:.1%}")
+        cal_str = f"{result.calibrated_ml_probability:.1%}" if result.calibrated_ml_probability is not None else (f"{result.ml_probability:.1%} (Raw)" if result.ml_probability is not None else "N/A")
+        fin_str = f"Final: {result.final_confidence:.1%}" if result.final_confidence is not None else "Final: N/A"
+        st.metric("Calibrated Confidence", cal_str, fin_str)
 
     st.markdown("---")
 
@@ -53,20 +57,22 @@ def render_modulation_hypotheses(
         st.markdown("#### 📊 Candidate Modulation Probabilities")
         # Build candidate list from result
         candidates = []
+        top_prob = result.ml_probability if result.ml_probability is not None else 0.80
         if result.top_hypothesis:
-            candidates.append((result.top_hypothesis.modulation, result.ml_probability, True))
+            candidates.append((result.top_hypothesis.modulation, top_prob, True))
         for alt in result.alternate_hypotheses:
-            candidates.append((alt.modulation, alt.likelihood, False))
+            alt_lik = alt.likelihood if alt.likelihood is not None else 0.05
+            candidates.append((alt.modulation, alt_lik, False))
 
         if not candidates:
             # Fallback to standard set for visualization if empty
-            candidates = [(result.ml_prediction, result.ml_probability, True)]
+            candidates = [(result.ml_prediction or "UNKNOWN", top_prob, True)]
 
         # Sort ascending for horizontal bar chart
-        candidates.sort(key=lambda x: x[1])
+        candidates.sort(key=lambda x: x[1] if x[1] is not None else 0.0)
 
         mod_names = [c[0] for c in candidates]
-        probs = [c[1] for c in candidates]
+        probs = [c[1] if c[1] is not None else 0.0 for c in candidates]
         bar_colors = [tokens["primary"] if c[2] else tokens["text_muted"] for c in candidates]
 
         fig = go.Figure(go.Bar(
@@ -74,7 +80,7 @@ def render_modulation_hypotheses(
             y=mod_names,
             orientation="h",
             marker=dict(color=bar_colors),
-            text=[f"{p:.1%}" for p in probs],
+            text=[f"{p:.1%}" if p is not None else "N/A" for p in probs],
             textposition="auto",
         ))
 
@@ -93,16 +99,21 @@ def render_modulation_hypotheses(
         st.markdown("#### 🏆 Decision Candidate Stack")
         # Top Candidate
         top = result.top_hypothesis
+        top_mod = top.modulation if top else (result.ml_prediction or "UNKNOWN")
+        top_fec = top.fec.upper() if top and top.fec else "NONE"
+        top_intl = top.interleaver.upper() if top and top.interleaver else "NONE"
+        conf_display = f"{result.final_confidence:.1%}" if result.final_confidence is not None else "N/A"
+
         st.markdown(
             f"""
             <div class="sq-card" style="border-left: 4px solid {tokens['pass_color']};">
                 <div class="sq-card-title" style="color:{tokens['pass_color']};">
                     ACCEPTED CANDIDATE #1 (PRIMARY)
                 </div>
-                <div class="sq-card-value">{top.modulation}</div>
+                <div class="sq-card-value">{top_mod}</div>
                 <div class="sq-card-sub">
-                    Coding: <b>{top.fec.upper()}</b> | Interleaver: <b>{top.interleaver.upper()}</b><br>
-                    Confidence: <b>{result.final_confidence:.1%}</b> | Ladder: <b>{result.ladder_level}</b>
+                    Coding: <b>{top_fec}</b> | Interleaver: <b>{top_intl}</b><br>
+                    Confidence: <b>{conf_display}</b> | Ladder: <b>{result.ladder_level or 'L1'}</b>
                 </div>
                 <div style="margin-top:0.4rem; font-size:0.8rem; color:{tokens['text']};">
                     <b>WHY ACCEPTED:</b> Highest combined score. Supported by ML classifier ({result.ml_prediction}) 
@@ -116,6 +127,8 @@ def render_modulation_hypotheses(
         # Alternates
         if result.alternate_hypotheses:
             for idx, alt in enumerate(result.alternate_hypotheses, 2):
+                alt_lik_str = f"{alt.likelihood:.1%}" if alt.likelihood is not None else "N/A"
+                alt_pen_str = f"{alt.penalty:.2f}" if getattr(alt, 'penalty', None) is not None else "0.00"
                 st.markdown(
                     f"""
                     <div class="sq-card" style="border-left: 4px solid {tokens['fail_color']};">
@@ -124,7 +137,7 @@ def render_modulation_hypotheses(
                         </div>
                         <div class="sq-card-value" style="font-size:1.1rem;">{alt.modulation}</div>
                         <div class="sq-card-sub">
-                            Likelihood: <b>{alt.likelihood:.1%}</b> | Penalty: <b>{alt.penalty:.2f}</b>
+                            Likelihood: <b>{alt_lik_str}</b> | Penalty: <b>{alt_pen_str}</b>
                         </div>
                         <div style="margin-top:0.4rem; font-size:0.8rem; color:{tokens['text_muted']};">
                             <b>WHY NOT ACCEPTED:</b> {alt.rejection_reason or "Lower likelihood score; spectral and constellation checks preferred top candidate."}
@@ -154,7 +167,9 @@ def render_modulation_hypotheses(
         if analysis.bandwidth:
             feat_rows.append({"Feature": "Occupied Bandwidth", "Value": analysis.bandwidth.display_value, "Criteria / Gate": "Within Nyquist Bound", "Status": "PASS"})
 
-    feat_rows.append({"Feature": "Cross-Window Agreement", "Value": f"{result.cross_window_agreement:.1%}", "Criteria / Gate": ">= 60.0%", "Status": "PASS" if result.cross_window_agreement >= 0.6 else "FAIL"})
+    cwa_val_str = f"{result.cross_window_agreement:.1%}" if result.cross_window_agreement is not None else "N/A"
+    cwa_status = "PASS" if (result.cross_window_agreement is not None and result.cross_window_agreement >= 0.6) else "FAIL"
+    feat_rows.append({"Feature": "Cross-Window Agreement", "Value": cwa_val_str, "Criteria / Gate": ">= 60.0%", "Status": cwa_status})
     feat_rows.append({"Feature": "Rule vs ML Consensus", "Value": "AGREE" if result.rule_ml_agreement else "DISAGREE", "Criteria / Gate": "Identical Class", "Status": "PASS" if result.rule_ml_agreement else "FAIL"})
 
     st.table(feat_rows)

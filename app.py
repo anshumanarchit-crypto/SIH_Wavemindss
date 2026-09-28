@@ -121,7 +121,7 @@ elif current_ws == "Modulation & Hypotheses":
     render_modulation_hypotheses(result=res, analysis=ana)
 
 elif current_ws == "Decoder & Bitstream":
-    render_decoder_bitstream(decoder=dec, result=res)
+    render_decoder_bitstream(decoder=dec, result=res, analysis=ana)
 
 elif current_ws == "Evidence & Decision":
     render_evidence_decision(result=res, analysis=ana, decoder=dec)

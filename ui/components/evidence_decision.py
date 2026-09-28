@@ -104,7 +104,8 @@ def render_evidence_decision(
     with c2:
         st.metric("Passed Checks", len(passed), f"{(len(passed)/len(all_evidence)*100.0) if all_evidence else 0:.1f}%")
     with c3:
-        st.metric("Failed Checks", len(failed), f"-{result.rule_ml_penalty:.2f} penalty" if failed else "Zero Penalties")
+        failed_pen_str = f"-{result.rule_ml_penalty:.2f} penalty" if (failed and result.rule_ml_penalty is not None) else ("Zero Penalties" if not failed else "Penalties Applied")
+        st.metric("Failed Checks", len(failed), failed_pen_str)
     with c4:
         st.metric("Unavailable Checks", len(unavail), f"{len(unavail)} checks skipped")
 
@@ -159,13 +160,19 @@ def render_evidence_decision(
     with st.expander("💡 Deep Dive: Mathematical Confidence Aggregation Breakdown", expanded=False):
         st.markdown("#### Confidence Aggregation Formula")
         st.latex(r"C_{\text{final}} = P_{\text{ML}} \cdot (1 - \text{Penalty}_{\text{Consensus}}) \cdot \prod_{i} (1 - P_{\text{check}, i})")
+        raw_prob_txt = f"{result.ml_probability:.4f}" if result.ml_probability is not None else "N/A"
+        pen_txt = f"FAIL (-{result.rule_ml_penalty:.2f} penalty)" if (result.rule_ml_penalty is not None and not result.rule_ml_agreement) else ("PASS (0.00 penalty)" if result.rule_ml_agreement else "FAIL")
+        cal_prob_txt = f"{result.calibrated_ml_probability:.4f}" if result.calibrated_ml_probability is not None else (f"{result.ml_probability:.4f} (Uncalibrated)" if result.ml_probability is not None else "N/A")
+        cwa_txt = f"{result.cross_window_agreement:.2f}" if result.cross_window_agreement is not None else "N/A"
+        fin_conf_txt = f"{result.final_confidence:.4f}" if result.final_confidence is not None else "N/A"
+
         st.markdown(
             f"""
-            - **Raw ML Model Probability:** `{result.ml_probability:.4f}`
-            - **Consensus Agreement:** `{'PASS (0.00 penalty)' if result.rule_ml_agreement else f'FAIL (-{result.rule_ml_penalty:.2f} penalty)'}`
-            - **Calibrated ML Probability:** `{result.calibrated_ml_probability:.4f}`
-            - **Cross-Window Consistency:** `{result.cross_window_agreement:.2f}`
-            - **Final Aggregated Confidence:** `{result.final_confidence:.4f}`
-            - **Confidence Engine Version:** `{result.confidence_version}`
+            - **Raw ML Model Probability:** `{raw_prob_txt}`
+            - **Consensus Agreement:** `{pen_txt}`
+            - **Calibrated ML Probability:** `{cal_prob_txt}`
+            - **Cross-Window Consistency:** `{cwa_txt}`
+            - **Final Aggregated Confidence:** `{fin_conf_txt}`
+            - **Confidence Engine Version:** `{result.confidence_version or 'v1.0'}`
             """
         )

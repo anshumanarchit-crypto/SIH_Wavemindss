@@ -69,17 +69,19 @@ def render_mission_control(
         why_text = ""
         if result:
             if result.is_unknown:
+                pen_txt = f"{result.rule_ml_penalty:.2f}" if result.rule_ml_penalty is not None else "0.00"
                 why_text = (
                     f"The pipeline abstained because critical verification checks failed or confidence dropped below "
                     f"the operational threshold. Rule AMC suggested '{result.rule_prediction}' while ML predicted "
-                    f"'{result.ml_prediction}'. Penalty applied: {result.rule_ml_penalty:.2f}."
+                    f"'{result.ml_prediction}'. Penalty applied: {pen_txt}."
                 )
             else:
                 passed_ct = len([e for e in result.evidence if e.status == "PASS"])
                 failed_ct = len(result.failed_checks)
+                raw_p_txt = f"p={result.ml_probability:.2f}" if result.ml_probability is not None else "p=N/A"
                 why_text = (
                     f"Identified as <b>{top_mod}</b> at Evidence Ladder <b>{ladder}</b> with {conf_pct:.1f}% confidence. "
-                    f"ML classifier ({result.ml_prediction}, p={result.ml_probability:.2f}) and rule-based AMC "
+                    f"ML classifier ({result.ml_prediction}, {raw_p_txt}) and rule-based AMC "
                     f"({result.rule_prediction}) reached consensus. Passed <b>{passed_ct}</b> verification checks "
                     f"with {failed_ct} failures."
                 )
@@ -155,6 +157,9 @@ def render_mission_control(
     if decoder and decoder.evm_percent is not None:
         evm_val = f"{decoder.evm_percent:.1f}%"
         evm_sub = "Measured RMS"
+    elif analysis and analysis.features and analysis.features.evm is not None:
+        evm_val = f"{analysis.features.evm * 100.0:.1f}%"
+        evm_sub = "Spectral Estimation"
 
     # Metric 4: Symbol Rate (Baud)
     baud_val = "N/A"

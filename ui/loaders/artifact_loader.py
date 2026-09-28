@@ -163,6 +163,7 @@ def load_case_artifacts(
                     with open(bpath, "r", encoding="utf-8") as bf:
                         bstr = bf.read().strip()
                         if bstr:
+                            norm_dec.full_decoded_bits = bstr
                             if not norm_dec.decoded_bits_preview:
                                 norm_dec.decoded_bits_preview = bstr[:64] + ("..." if len(bstr) > 64 else "")
                             if norm_dec.decoded_bits_count == 0:

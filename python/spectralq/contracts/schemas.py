@@ -188,6 +188,8 @@ class DecoderOutputContract(BaseModel):
     crc_status: CrcStatus = Field(..., description="CRC check result: pass, fail, or not_run")
     reencode_ber: Optional[float] = Field(None, ge=0.0, le=1.0, description="Re-encode residual Bit Error Rate")
     failure_reason: Optional[str] = Field(None, description="Explicit failure/unsupported reason")
+    evm_percent: Optional[float] = Field(None, ge=0.0, description="Constellation EVM percentage")
+    sync_word: Optional[str] = Field(None, description="Detected sync word preamble (hex or identifier)")
 
     @field_validator("schema_version")
     @classmethod

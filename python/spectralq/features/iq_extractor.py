@@ -291,6 +291,19 @@ def estimate_constellation_clusters(
                 fsk_k = 2
             return (fsk_k, 0.22, 0.45, 0.80)
 
+    # 1D BPSK / Real-axis constellation check:
+    # If C20 (|E[z^2]| / E[|z|^2]) is high (> 0.45), the constellation is 1-dimensional with 2 clusters
+    c20_val = abs(complex(np.mean(z ** 2)))
+    c21_val = max(1e-9, float(np.mean(np.abs(z) ** 2)))
+    if (c20_val / c21_val) > 0.45:
+        pts = np.column_stack([np.real(symbols), np.imag(symbols)])
+        if len(pts) > max_pts:
+            rng = np.random.default_rng(42)
+            idx = rng.choice(len(pts), size=max_pts, replace=False)
+            pts = pts[idx]
+        centroids, sil, intra, inter = _vmeans_scores(pts, 2, seed=42)
+        return (2, float(np.clip(sil, 0.5, 1.0)), float(intra), float(inter))
+
     pts = np.column_stack([np.real(symbols), np.imag(symbols)])
 
     # Cap points for speed (representative subset)

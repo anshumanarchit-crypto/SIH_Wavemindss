@@ -123,26 +123,54 @@ def run_arpit_decoder(
         })
 
     # 4. Extract telemetry and format validated DecoderOutputContract
-    has_bits = (res.fec_bits is not None and len(res.fec_bits) > 0) or (
-        res.demodulation is not None and len(res.demodulation.hard_bits) > 0
+    recovered_bits_arr = res.fec_bits if (res.fec_bits is not None and len(res.fec_bits) > 0) else (
+        res.demodulation.hard_bits if (res.demodulation is not None and len(res.demodulation.hard_bits) > 0) else None
     )
-    is_success = (res.status == ResultStatus.CONFIRMED and has_bits)
+    if recovered_bits_arr is not None:
+        decoded_bits_val = "".join(str(int(b)) for b in recovered_bits_arr)
+        bit_count = len(decoded_bits_val)
+    else:
+        decoded_bits_val = 0
+        bit_count = 0
 
-    bit_count = 0
-    if res.fec_bits is not None:
-        bit_count = int(len(res.fec_bits))
-    elif res.demodulation is not None:
-        bit_count = int(len(res.demodulation.hard_bits))
+    has_bits = (bit_count > 0)
+    is_success = (res.status == ResultStatus.CONFIRMED and has_bits)
 
     crc_stat = CrcStatus.NOT_RUN.value
     if res.sync_detection and res.sync_detection.found:
         crc_stat = CrcStatus.PASS.value
+    elif res.decoded_frame and res.decoded_frame.crc_valid:
+        crc_stat = CrcStatus.PASS.value
+
+    # EVM extraction
+    evm_pct = None
+    if res.demodulation and hasattr(res.demodulation, "evm_percent") and res.demodulation.evm_percent is not None:
+        evm_pct = float(res.demodulation.evm_percent)
+    elif analysis and analysis.features and hasattr(analysis.features, "evm") and analysis.features.evm is not None:
+        evm_pct = float(analysis.features.evm * 100.0)
+
+    # Sync word resolution
+    sync_w = None
+    if res.sync_detection and res.sync_detection.found:
+        s_name = res.sync_detection.sync_name
+        sync_map = {
+            "CCSDS_32": "1ACFFC1D",
+            "SPECTRALQ_16": "ABCD",
+            "AX25_HDLC_16": "7E7E",
+            "BARKER_13": "1F35",
+            "BARKER_11": "0712",
+            "BARKER_7": "72",
+        }
+        sync_w = sync_map.get(s_name, s_name)
+    elif res.decoded_frame and res.decoded_frame.sync_pattern:
+        sync_w = res.decoded_frame.sync_pattern
 
     # Re-encode BER estimate if available
     reencode_ber = None
-    if res.demodulation and hasattr(res.demodulation, "evm_percent") and res.demodulation.evm_percent is not None:
-        # Approximate BER from EVM for telemetry
-        reencode_ber = float(min(1.0, max(0.0, res.demodulation.evm_percent / 100.0 * 0.1)))
+    if crc_stat == CrcStatus.PASS.value:
+        reencode_ber = 0.0
+    elif evm_pct is not None:
+        reencode_ber = float(min(1.0, max(0.0, (evm_pct / 100.0) * 0.12)))
 
     status_str = DecoderStatus.OK.value if is_success else DecoderStatus.FAILED.value
     failure_msg = None if is_success else "Carrier or constellation lock failed to yield verified bitstream"
@@ -153,8 +181,10 @@ def run_arpit_decoder(
         "status": status_str,
         "interleaver_used": deinterleave_scheme if deinterleave_scheme != "none" else "none",
         "fec_used": fec_scheme if fec_scheme != "none" else "none",
-        "decoded_bits": bit_count,
+        "decoded_bits": decoded_bits_val,
         "crc_status": crc_stat,
         "reencode_ber": reencode_ber,
         "failure_reason": failure_msg,
+        "evm_percent": evm_pct,
+        "sync_word": sync_w,
     })

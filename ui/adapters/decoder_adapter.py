@@ -31,6 +31,7 @@ class NormalizedDecoder:
     reference_length: Optional[int] = None
     bit_errors: Optional[int] = None
     comparison_status: Optional[str] = None
+    full_decoded_bits: Optional[str] = None
     raw_dict: Dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -74,7 +75,7 @@ class NormalizedDecoder:
 
     @property
     def raw_bits(self) -> Optional[str]:
-        return self.decoded_bits_preview or self.raw_dict.get("raw_bits")
+        return self.full_decoded_bits or self.raw_dict.get("raw_bits") or self.decoded_bits_preview
 
     @property
     def sync_word(self) -> Optional[str]:
@@ -132,11 +133,14 @@ def adapt_decoder(raw_data: Any) -> NormalizedDecoder:
                 reencode_ber = 0.0
             crc = str(raw_data.get("crc_status", "PASS" if raw_data.get("success") else "NOT_RUN")).upper()
             bits = raw_data.get("decoded_bits", raw_data.get("output_bits", raw_data.get("bit_count", 0)))
+            full_bits_str = None
             if isinstance(bits, list):
                 bit_count = len(bits)
-                bit_str = "".join(str(b) for b in bits[:64])
+                full_bits_str = "".join(str(b) for b in bits)
+                bit_str = full_bits_str[:64]
             elif isinstance(bits, str):
                 bit_count = len(bits)
+                full_bits_str = bits
                 bit_str = bits[:64]
             else:
                 bit_count = int(bits)
@@ -153,6 +157,7 @@ def adapt_decoder(raw_data: Any) -> NormalizedDecoder:
                 reencode_ber=float(reencode_ber) if reencode_ber is not None else None,
                 failure_reason=raw_data.get("failure_reason") or raw_data.get("warnings"),
                 source_exact_match=raw_data.get("source_exact_match", True if reencode_ber == 0.0 else None),
+                full_decoded_bits=full_bits_str,
                 raw_dict=raw_dict,
             )
         else:
@@ -162,12 +167,15 @@ def adapt_decoder(raw_data: Any) -> NormalizedDecoder:
 
     # Extract bit count and preview
     decoded_bits = contract.decoded_bits
+    full_bits_str = None
     if isinstance(decoded_bits, str):
+        full_bits_str = decoded_bits
         bit_count = len(decoded_bits)
         bit_preview = decoded_bits[:64] + ("..." if len(decoded_bits) > 64 else "")
     elif isinstance(decoded_bits, list):
+        full_bits_str = "".join(str(b) for b in decoded_bits)
         bit_count = len(decoded_bits)
-        bit_preview = "".join(str(b) for b in decoded_bits[:64]) + ("..." if len(decoded_bits) > 64 else "")
+        bit_preview = full_bits_str[:64] + ("..." if len(decoded_bits) > 64 else "")
     elif isinstance(decoded_bits, int):
         bit_count = decoded_bits
         bit_preview = f"{decoded_bits} bits decoded"
@@ -191,5 +199,6 @@ def adapt_decoder(raw_data: Any) -> NormalizedDecoder:
         reference_length=raw_dict.get("reference_length"),
         bit_errors=raw_dict.get("bit_errors", raw_dict.get("source_bit_errors")),
         comparison_status=raw_dict.get("comparison_status", "EXACT MATCH" if contract.reencode_ber == 0.0 else ("BIT ERRORS DETECTED" if (contract.reencode_ber is not None and contract.reencode_ber > 0) else None)),
+        full_decoded_bits=full_bits_str,
         raw_dict=raw_dict,
     )
