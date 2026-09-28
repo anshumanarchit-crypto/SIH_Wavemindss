@@ -205,6 +205,10 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
                         tmp_cap = scratch_dir / uploaded_file.name
                         with open(tmp_cap, "wb") as f:
                             f.write(file_bytes)
+                        if user_fs and not is_wav:
+                            comp_meta = {"sample_rate": float(user_fs), "fs_hz": float(user_fs)}
+                            with open(tmp_cap.with_suffix(".json"), "w") as f:
+                                json.dump(comp_meta, f)
 
                         from spectralq.pipeline.runner import run
                         from spectralq.visualization.artifacts import prepare_observatory_artifacts
@@ -217,6 +221,7 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
                             obs_artifacts = prepare_observatory_artifacts(
                                 capture_path=str(tmp_cap),
                                 analysis=norm_ana,
+                                result=norm_res,
                                 fs_hz=norm_ana.fs_hz if norm_ana else (user_fs or 100_000.0),
                                 source_mode="LIVE SDR CAPTURE",
                             )

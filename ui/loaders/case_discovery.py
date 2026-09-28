@@ -267,4 +267,21 @@ def discover_available_cases(repo_root: Optional[Path] = None) -> List[Discovere
                 truth_path=json_meta if json_meta.exists() else None,
             )
 
+    # 8. Discover sample test captures (.wav, .cf32, .iq)
+    samples_dir = root / "sample_captures"
+    if samples_dir.exists():
+        for s_file in sorted(samples_dir.iterdir()):
+            if s_file.suffix.lower() in [".wav", ".cf32", ".iq"] and s_file.is_file():
+                cid = f"SAMPLE_{s_file.stem.upper()}"
+                name_clean = s_file.stem.replace("_", " ")
+                json_meta = s_file.with_suffix(".json")
+                discovered[cid] = DiscoveredCase(
+                    case_id=cid,
+                    name=f"Sample: {name_clean} ({s_file.suffix})",
+                    category="Sample RF Capture",
+                    description=f"Direct test capture at sample_captures/{s_file.name}",
+                    raw_path=s_file,
+                    truth_path=json_meta if json_meta.exists() else None,
+                )
+
     return list(discovered.values())
