@@ -22,6 +22,10 @@ class RuleClassificationResult:
     thresholds_applied: Dict[str, float]
     config_version: str
 
+    @property
+    def predicted_modulation(self) -> str:
+        return self.predicted_class
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "predicted_class": self.predicted_class,

@@ -177,7 +177,8 @@ def render_signal_lab() -> None:
             rule_clf = RuleBasedClassifier()
             rule_out = rule_clf.classify(analysis)
 
-            est_mod = clf_out.ml_prediction or (rule_out.predicted_modulation if rule_out else "UNKNOWN")
+            rule_predicted = rule_out.predicted_class if rule_out else "UNKNOWN"
+            est_mod = clf_out.ml_prediction or rule_predicted
             est_snr = float(analysis.estimates.snr.value)
             est_cfo = float(analysis.estimates.cfo.value)
             est_baud = float(analysis.estimates.baud.value)
@@ -196,7 +197,7 @@ def render_signal_lab() -> None:
             # Store genuine blind results
             st.session_state["simulated_pipeline_out"] = {
                 "estimated_mod": est_mod,
-                "rule_mod": rule_out.predicted_modulation if rule_out else "UNKNOWN",
+                "rule_mod": rule_predicted,
                 "ml_prob": clf_out.ml_probabilities.get(est_mod, 0.85),
                 "estimated_snr": est_snr,
                 "estimated_cfo": est_cfo,
