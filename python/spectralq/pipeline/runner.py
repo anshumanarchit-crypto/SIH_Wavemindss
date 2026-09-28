@@ -306,10 +306,22 @@ def run(
     )
 
     # 5. Compute Deterministic Ladder Level
+    # second_tool_agreed is True when CRC passes AND at least one independent
+    # corroborating signal exists: sync-word aligned, N5 rule/ML consensus, or
+    # zero-error re-encode BER. This is what elevates the ladder from L4 → L5.
+    _crc_pass = decoder_out.crc_status == CrcStatus.PASS
+    _sync_word_aligned = decoder_out.sync_word is not None
+    _n5_agreed = n5_result.agreement
+    _ber_zero = (
+        decoder_out.reencode_ber is not None
+        and decoder_out.reencode_ber == 0.0
+    )
+    second_tool_agreed = _crc_pass and (_sync_word_aligned or _n5_agreed or _ber_zero)
+
     ladder_level, ladder_explanation = compute_ladder_level(
         analysis=analysis,
         decoder_output=decoder_out,
-        second_tool_agreed=False,
+        second_tool_agreed=second_tool_agreed,
     )
     ledger.record(
         evidence_id=f"EV_LADDER_{analysis.capture_id}",

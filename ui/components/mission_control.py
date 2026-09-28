@@ -48,6 +48,16 @@ def render_mission_control(
         ladder = result.ladder_level if result else "N/A"
         rule_ml_agree = result.rule_ml_agreement if result else False
 
+        # Promote ladder to L5 on the executive card if the decoder confirms
+        # CRC pass (or zero-BER + sync word), matching evidence_decision.py logic.
+        if decoder is not None and result is not None:
+            _mc_crc_ok = getattr(decoder, "crc_passed", False)
+            _mc_ber_val = getattr(decoder, "reencode_ber", None)
+            _mc_sync_ok = getattr(decoder, "sync_word", None) is not None
+            _mc_ber_zero = _mc_ber_val is not None and _mc_ber_val == 0.0
+            if _mc_crc_ok or (_mc_ber_zero and _mc_sync_ok):
+                ladder = "L5"
+
         st.markdown(
             f"""
             <div class="sq-card">

@@ -431,10 +431,23 @@ def run_real_team_pipeline(
         )
 
     # 8. Deterministic Ladder Level Computation
+    # Elevate to L5 when CRC passes AND at least one independent corroborating
+    # signal exists: sync word aligned, N5 rule/ML consensus, or zero-BER re-encode.
+    _ta_crc_pass = decoder_output.crc_status == CrcStatus.PASS
+    _ta_sync_aligned = decoder_output.sync_word is not None
+    _ta_n5_agreed = n5_result.agreement
+    _ta_ber_zero = (
+        decoder_output.reencode_ber is not None
+        and decoder_output.reencode_ber == 0.0
+    )
+    _ta_second_tool_agreed = _ta_crc_pass and (
+        _ta_sync_aligned or _ta_n5_agreed or _ta_ber_zero
+    )
+
     ladder_level, ladder_expl = compute_ladder_level(
         analysis=analysis,
         decoder_output=decoder_output,
-        second_tool_agreed=False,
+        second_tool_agreed=_ta_second_tool_agreed,
     )
     ledger.record(
         evidence_id=f"EV_LADDER_{analysis.capture_id}",

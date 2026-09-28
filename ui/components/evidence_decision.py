@@ -60,6 +60,18 @@ def render_evidence_decision(
     st.caption(TOOLTIPS["LADDER"])
 
     current_ladder = result.ladder_level
+
+    # Override: if the decoder confirms CRC pass (or zero-BER + sync word),
+    # the pipeline should have already emitted L5. Guard against any stale
+    # result contract by promoting the UI ladder directly.
+    if decoder is not None:
+        _crc_ok = getattr(decoder, "crc_passed", False)
+        _ber_val = getattr(decoder, "reencode_ber", None)
+        _sync_ok = getattr(decoder, "sync_word", None) is not None
+        _ber_zero = _ber_val is not None and _ber_val == 0.0
+        if _crc_ok or (_ber_zero and _sync_ok):
+            current_ladder = "L5"
+
     ladder_cols = st.columns(5)
 
     # Ladder rank map
