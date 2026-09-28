@@ -170,7 +170,7 @@ def _navigate_scenario(cases: List[DiscoveredCase], scenario: Dict[str, Any]) ->
         for c in cases:
             if case_match.lower() in c.name.lower() or case_match.lower() in c.case_id.lower():
                 norm_res, norm_ana, norm_dec, prov = load_case_artifacts(c)
-                obs_artifacts = load_case_observatory(c, norm_ana)
+                obs_artifacts = load_case_observatory(c, norm_ana, norm_res)
                 set_active_case_artifacts(
                     result=norm_res,
                     analysis=norm_ana,

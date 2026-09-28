@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "G6_BPSK_conv_interleaved",
+  "status": "ok",
+  "interleaver_used": "none",
+  "fec_used": "auto",
+  "decoded_bits": 548,
+  "crc_status": "pass",
+  "reencode_ber": 0.007959254968173953,
+  "failure_reason": null
+}

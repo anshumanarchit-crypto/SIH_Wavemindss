@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "G3_8PSK_RS_diagonal",
+  "status": "ok",
+  "interleaver_used": "none",
+  "fec_used": "auto",
+  "decoded_bits": 2040,
+  "crc_status": "pass",
+  "reencode_ber": 0.023171628710208923,
+  "failure_reason": null
+}

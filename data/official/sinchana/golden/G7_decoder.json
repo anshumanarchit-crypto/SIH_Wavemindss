@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "G7_QPSK_conv_near_threshold",
+  "status": "ok",
+  "interleaver_used": "none",
+  "fec_used": "auto",
+  "decoded_bits": 3144,
+  "crc_status": "pass",
+  "reencode_ber": 0.014052241848574837,
+  "failure_reason": null
+}

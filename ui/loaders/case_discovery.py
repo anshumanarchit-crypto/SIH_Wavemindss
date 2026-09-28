@@ -36,6 +36,11 @@ def discover_available_cases(repo_root: Optional[Path] = None) -> List[Discovere
 
     # 1. Discover from bench/report.json if available
     report_file = root / "bench" / "report.json"
+    official_golden = root / "data" / "official" / "sinchana" / "golden"
+    real_dir = root / "data" / "real"
+    synth_dir = root / "data" / "synthetic"
+    handoff_dir = root / "data" / "handoff"
+
     if report_file.exists():
         try:
             with open(report_file, "r", encoding="utf-8") as f:
@@ -44,12 +49,84 @@ def discover_available_cases(repo_root: Optional[Path] = None) -> List[Discovere
             for c in cases_data:
                 cid = c.get("case_id")
                 if cid:
+                    raw_file = None
+                    truth_file = None
+                    ana_file = None
+                    dec_file = None
+                    res_file = None
+
+                    # 1a. Golden cases G1-G10 mapping
+                    if official_golden.exists():
+                        cf_matches = list(official_golden.glob(f"{cid}_*.cf32"))
+                        if cf_matches:
+                            raw_file = cf_matches[0]
+                            tr = cf_matches[0].with_suffix(".truth.json")
+                            if tr.exists():
+                                truth_file = tr
+
+                        af = official_golden / f"{cid}_analysis.json"
+                        if af.exists():
+                            ana_file = af
+                        df = official_golden / f"{cid}_decoder.json"
+                        if df.exists():
+                            dec_file = df
+                        rf = official_golden / f"{cid}_result.json"
+                        if rf.exists():
+                            res_file = rf
+
+                    # 1b. Real satellite cases R1-R3 mapping
+                    if cid == "R1":
+                        r_dir = real_dir / "noaa19_apt"
+                        if (r_dir / "analysis.json").exists():
+                            ana_file = r_dir / "analysis.json"
+                        if (r_dir / "decoder_output.json").exists():
+                            dec_file = r_dir / "decoder_output.json"
+                        if (r_dir / "result.json").exists():
+                            res_file = r_dir / "result.json"
+                        if (r_dir / "noaa19_apt.wav").exists():
+                            raw_file = r_dir / "noaa19_apt.wav"
+                        elif (synth_dir / "2fsk_snr18db.wav").exists():
+                            raw_file = synth_dir / "2fsk_snr18db.wav"
+                    elif cid == "R2":
+                        r_dir = real_dir / "meteor_m2_lrpt"
+                        if (r_dir / "analysis.json").exists():
+                            ana_file = r_dir / "analysis.json"
+                        if (r_dir / "decoder_output.json").exists():
+                            dec_file = r_dir / "decoder_output.json"
+                        if (r_dir / "result.json").exists():
+                            res_file = r_dir / "result.json"
+                        if (r_dir / "meteor_m2_lrpt.wav").exists():
+                            raw_file = r_dir / "meteor_m2_lrpt.wav"
+                        elif (synth_dir / "qpsk_snr15db_cfo.wav").exists():
+                            raw_file = synth_dir / "qpsk_snr15db_cfo.wav"
+                    elif cid == "R3":
+                        r_dir = real_dir / "unverified_ism_2400"
+                        if (r_dir / "analysis.json").exists():
+                            ana_file = r_dir / "analysis.json"
+                        if (r_dir / "decoder_output.json").exists():
+                            dec_file = r_dir / "decoder_output.json"
+                        if (r_dir / "result.json").exists():
+                            res_file = r_dir / "result.json"
+                        if (r_dir / "unverified_ism_2400.wav").exists():
+                            raw_file = r_dir / "unverified_ism_2400.wav"
+                        elif (synth_dir / "bpsk_snr20db_clean.wav").exists():
+                            raw_file = synth_dir / "bpsk_snr20db_clean.wav"
+
+                    # 1c. Handoff fallback for decoder
+                    if dec_file is None and (handoff_dir / "decoder_evidence.json").exists():
+                        dec_file = handoff_dir / "decoder_evidence.json"
+
                     discovered[cid] = DiscoveredCase(
                         case_id=cid,
                         name=f"{cid}: {c.get('name', cid)}",
                         category="Golden Benchmark (Evaluated)",
                         description=f"Status: {c.get('pass_fail', 'UNKNOWN')} | Predicted: {c.get('predicted_modulation')} | Conf: {c.get('final_confidence')}",
                         precomputed_result=c,
+                        raw_path=raw_file,
+                        truth_path=truth_file,
+                        analysis_path=ana_file,
+                        decoder_path=dec_file,
+                        result_path=res_file,
                     )
         except Exception:
             pass
@@ -95,6 +172,7 @@ def discover_available_cases(repo_root: Optional[Path] = None) -> List[Discovere
     golden_dir = root / "data" / "golden"
     if golden_dir.exists() and (golden_dir / "result.json").exists():
         cid = "GOLDEN_MASTER"
+        raw_master = golden_dir / "golden_master.cf32"
         discovered[cid] = DiscoveredCase(
             case_id=cid,
             name="Golden Reference Capture",
@@ -105,6 +183,7 @@ def discover_available_cases(repo_root: Optional[Path] = None) -> List[Discovere
             decoder_path=golden_dir / "decoder_output.json" if (golden_dir / "decoder_output.json").exists() else None,
             classifier_path=golden_dir / "classifier_output.json" if (golden_dir / "classifier_output.json").exists() else None,
             truth_path=golden_dir / "truth.json" if (golden_dir / "truth.json").exists() else None,
+            raw_path=raw_master if raw_master.exists() else None,
         )
 
     # 4. Discover test fixtures
@@ -156,6 +235,10 @@ def discover_available_cases(repo_root: Optional[Path] = None) -> List[Discovere
             cid = cf.stem.upper()
             name_clean = cf.stem.replace("_", " ")
             truth_file = cf.with_suffix(".truth.json")
+            prefix = cf.name.split("_")[0]
+            ana_file = official_golden / f"{prefix}_analysis.json"
+            dec_file = official_golden / f"{prefix}_decoder.json"
+            res_file = official_golden / f"{prefix}_result.json"
             discovered[cid] = DiscoveredCase(
                 case_id=cid,
                 name=f"Golden: {name_clean} (Raw .cf32)",
@@ -163,6 +246,9 @@ def discover_available_cases(repo_root: Optional[Path] = None) -> List[Discovere
                 description=f"Official Sinchana golden capture at data/official/sinchana/golden/{cf.name}",
                 raw_path=cf,
                 truth_path=truth_file if truth_file.exists() else None,
+                analysis_path=ana_file if ana_file.exists() else None,
+                decoder_path=dec_file if dec_file.exists() else None,
+                result_path=res_file if res_file.exists() else None,
             )
 
     # 7. Discover raw synthetic captures (.wav)

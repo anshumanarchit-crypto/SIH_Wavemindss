@@ -66,7 +66,7 @@ if st.session_state.get("cached_result") is None and cases:
             break
 
     norm_res, norm_ana, norm_dec, prov = load_case_artifacts(default_case)
-    obs_artifacts = load_case_observatory(default_case, norm_ana)
+    obs_artifacts = load_case_observatory(default_case, norm_ana, norm_res)
     set_active_case_artifacts(
         result=norm_res,
         analysis=norm_ana,

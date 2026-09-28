@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "G1_QPSK_uncoded",
+  "status": "ok",
+  "interleaver_used": "none",
+  "fec_used": "auto",
+  "decoded_bits": 4090,
+  "crc_status": "pass",
+  "reencode_ber": 0.009558903041353307,
+  "failure_reason": null
+}

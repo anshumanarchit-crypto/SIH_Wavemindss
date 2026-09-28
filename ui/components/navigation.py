@@ -115,7 +115,7 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
         if st.sidebar.button("🔄 Load Case Telemetry", type="primary", use_container_width=True) or needs_load:
             with st.spinner("Loading case artifacts & telemetry contracts..."):
                 norm_res, norm_ana, norm_dec, prov = load_case_artifacts(selected_case)
-                obs_artifacts = load_case_observatory(selected_case, norm_ana)
+                obs_artifacts = load_case_observatory(selected_case, norm_ana, norm_res)
                 set_active_case_artifacts(
                     result=norm_res,
                     analysis=norm_ana,

@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "G8_Wideband_4_emissions",
+  "status": "ok",
+  "interleaver_used": "none",
+  "fec_used": "auto",
+  "decoded_bits": 5328,
+  "crc_status": "pass",
+  "reencode_ber": 0.03193543415711213,
+  "failure_reason": null
+}

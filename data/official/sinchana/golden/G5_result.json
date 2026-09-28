@@ -1,0 +1,149 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "G5_2FSK_uncoded",
+  "source_mode": "synthetic",
+  "ladder_level": "L4",
+  "top_hypothesis": {
+    "modulation": "2-FSK",
+    "interleaver": "none",
+    "fec": "auto"
+  },
+  "alternate_hypotheses": [
+    {
+      "modulation": "BPSK",
+      "interleaver": "none",
+      "fec": "none",
+      "prior_score": 0.05,
+      "verification_score": 0.0,
+      "total_score": 0.02,
+      "status": "PRUNED",
+      "rejection_reason": "Cumulant distance favors QPSK"
+    }
+  ],
+  "ml_prediction": "2-FSK",
+  "ml_probability": 0.9007600899312301,
+  "calibrated_ml_probability": null,
+  "rule_prediction": "4-FSK",
+  "rule_ml_agreement": false,
+  "rule_ml_penalty": 0.25,
+  "cross_window_agreement": 1.0,
+  "evidence": [
+    {
+      "evidence_id": "EV_INGEST_G5_2FSK_uncoded",
+      "hypothesis_id": null,
+      "source": "Sinchana (Ingest)",
+      "check_name": "burst_energy_check",
+      "status": "PASS",
+      "value": null,
+      "numeric_value": 0.1376196492805836,
+      "normalized_value": 1.0,
+      "threshold": null,
+      "provenance": null,
+      "run_id": "RUN_234a8390_42",
+      "explanation": "Burst energy verified via LIVE ingest",
+      "failure_reason": null
+    },
+    {
+      "evidence_id": "EV_EST_G5_2FSK_uncoded",
+      "hypothesis_id": null,
+      "source": "Sinchana (Blind Estimation)",
+      "check_name": "parameter_interval_check",
+      "status": "PASS",
+      "value": null,
+      "numeric_value": 15.006312511488593,
+      "normalized_value": null,
+      "threshold": null,
+      "provenance": null,
+      "run_id": "RUN_234a8390_42",
+      "explanation": "Estimated SNR (15.0 dB) and baud with valid 95% confidence intervals",
+      "failure_reason": null
+    },
+    {
+      "evidence_id": "EV_N5_G5_2FSK_uncoded",
+      "hypothesis_id": "HYP_2-FSK",
+      "source": "N5_Hybrid_Consensus",
+      "check_name": "rule_ml_agreement",
+      "status": "CONFLICT",
+      "value": false,
+      "numeric_value": 0.0,
+      "normalized_value": 0.0,
+      "threshold": 1.0,
+      "provenance": {
+        "rule_prediction": "4-FSK",
+        "ml_prediction": "2-FSK",
+        "rule_config_version": "1.0.0-synthetic-sweep",
+        "ml_model_version": "rf-loaded-1.0.0",
+        "penalty_applied": 0.25,
+        "rule_decision_path": [
+          "Step 1: Check BPSK (|C20|/C21 = 0.000 < threshold 0.600). Signal is 2D complex circular constellation; proceed to FSK/QAM/PSK branch.",
+          "Step 2: Check FSK (Constellation silhouette 0.220 < threshold 0.400, cluster count 4 > 2). Multi-tone continuous phase -> Classified as 4-FSK."
+        ]
+      },
+      "run_id": "RUN_234a8390_42",
+      "explanation": "Consensus conflict: Rule engine identified 4-FSK while ML classifier predicted 2-FSK (ML probability: 0.9008). Documented confidence penalty of 0.25 recorded.",
+      "failure_reason": "Classification disagreement: rule=4-FSK vs ml=2-FSK"
+    },
+    {
+      "evidence_id": "EV_CRC_G5_2FSK_uncoded",
+      "hypothesis_id": null,
+      "source": "Arpit (Decoder)",
+      "check_name": "crc_checksum_check",
+      "status": "PASS",
+      "value": null,
+      "numeric_value": null,
+      "normalized_value": null,
+      "threshold": null,
+      "provenance": null,
+      "run_id": "RUN_234a8390_42",
+      "explanation": "Payload CRC checksum verified with zero syndrome errors",
+      "failure_reason": null
+    },
+    {
+      "evidence_id": "EV_LADDER_G5_2FSK_uncoded",
+      "hypothesis_id": null,
+      "source": "Archit (Evidence Ladder)",
+      "check_name": "ladder_level_evaluation",
+      "status": "PASS",
+      "value": "L4",
+      "numeric_value": null,
+      "normalized_value": null,
+      "threshold": null,
+      "provenance": null,
+      "run_id": "RUN_234a8390_42",
+      "explanation": "Frame structure verified via CRC checksum pass (L4)",
+      "failure_reason": null
+    },
+    {
+      "evidence_id": "EV_CONF_GUARD_G5_2FSK_uncoded",
+      "hypothesis_id": null,
+      "source": "Abstention_Guard",
+      "check_name": "confidence_threshold_guard",
+      "status": "FAIL",
+      "value": 0.7719,
+      "numeric_value": 0.7719,
+      "normalized_value": null,
+      "threshold": 0.8,
+      "provenance": {
+        "guard": "confidence_threshold_guard"
+      },
+      "run_id": "RUN_234a8390_42",
+      "explanation": "Low confidence abstention: final_confidence (0.7719) is below validated operational threshold (0.8000); never returning low-confidence guess as factual answer",
+      "failure_reason": "Confidence 0.7719 < threshold 0.8000"
+    }
+  ],
+  "failed_checks": [
+    "confidence_threshold_guard"
+  ],
+  "unavailable_checks": [],
+  "final_confidence": 0.7719,
+  "confidence_version": "fitted-1.0.0-fitted-logistic",
+  "unknown": true,
+  "unknown_reason": "Low confidence abstention: final_confidence (0.7719) is below validated operational threshold (0.8000); never returning low-confidence guess as factual answer",
+  "provenance": {
+    "input_hash": "234a8390be4a60bf1fcc420513128dc1c3939a1fa8dcd15ac40cd057b88b30b9",
+    "seed": 42,
+    "software_version": "1.0.0",
+    "generated_at": "2026-09-28T19:44:48.228835+00:00"
+  },
+  "capability_available": true
+}

@@ -293,7 +293,7 @@ def render_signal_observatory(
                     </div>
                     <div>
                         <div style="font-size:0.72rem; color:{tokens['text_muted']}; text-transform:uppercase;">Demodulated EVM</div>
-                        <div style="font-family:'JetBrains Mono'; font-weight:700; font-size:1.15rem;">{f"{decoder.evm_percent:.1f}%" if decoder.evm_percent is not None else "N/A"}</div>
+                        <div style="font-family:'JetBrains Mono'; font-weight:700; font-size:1.15rem;">{f"{decoder.evm_percent:.1f}%" if decoder.evm_percent is not None else (f"{analysis.features.evm * 100.0:.1f}%" if (analysis and analysis.features and analysis.features.evm is not None) else "N/A")}</div>
                     </div>
                     <div>
                         <div style="font-size:0.72rem; color:{tokens['text_muted']}; text-transform:uppercase;">FEC Scheme Used</div>

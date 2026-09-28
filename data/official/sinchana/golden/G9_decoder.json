@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "G9_Headerless_Raw_swapped",
+  "status": "ok",
+  "interleaver_used": "none",
+  "fec_used": "auto",
+  "decoded_bits": 8000,
+  "crc_status": "pass",
+  "reencode_ber": 0.010351023428627624,
+  "failure_reason": null
+}

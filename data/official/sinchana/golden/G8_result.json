@@ -1,0 +1,153 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "G8_Wideband_4_emissions",
+  "source_mode": "synthetic",
+  "ladder_level": "L4",
+  "top_hypothesis": {
+    "modulation": "16-QAM",
+    "interleaver": "none",
+    "fec": "auto"
+  },
+  "alternate_hypotheses": [
+    {
+      "modulation": "BPSK",
+      "interleaver": "none",
+      "fec": "none",
+      "prior_score": 0.05,
+      "verification_score": 0.0,
+      "total_score": 0.02,
+      "status": "PRUNED",
+      "rejection_reason": "Cumulant distance favors QPSK"
+    }
+  ],
+  "ml_prediction": "16-QAM",
+  "ml_probability": 0.6844381456787773,
+  "calibrated_ml_probability": null,
+  "rule_prediction": "64-QAM",
+  "rule_ml_agreement": false,
+  "rule_ml_penalty": 0.25,
+  "cross_window_agreement": 1.0,
+  "evidence": [
+    {
+      "evidence_id": "EV_INGEST_G8_Wideband_4_emissions",
+      "hypothesis_id": null,
+      "source": "Sinchana (Ingest)",
+      "check_name": "burst_energy_check",
+      "status": "PASS",
+      "value": null,
+      "numeric_value": 6.020599395560242,
+      "normalized_value": 1.0,
+      "threshold": null,
+      "provenance": null,
+      "run_id": "RUN_aa6f7e12_42",
+      "explanation": "Burst energy verified via LIVE ingest",
+      "failure_reason": null
+    },
+    {
+      "evidence_id": "EV_EST_G8_Wideband_4_emissions",
+      "hypothesis_id": null,
+      "source": "Sinchana (Blind Estimation)",
+      "check_name": "parameter_interval_check",
+      "status": "PASS",
+      "value": null,
+      "numeric_value": 2.4048215037945195,
+      "normalized_value": null,
+      "threshold": null,
+      "provenance": null,
+      "run_id": "RUN_aa6f7e12_42",
+      "explanation": "Estimated SNR (2.4 dB) and baud with valid 95% confidence intervals",
+      "failure_reason": null
+    },
+    {
+      "evidence_id": "EV_N5_G8_Wideband_4_emissions",
+      "hypothesis_id": "HYP_16-QAM",
+      "source": "N5_Hybrid_Consensus",
+      "check_name": "rule_ml_agreement",
+      "status": "CONFLICT",
+      "value": false,
+      "numeric_value": 0.0,
+      "normalized_value": 0.0,
+      "threshold": 1.0,
+      "provenance": {
+        "rule_prediction": "64-QAM",
+        "ml_prediction": "16-QAM",
+        "rule_config_version": "1.0.0-synthetic-sweep",
+        "ml_model_version": "rf-loaded-1.0.0",
+        "penalty_applied": 0.25,
+        "rule_decision_path": [
+          "Step 1: Check BPSK (|C20|/C21 = 0.000 < threshold 0.600). Signal is 2D complex circular constellation; proceed to FSK/QAM/PSK branch.",
+          "Step 2: Check FSK (Constellation silhouette 0.675 >= threshold 0.400). Discrete constellation clustering detected; proceed to PSK/QAM analysis.",
+          "Step 3: Check QPSK (Normalized C40/C21^2 = 1.500 or |C42|/C21^2 = 0.250 < 0.780). Not QPSK; proceed to 8-PSK and QAM separation.",
+          "Step 4: Check 8-PSK (|C40|/C21^2 = 1.500 or |C42|/C21^2 = 0.250 failed 8-PSK criteria). Candidate is in QAM family; proceed to order discrimination.",
+          "Step 5: Check QAM Order (Cluster count 8 > boundary 24 or |C42|/C21^2 = 0.250 < split 0.650). High-density grid geometry -> Classified as 64-QAM."
+        ]
+      },
+      "run_id": "RUN_aa6f7e12_42",
+      "explanation": "Consensus conflict: Rule engine identified 64-QAM while ML classifier predicted 16-QAM (ML probability: 0.6844). Documented confidence penalty of 0.25 recorded.",
+      "failure_reason": "Classification disagreement: rule=64-QAM vs ml=16-QAM"
+    },
+    {
+      "evidence_id": "EV_CRC_G8_Wideband_4_emissions",
+      "hypothesis_id": null,
+      "source": "Arpit (Decoder)",
+      "check_name": "crc_checksum_check",
+      "status": "PASS",
+      "value": null,
+      "numeric_value": null,
+      "normalized_value": null,
+      "threshold": null,
+      "provenance": null,
+      "run_id": "RUN_aa6f7e12_42",
+      "explanation": "Payload CRC checksum verified with zero syndrome errors",
+      "failure_reason": null
+    },
+    {
+      "evidence_id": "EV_LADDER_G8_Wideband_4_emissions",
+      "hypothesis_id": null,
+      "source": "Archit (Evidence Ladder)",
+      "check_name": "ladder_level_evaluation",
+      "status": "PASS",
+      "value": "L4",
+      "numeric_value": null,
+      "normalized_value": null,
+      "threshold": null,
+      "provenance": null,
+      "run_id": "RUN_aa6f7e12_42",
+      "explanation": "Frame structure verified via CRC checksum pass (L4)",
+      "failure_reason": null
+    },
+    {
+      "evidence_id": "EV_SNR_GUARD_G8_Wideband_4_emissions",
+      "hypothesis_id": null,
+      "source": "Abstention_Guard",
+      "check_name": "snr_floor_guard",
+      "status": "FAIL",
+      "value": 2.4048215037945195,
+      "numeric_value": 2.4048215037945195,
+      "normalized_value": null,
+      "threshold": 12.0,
+      "provenance": {
+        "target_modulation": "16-QAM",
+        "guard": "snr_floor_guard"
+      },
+      "run_id": "RUN_aa6f7e12_42",
+      "explanation": "Physical SNR floor violation: estimated SNR (2.4 dB) is below minimum physical operational floor for 16-QAM (12.0 dB); abstaining to UNKNOWN to prevent near-threshold false acceptance",
+      "failure_reason": "SNR (2.4 dB) < operational limit (12.0 dB)"
+    }
+  ],
+  "failed_checks": [
+    "snr_floor_guard"
+  ],
+  "unavailable_checks": [],
+  "final_confidence": 0.7423,
+  "confidence_version": "fitted-1.0.0-fitted-logistic",
+  "unknown": true,
+  "unknown_reason": "Physical SNR floor violation: estimated SNR (2.4 dB) is below minimum physical operational floor for 16-QAM (12.0 dB); abstaining to UNKNOWN to prevent near-threshold false acceptance",
+  "provenance": {
+    "input_hash": "aa6f7e122d3e4692a6a0258acb4b16bf8dbeb67f96be01f9674a2e7f17255b91",
+    "seed": 42,
+    "software_version": "1.0.0",
+    "generated_at": "2026-09-28T19:45:01.170966+00:00"
+  },
+  "capability_available": true
+}

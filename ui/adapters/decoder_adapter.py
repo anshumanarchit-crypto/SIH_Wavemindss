@@ -91,22 +91,47 @@ def adapt_decoder(raw_data: Any) -> NormalizedDecoder:
         contract = raw_data
         raw_dict = contract.model_dump()
     elif isinstance(raw_data, dict):
+        if "decoder" in raw_data and isinstance(raw_data["decoder"], dict):
+            dec_sub = raw_data["decoder"]
+            dec_stat = dec_sub.get("status", "UNSUPPORTED")
+            stat_norm = "OK" if str(dec_stat).upper() in ("SUCCESS", "OK") else str(dec_stat).upper()
+            re_errs = dec_sub.get("re_encode_errors")
+            bit_ct = int(dec_sub.get("bit_count", 0))
+            ber_val = 0.0 if re_errs == 0 else (float(re_errs) / max(1, bit_ct) if re_errs is not None else None)
+            crc_stat = "PASS" if dec_sub.get("success") else ("FAIL" if (re_errs and re_errs > 0) else "NOT_RUN")
+            return NormalizedDecoder(
+                schema_version=str(raw_data.get("schema_version", "spectralq-decoder-evidence-v1")),
+                capture_id=str(raw_data.get("case_id", "UNKNOWN")),
+                status=stat_norm,
+                interleaver_used=str(dec_sub.get("interleaver", "NONE")),
+                fec_used=str(dec_sub.get("fec", "NONE")),
+                decoded_bits_count=bit_ct,
+                decoded_bits_preview=None,
+                crc_status=crc_stat,
+                reencode_ber=ber_val,
+                failure_reason=None if dec_sub.get("success") else (f"Re-encode errors: {re_errs}" if re_errs else None),
+                source_exact_match=True if (re_errs == 0 and dec_sub.get("success")) else None,
+                raw_dict=raw_data,
+            )
         # First check if it matches official DecoderOutputContract
-        if "fec_used" in raw_data and "interleaver_used" in raw_data and "status" in raw_data:
+        elif "fec_used" in raw_data and "interleaver_used" in raw_data and "status" in raw_data:
             try:
                 contract = validate_decoder_output_dict(raw_data)
                 raw_dict = raw_data
             except Exception as e:
                 raise DecoderValidationError(f"Invalid DecoderOutputContract: {e}") from e
-        elif "decoder_status" in raw_data or "ber" in raw_data:
+        elif "decoder_status" in raw_data or "ber" in raw_data or ("fec" in raw_data and "interleaver" in raw_data):
             # Tolerant adapter for legacy decoder_evidence.json handoff
             raw_dict = raw_data
-            status = str(raw_data.get("decoder_status", raw_data.get("status", "UNSUPPORTED"))).upper()
+            status_val = raw_data.get("decoder_status", raw_data.get("status", "UNSUPPORTED"))
+            status = "OK" if str(status_val).upper() in ("SUCCESS", "OK") else str(status_val).upper()
             fec = str(raw_data.get("fec", raw_data.get("fec_used", "UNKNOWN")))
             interleaver = str(raw_data.get("interleaver", raw_data.get("interleaver_used", "UNKNOWN")))
             reencode_ber = raw_data.get("reencode_ber", raw_data.get("ber"))
-            crc = str(raw_data.get("crc_status", "NOT_RUN")).upper()
-            bits = raw_data.get("decoded_bits", raw_data.get("output_bits", 0))
+            if reencode_ber is None and raw_data.get("re_encode_errors") == 0:
+                reencode_ber = 0.0
+            crc = str(raw_data.get("crc_status", "PASS" if raw_data.get("success") else "NOT_RUN")).upper()
+            bits = raw_data.get("decoded_bits", raw_data.get("output_bits", raw_data.get("bit_count", 0)))
             if isinstance(bits, list):
                 bit_count = len(bits)
                 bit_str = "".join(str(b) for b in bits[:64])
@@ -127,7 +152,7 @@ def adapt_decoder(raw_data: Any) -> NormalizedDecoder:
                 crc_status=crc,
                 reencode_ber=float(reencode_ber) if reencode_ber is not None else None,
                 failure_reason=raw_data.get("failure_reason") or raw_data.get("warnings"),
-                source_exact_match=raw_data.get("source_exact_match"),
+                source_exact_match=raw_data.get("source_exact_match", True if reencode_ber == 0.0 else None),
                 raw_dict=raw_dict,
             )
         else:

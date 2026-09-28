@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "G4_16QAM_LDPC_pseudorandom",
+  "status": "ok",
+  "interleaver_used": "none",
+  "fec_used": "auto",
+  "decoded_bits": 96,
+  "crc_status": "pass",
+  "reencode_ber": 0.02441648522808506,
+  "failure_reason": null
+}

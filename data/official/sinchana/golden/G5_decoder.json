@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "G5_2FSK_uncoded",
+  "status": "ok",
+  "interleaver_used": "none",
+  "fec_used": "auto",
+  "decoded_bits": 885,
+  "crc_status": "pass",
+  "reencode_ber": 0.0,
+  "failure_reason": null
+}

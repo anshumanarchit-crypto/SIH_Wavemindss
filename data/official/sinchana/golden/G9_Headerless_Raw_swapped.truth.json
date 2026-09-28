@@ -1,0 +1,7 @@
+{
+  "schema_version": "spectraq.truth.v1",
+  "case_id": "G9",
+  "modulation": "BPSK",
+  "fs_hz": 1000000,
+  "symbol_rate_hz": 100000
+}

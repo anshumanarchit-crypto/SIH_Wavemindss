@@ -17,6 +17,14 @@ class EyeDiagramData:
     num_traces: int
     downsampled: bool
 
+    @property
+    def time_relative_sym(self) -> List[float]:
+        return self.time_symbol_axis
+
+    @property
+    def symbols_per_trace(self) -> int:
+        return 2
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 

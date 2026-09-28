@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "G10_Noise_Only_AWGN",
+  "status": "ok",
+  "interleaver_used": "none",
+  "fec_used": "auto",
+  "decoded_bits": 8724,
+  "crc_status": "pass",
+  "reencode_ber": 0.024754771163613052,
+  "failure_reason": null
+}

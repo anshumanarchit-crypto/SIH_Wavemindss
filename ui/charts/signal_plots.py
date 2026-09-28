@@ -245,7 +245,9 @@ def create_eye_diagram_plot(
     tokens = get_theme_tokens()
     fig = go.Figure()
 
-    t_rel = eye.time_relative_sym
+    t_rel = getattr(eye, "time_relative_sym", getattr(eye, "time_symbol_axis", []))
+    syms_per = getattr(eye, "symbols_per_trace", 2)
+    num_tr = getattr(eye, "num_traces", len(eye.traces_i))
     # Draw individual traces
     for tr in eye.traces_i:
         fig.add_trace(go.Scatter(
@@ -260,7 +262,7 @@ def create_eye_diagram_plot(
 
     layout = get_plotly_layout_defaults()
     layout.update({
-        "title": f"In-Phase Eye Diagram ({eye.num_traces} traces, {eye.symbols_per_trace} symbols)",
+        "title": f"In-Phase Eye Diagram ({num_tr} traces, {syms_per} symbols)",
         "xaxis_title": "Symbol Periods (T_sym)",
         "yaxis_title": "Amplitude",
         "height": 340,
