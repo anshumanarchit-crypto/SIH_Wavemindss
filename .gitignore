@@ -16,3 +16,6 @@ venv/
 scratch/
 .replay_cache/
 result.json
+_incoming/
+_staging/
+*.zip
