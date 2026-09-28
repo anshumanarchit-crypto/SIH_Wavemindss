@@ -1,60 +1,340 @@
 """
-Signal Visualization Helpers.
-Strictly for UI presentation; does not alter analysis data or execute decoders.
-Downsamples for visualization when needed and displays 'Visualization downsampled' badges.
+SpectralQ Signal Visualization Engine.
+Generates engineering-grade interactive Plotly visualizations for the Signal Observatory.
+Consumes prepared artifacts from spectralq.visualization.
+Never generates fake signals: operates strictly on genuine capture data.
+Also preserves legacy matplotlib interfaces for backward compatibility.
 """
 
-from typing import Any, List, Optional, Tuple
-import matplotlib.pyplot as plt
+from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
+import plotly.graph_objects as go
+import matplotlib.pyplot as plt
 
-# Styling constants
-PLOT_BG_COLOR = "#0e1117"
-PLOT_CARD_BG = "#161b22"
-PLOT_TEXT_COLOR = "#c9d1d9"
-PLOT_GRID_COLOR = "#30363d"
-ACCENT_BLUE = "#58a6ff"
-ACCENT_GREEN = "#3fb950"
-ACCENT_ORANGE = "#d29922"
-ACCENT_PURPLE = "#bc8cff"
+from ui.styles.theme import get_theme_tokens, get_plotly_layout_defaults
+from spectralq.visualization.artifacts import ObservatoryArtifacts
 
 
-def _apply_theme(ax: plt.Axes, title: str, xlabel: str, ylabel: str) -> None:
-    """Applies clean engineering dark theme to a matplotlib axes."""
-    ax.set_facecolor(PLOT_CARD_BG)
-    ax.tick_params(colors=PLOT_TEXT_COLOR, labelsize=9)
-    ax.set_title(title, color=PLOT_TEXT_COLOR, fontsize=11, fontweight="bold", pad=10)
-    ax.set_xlabel(xlabel, color=PLOT_TEXT_COLOR, fontsize=10)
-    ax.set_ylabel(ylabel, color=PLOT_TEXT_COLOR, fontsize=10)
-    ax.grid(True, color=PLOT_GRID_COLOR, linestyle="--", linewidth=0.5, alpha=0.7)
-    for spine in ax.spines.values():
-        spine.set_color(PLOT_GRID_COLOR)
+# -----------------------------------------------------------------------------
+# Plotly Interactive Observational Charts
+# -----------------------------------------------------------------------------
 
+def create_waveform_plot(
+    artifacts: ObservatoryArtifacts,
+    layout_overrides: Optional[Dict[str, Any]] = None,
+) -> Optional[go.Figure]:
+    """Generates an interactive Plotly waveform plot showing I and Q time series."""
+    if not artifacts.raw_available or not artifacts.waveform_i:
+        return None
+
+    tokens = get_theme_tokens()
+    fig = go.Figure()
+
+    times = artifacts.waveform_times_ms
+    fig.add_trace(go.Scatter(
+        x=times,
+        y=artifacts.waveform_i,
+        name="I (In-phase)",
+        line=dict(color=tokens["primary"], width=1.2),
+        mode="lines",
+    ))
+    fig.add_trace(go.Scatter(
+        x=times,
+        y=artifacts.waveform_q,
+        name="Q (Quadrature)",
+        line=dict(color=tokens["warn_color"], width=1.2),
+        mode="lines",
+    ))
+
+    title_text = "Time-Domain I/Q Waveform"
+    if artifacts.downsampled:
+        title_text += " <span style='font-size:11px;color:#8b949e;'>(Decimated for Display)</span>"
+
+    layout = get_plotly_layout_defaults()
+    layout.update({
+        "title": title_text,
+        "xaxis_title": "Time (ms)",
+        "yaxis_title": "Normalized Amplitude",
+        "hovermode": "x unified",
+        "legend": dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        "height": 340,
+    })
+    if layout_overrides:
+        layout.update(layout_overrides)
+
+    fig.update_layout(layout)
+    return fig
+
+
+def create_spectrum_plot(
+    artifacts: ObservatoryArtifacts,
+    layout_overrides: Optional[Dict[str, Any]] = None,
+) -> Optional[go.Figure]:
+    """Generates an interactive Plotly Power Spectral Density plot."""
+    if not artifacts.spectrum or not artifacts.spectrum.frequencies_mhz:
+        return None
+
+    spec = artifacts.spectrum
+    tokens = get_theme_tokens()
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=spec.frequencies_mhz,
+        y=spec.psd_db,
+        name="PSD (dB/Hz)",
+        line=dict(color=tokens["pass_color"], width=1.4),
+        mode="lines",
+    ))
+
+    # Add noise floor line
+    noise_floor = getattr(spec, "noise_floor_db", None)
+    if noise_floor is not None:
+        fig.add_hline(
+            y=noise_floor,
+            line_dash="dot",
+            line_color=tokens["text_muted"],
+            annotation_text=f"Noise Floor ({noise_floor:.1f} dB)",
+            annotation_position="bottom right",
+        )
+
+    # Add bandwidth span if available
+    c_freq = getattr(spec, "center_freq_mhz", None)
+    bw_val = getattr(spec, "bandwidth_mhz", None)
+    if c_freq is not None and bw_val is not None and bw_val > 0:
+        half_bw = bw_val / 2.0
+        fig.add_vrect(
+            x0=c_freq - half_bw,
+            x1=c_freq + half_bw,
+            fillcolor=tokens["primary"],
+            opacity=0.12,
+            line_width=0,
+            annotation_text=f"BW: {bw_val:.3f} MHz",
+            annotation_position="top left",
+        )
+
+
+    title_text = "Power Spectral Density (PSD)"
+    if spec.downsampled:
+        title_text += " <span style='font-size:11px;color:#8b949e;'>(Decimated)</span>"
+
+    layout = get_plotly_layout_defaults()
+    layout.update({
+        "title": title_text,
+        "xaxis_title": "Frequency Offset (MHz)",
+        "yaxis_title": "Power (dB/Hz)",
+        "hovermode": "x",
+        "height": 340,
+    })
+    if layout_overrides:
+        layout.update(layout_overrides)
+
+    fig.update_layout(layout)
+    return fig
+
+
+def create_waterfall_plot(
+    artifacts: ObservatoryArtifacts,
+    layout_overrides: Optional[Dict[str, Any]] = None,
+) -> Optional[go.Figure]:
+    """Generates an interactive Plotly 2D Spectrogram / Waterfall heatmap."""
+    if not artifacts.waterfall or not artifacts.waterfall.intensity_matrix:
+        return None
+
+    wf = artifacts.waterfall
+    fig = go.Figure(data=go.Heatmap(
+        z=wf.intensity_matrix,
+        x=wf.freq_bins_mhz,
+        y=wf.time_steps_ms,
+        colorscale="Viridis",
+        colorbar=dict(title="dB", len=0.85),
+    ))
+
+    title_text = "Spectrogram / Waterfall Intensity"
+    if wf.downsampled:
+        title_text += " <span style='font-size:11px;color:#8b949e;'>(Decimated Grid)</span>"
+
+    layout = get_plotly_layout_defaults()
+    layout.update({
+        "title": title_text,
+        "xaxis_title": "Frequency (MHz)",
+        "yaxis_title": "Time (ms)",
+        "height": 340,
+    })
+    if layout_overrides:
+        layout.update(layout_overrides)
+
+    fig.update_layout(layout)
+    return fig
+
+
+def create_constellation_plot(
+    artifacts: ObservatoryArtifacts,
+    layout_overrides: Optional[Dict[str, Any]] = None,
+) -> Optional[go.Figure]:
+    """Generates an interactive Plotly I/Q Constellation scatter plot."""
+    if not artifacts.constellation or not artifacts.constellation.i_points:
+        return None
+
+    c = artifacts.constellation
+    tokens = get_theme_tokens()
+    fig = go.Figure()
+
+    # Scatter points
+    fig.add_trace(go.Scatter(
+        x=c.i_points,
+        y=c.q_points,
+        mode="markers",
+        marker=dict(
+            size=4,
+            color=tokens["primary"],
+            opacity=0.7,
+        ),
+        name="Symbols",
+    ))
+
+    # Unit circle for reference
+    theta = np.linspace(0, 2 * np.pi, 100)
+    fig.add_trace(go.Scatter(
+        x=np.cos(theta),
+        y=np.sin(theta),
+        mode="lines",
+        line=dict(color=tokens["card_border"], width=1, dash="dash"),
+        hoverinfo="skip",
+        showlegend=False,
+    ))
+
+    num_pts = getattr(c, "num_points", getattr(c, "sample_count", len(c.i_points)))
+    title_text = f"I/Q Constellation Diagram ({num_pts} pts)"
+    evm_val = getattr(c, "evm_percent", None)
+    if evm_val is not None:
+        title_text += f" <span style='font-size:11px;color:#8b949e;'>EVM: {evm_val:.1f}%</span>"
+
+
+    layout = get_plotly_layout_defaults()
+    layout.update({
+        "title": title_text,
+        "xaxis_title": "In-Phase (I)",
+        "yaxis_title": "Quadrature (Q)",
+        "xaxis": dict(scaleanchor="y", scaleratio=1, zeroline=True, zerolinecolor=tokens["card_border"]),
+        "yaxis": dict(zeroline=True, zerolinecolor=tokens["card_border"]),
+        "height": 340,
+        "showlegend": False,
+    })
+    if layout_overrides:
+        layout.update(layout_overrides)
+
+    fig.update_layout(layout)
+    return fig
+
+
+def create_eye_diagram_plot(
+    artifacts: ObservatoryArtifacts,
+    layout_overrides: Optional[Dict[str, Any]] = None,
+) -> Optional[go.Figure]:
+    """Generates an interactive Plotly Eye Diagram."""
+    if not artifacts.eye_diagram or not artifacts.eye_diagram.traces_i:
+        return None
+
+    eye = artifacts.eye_diagram
+    tokens = get_theme_tokens()
+    fig = go.Figure()
+
+    t_rel = eye.time_relative_sym
+    # Draw individual traces
+    for tr in eye.traces_i:
+        fig.add_trace(go.Scatter(
+            x=t_rel,
+            y=tr,
+            mode="lines",
+            line=dict(color=tokens["primary"], width=0.8),
+            opacity=0.35,
+            showlegend=False,
+            hoverinfo="skip",
+        ))
+
+    layout = get_plotly_layout_defaults()
+    layout.update({
+        "title": f"In-Phase Eye Diagram ({eye.num_traces} traces, {eye.symbols_per_trace} symbols)",
+        "xaxis_title": "Symbol Periods (T_sym)",
+        "yaxis_title": "Amplitude",
+        "height": 340,
+    })
+    if layout_overrides:
+        layout.update(layout_overrides)
+
+    fig.update_layout(layout)
+    return fig
+
+
+def create_burst_timeline_plot(
+    artifacts: ObservatoryArtifacts,
+    layout_overrides: Optional[Dict[str, Any]] = None,
+) -> Optional[go.Figure]:
+    """Generates an interactive Plotly Burst Timeline and Power Envelope plot."""
+    if not artifacts.burst_view:
+        return None
+
+    bv = artifacts.burst_view
+    tokens = get_theme_tokens()
+    fig = go.Figure()
+
+    if bv.temporal_power_times_ms and bv.temporal_power_db:
+        fig.add_trace(go.Scatter(
+            x=bv.temporal_power_times_ms,
+            y=bv.temporal_power_db,
+            name="Power Envelope",
+            line=dict(color=tokens["accent"], width=1.5),
+            mode="lines",
+        ))
+
+    # Add burst duration shaded regions
+    for idx, b in enumerate(bv.bursts):
+        fig.add_vrect(
+            x0=b.start_time_ms,
+            x1=b.end_time_ms,
+            fillcolor=tokens["pass_color"],
+            opacity=0.2,
+            line_width=1,
+            line_color=tokens["pass_color"],
+            annotation_text=f"B{idx+1} ({b.snr_db:.1f} dB)",
+            annotation_position="top left",
+        )
+
+    layout = get_plotly_layout_defaults()
+    layout.update({
+        "title": f"Temporal Burst Power & Intervals (Detected: {bv.total_bursts})",
+        "xaxis_title": "Time (ms)",
+        "yaxis_title": "Power (dB)",
+        "height": 300,
+        "showlegend": False,
+    })
+    if layout_overrides:
+        layout.update(layout_overrides)
+
+    fig.update_layout(layout)
+    return fig
+
+
+# -----------------------------------------------------------------------------
+# Legacy Matplotlib Helpers (Preserved for Backward Compatibility)
+# -----------------------------------------------------------------------------
 
 def plot_waveform(
     iq_samples: np.ndarray,
     fs_hz: float = 1e6,
     max_points: int = 2000,
 ) -> Tuple[plt.Figure, bool]:
-    """Plots in-phase (I) and quadrature (Q) time-domain waveform."""
-    fig, ax = plt.subplots(figsize=(8, 3.2), facecolor=PLOT_BG_COLOR)
-    downsampled = False
+    """Legacy matplotlib waveform plot."""
+    fig, ax = plt.subplots(figsize=(8, 3.2), facecolor="#0e1117")
+    ax.set_facecolor("#161b22")
     n = len(iq_samples)
-
-    if n > max_points:
-        step = int(np.ceil(n / max_points))
-        samples = iq_samples[::step]
-        downsampled = True
-    else:
-        samples = iq_samples
-
+    downsampled = n > max_points
+    samples = iq_samples[::int(np.ceil(n / max_points))] if downsampled else iq_samples
     t_ms = np.arange(len(samples)) * (1.0 / fs_hz) * 1000.0 * (n / len(samples))
-    ax.plot(t_ms, samples.real, label="I (In-phase)", color=ACCENT_BLUE, alpha=0.85, linewidth=1.0)
-    ax.plot(t_ms, samples.imag, label="Q (Quadrature)", color=ACCENT_ORANGE, alpha=0.85, linewidth=1.0)
-
-    title = "Time-Domain IQ Waveform" + (" (Visualization downsampled)" if downsampled else "")
-    _apply_theme(ax, title, "Time (ms)", "Amplitude")
-    ax.legend(facecolor=PLOT_CARD_BG, edgecolor=PLOT_GRID_COLOR, labelcolor=PLOT_TEXT_COLOR, loc="upper right")
+    ax.plot(t_ms, samples.real, label="I", color="#58a6ff", alpha=0.85)
+    ax.plot(t_ms, samples.imag, label="Q", color="#d29922", alpha=0.85)
+    ax.grid(True, color="#30363d", linestyle="--", alpha=0.5)
+    ax.tick_params(colors="#c9d1d9")
     fig.tight_layout()
     return fig, downsampled
 
@@ -64,87 +344,48 @@ def plot_spectrum_psd(
     fs_hz: float = 1e6,
     nfft: int = 1024,
 ) -> Tuple[plt.Figure, bool]:
-    """Plots power spectral density (PSD)."""
-    fig, ax = plt.subplots(figsize=(8, 3.2), facecolor=PLOT_BG_COLOR)
-    downsampled = False
-
-    # Compute FFT
-    if len(iq_samples) < nfft:
-        nfft = max(64, int(2 ** np.floor(np.log2(len(iq_samples)))))
-
-    # Average PSD over segments
-    hop = nfft // 2
-    segments = []
-    window = np.hanning(nfft)
-    for i in range(0, len(iq_samples) - nfft + 1, hop):
-        seg = iq_samples[i : i + nfft] * window
-        segments.append(np.abs(np.fft.fftshift(np.fft.fft(seg))) ** 2)
-        if len(segments) >= 64:
-            downsampled = True
-            break
-
-    if segments:
-        psd = np.mean(segments, axis=0)
-        psd_db = 10 * np.log10(np.maximum(psd, 1e-12))
-        freqs_mhz = np.fft.fftshift(np.fft.fftfreq(nfft, d=1.0 / fs_hz)) / 1e6
-        ax.plot(freqs_mhz, psd_db, color=ACCENT_GREEN, linewidth=1.2)
-        title = "Power Spectral Density (PSD)" + (" (Visualization downsampled)" if downsampled else "")
-        _apply_theme(ax, title, "Frequency (MHz)", "Power (dB/Hz)")
-    else:
-        ax.text(0.5, 0.5, "Insufficient samples for PSD", color=PLOT_TEXT_COLOR, ha="center")
-        _apply_theme(ax, "Power Spectral Density", "Frequency", "Power")
-
+    """Legacy matplotlib PSD plot."""
+    fig, ax = plt.subplots(figsize=(8, 3.2), facecolor="#0e1117")
+    ax.set_facecolor("#161b22")
+    nfft = min(nfft, len(iq_samples))
+    freqs = np.fft.fftshift(np.fft.fftfreq(nfft, d=1.0 / fs_hz)) / 1e6
+    psd = np.abs(np.fft.fftshift(np.fft.fft(iq_samples[:nfft]))) ** 2
+    ax.plot(freqs, 10 * np.log10(np.maximum(psd, 1e-12)), color="#3fb950")
+    ax.grid(True, color="#30363d", linestyle="--", alpha=0.5)
+    ax.tick_params(colors="#c9d1d9")
     fig.tight_layout()
-    return fig, downsampled
+    return fig, False
 
 
 def plot_constellation(
     iq_samples: np.ndarray,
-    max_points: int = 3000,
+    max_points: int = 1000,
 ) -> Tuple[plt.Figure, bool]:
-    """Plots 2D complex constellation scatter."""
-    fig, ax = plt.subplots(figsize=(4.5, 4.5), facecolor=PLOT_BG_COLOR)
-    downsampled = False
+    """Legacy matplotlib constellation plot."""
+    fig, ax = plt.subplots(figsize=(4, 4), facecolor="#0e1117")
+    ax.set_facecolor("#161b22")
     n = len(iq_samples)
-
-    if n > max_points:
-        indices = np.random.RandomState(42).choice(n, size=max_points, replace=False)
-        pts = iq_samples[indices]
-        downsampled = True
-    else:
-        pts = iq_samples
-
-    ax.scatter(pts.real, pts.imag, s=6, color=ACCENT_BLUE, alpha=0.5, edgecolors="none")
-    ax.axhline(0, color=PLOT_GRID_COLOR, linestyle="--", linewidth=0.8)
-    ax.axvline(0, color=PLOT_GRID_COLOR, linestyle="--", linewidth=0.8)
-
-    title = "IQ Constellation" + (" (Downsampled)" if downsampled else "")
-    _apply_theme(ax, title, "In-phase (I)", "Quadrature (Q)")
+    downsampled = n > max_points
+    samples = iq_samples[::int(np.ceil(n / max_points))] if downsampled else iq_samples
+    ax.scatter(samples.real, samples.imag, s=6, color="#58a6ff", alpha=0.6)
+    ax.grid(True, color="#30363d", linestyle="--", alpha=0.5)
+    ax.tick_params(colors="#c9d1d9")
     fig.tight_layout()
     return fig, downsampled
 
 
-def plot_burst_timeline(bursts: List[Any]) -> plt.Figure:
-    """Visualizes detected bursts on a timeline."""
-    fig, ax = plt.subplots(figsize=(8, 2.4), facecolor=PLOT_BG_COLOR)
-    if not bursts:
-        ax.text(0.5, 0.5, "No Bursts Detected (Continuous or Noise-only)", color=PLOT_TEXT_COLOR, ha="center", va="center")
-        _apply_theme(ax, "Burst Activity Timeline", "Time (ms)", "Power (dBm)")
-        fig.tight_layout()
-        return fig
-
-    for b in bursts:
-        # Support both NormalizedBurst and dict
-        s = getattr(b, "start_ms", b.get("start_ms", 0.0))
-        e = getattr(b, "end_ms", b.get("end_ms", 1.0))
-        p = getattr(b, "power_db", getattr(b, "power", b.get("power", -10.0)))
-        idx = getattr(b, "index", 0)
-
-        dur = e - s
-        ax.barh(0, dur, left=s, height=0.5, color=ACCENT_PURPLE, alpha=0.75, edgecolor=ACCENT_BLUE)
-        ax.text(s + dur / 2, 0, f"B{idx}\n{p:.1f} dBm", color="#ffffff", ha="center", va="center", fontsize=8, fontweight="bold")
-
-    ax.set_yticks([])
-    _apply_theme(ax, "Detected Burst Timeline", "Time (ms)", "")
+def plot_burst_timeline(
+    bursts: List[Any],
+    total_duration_ms: float = 100.0,
+) -> plt.Figure:
+    """Legacy matplotlib burst timeline plot."""
+    fig, ax = plt.subplots(figsize=(8, 2.0), facecolor="#0e1117")
+    ax.set_facecolor("#161b22")
+    for idx, b in enumerate(bursts):
+        start = getattr(b, "start_time_s", 0) * 1000.0
+        dur = getattr(b, "duration_s", 0.01) * 1000.0
+        ax.barh(0, dur, left=start, height=0.5, color="#58a6ff", alpha=0.8)
+    ax.grid(True, color="#30363d", linestyle="--", alpha=0.5)
+    ax.tick_params(colors="#c9d1d9")
     fig.tight_layout()
     return fig
