@@ -81,8 +81,17 @@ class NormalizedAnalysis:
     features: NormalizedFeatures
     sub_windows: Optional[List[Dict[str, Any]]]
     notes: Optional[str]
-    capability_available: Optional[bool]
+    capability_available: Optional[bool] = True
     raw_dict: Dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def baud_rate(self) -> NormalizedEstimate:
+        return self.baud
+
+    @property
+    def fc_hz(self) -> float:
+        return float(self.raw_dict.get("fc_hz", 0.0))
+
 
 
 def adapt_analysis(raw_data: Any) -> NormalizedAnalysis:

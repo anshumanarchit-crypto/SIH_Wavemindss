@@ -82,6 +82,16 @@ class NormalizedResult:
             return "HIGH CONFIDENCE"
         return "LOW CONFIDENCE"
 
+    @property
+    def provenance(self) -> Dict[str, Any]:
+        return {
+            "input_hash": self.input_hash,
+            "seed": self.seed,
+            "software_version": self.software_version,
+            "generated_at": self.generated_at,
+        }
+
+
 
 def adapt_result(raw_data: Any) -> NormalizedResult:
     """

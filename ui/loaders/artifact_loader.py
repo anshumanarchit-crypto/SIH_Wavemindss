@@ -130,3 +130,23 @@ def load_case_artifacts(
             provenance["decoder_error"] = str(e)
 
     return norm_res, norm_ana, norm_dec, provenance
+
+
+def load_case_observatory(
+    case: DiscoveredCase,
+    analysis: Optional[NormalizedAnalysis] = None,
+):
+    """
+    Constructs ObservatoryArtifacts for a discovered case.
+    If raw samples are not present, raw_available is False.
+    """
+    from spectralq.visualization.artifacts import prepare_observatory_artifacts
+
+    fs = analysis.fs_hz if analysis else 20.0e6
+    return prepare_observatory_artifacts(
+        capture_path=case.raw_path,
+        analysis=analysis,
+        fs_hz=fs,
+        source_mode=case.category,
+    )
+

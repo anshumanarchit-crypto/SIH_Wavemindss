@@ -21,6 +21,8 @@ class DiscoveredCase:
     decoder_path: Optional[Path] = None
     classifier_path: Optional[Path] = None
     truth_path: Optional[Path] = None
+    raw_path: Optional[Path] = None
+    sigmf_path: Optional[Path] = None
     precomputed_result: Optional[dict] = None
 
 
@@ -64,6 +66,18 @@ def discover_available_cases(repo_root: Optional[Path] = None) -> List[Discovere
                 dec_path = sub / "decoder_output.json"
                 cla_path = sub / "classifier_output.json"
 
+                # Check for raw sample or sigmf files
+                raw_file = None
+                sigmf_file = None
+                for ext in [".cf32", ".iq", ".wav", ".sigmf-data", ".npy"]:
+                    matches = list(sub.glob(f"*{ext}"))
+                    if matches:
+                        raw_file = matches[0]
+                        break
+                meta_matches = list(sub.glob("*.sigmf-meta"))
+                if meta_matches:
+                    sigmf_file = meta_matches[0]
+
                 discovered[cid] = DiscoveredCase(
                     case_id=cid,
                     name=f"Real: {name_clean}",
@@ -73,6 +87,8 @@ def discover_available_cases(repo_root: Optional[Path] = None) -> List[Discovere
                     analysis_path=ana_path if ana_path.exists() else None,
                     decoder_path=dec_path if dec_path.exists() else None,
                     classifier_path=cla_path if cla_path.exists() else None,
+                    raw_path=raw_file,
+                    sigmf_path=sigmf_file,
                 )
 
     # 3. Discover from data/golden

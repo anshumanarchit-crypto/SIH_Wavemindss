@@ -11,6 +11,7 @@ from ui.loaders.artifact_loader import (
     ArtifactLoadError,
     load_json_file,
     load_case_artifacts,
+    load_case_observatory,
 )
 
 __all__ = [
@@ -19,4 +20,5 @@ __all__ = [
     "ArtifactLoadError",
     "load_json_file",
     "load_case_artifacts",
+    "load_case_observatory",
 ]

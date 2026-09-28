@@ -42,6 +42,45 @@ class NormalizedDecoder:
             return "0.000000 (0 errors)"
         return f"{self.reencode_ber:.6f}"
 
+    @property
+    def ber(self) -> Optional[float]:
+        return self.reencode_ber
+
+    @property
+    def evm_percent(self) -> Optional[float]:
+        return self.raw_dict.get("evm_percent")
+
+    @property
+    def viterbi_used(self) -> bool:
+        fec = (self.fec_used or "").lower()
+        return "viterbi" in fec or "conv" in fec
+
+    @property
+    def reed_solomon_used(self) -> bool:
+        fec = (self.fec_used or "").lower()
+        return "rs" in fec or "reed" in fec
+
+    @property
+    def interleaver_type(self) -> str:
+        return self.interleaver_used or "none"
+
+    @property
+    def crc_passed(self) -> bool:
+        return (self.crc_status or "").upper() == "PASS"
+
+    @property
+    def crc_checked(self) -> bool:
+        return (self.crc_status or "").upper() in ("PASS", "FAIL")
+
+    @property
+    def raw_bits(self) -> Optional[str]:
+        return self.decoded_bits_preview or self.raw_dict.get("raw_bits")
+
+    @property
+    def sync_word(self) -> Optional[str]:
+        return self.raw_dict.get("sync_word")
+
+
 
 def adapt_decoder(raw_data: Any) -> NormalizedDecoder:
     """
