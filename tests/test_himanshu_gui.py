@@ -279,20 +279,55 @@ def test_export_bundle_generation():
 
 # 13. Zero backend calculation occurs in GUI
 def test_no_backend_calculation_occurs_in_gui():
+    """
+    Ensures no actual backend signal processing occurs inside GUI modules.
+    Strips string literals and comments from each file before scanning, so
+    human-readable UI labels like 'Viterbi (Both ACTIVE, CRC PASS)' in dict
+    keys or HTML strings are not falsely flagged. Only genuine Python code
+    constructs (function calls, class instantiations) are detected.
+    """
+    import re
+    import tokenize
+    import io
+
     ui_dir = REPO_ROOT / "ui"
-    forbidden_terms = [
-        "octave_cli",
-        "Viterbi",
-        "Demodulator",
-        "fit(",
-        "CalibratedClassifierCV",
-        "LogisticRegression",
-        "train_baseline",
+
+    # Each entry: (description, compiled_regex)
+    # Patterns match actual Python identifier calls, e.g. Viterbi(), fit(), etc.
+    forbidden_patterns = [
+        ("octave_cli call",             re.compile(r'\boctave_cli\s*\(')),
+        ("Viterbi class/function call",  re.compile(r'\bViterbi\s*\(')),
+        ("Demodulator instantiation",    re.compile(r'\bDemodulator\s*\(')),
+        ("sklearn .fit() call",          re.compile(r'\.fit\s*\(')),
+        ("CalibratedClassifierCV usage", re.compile(r'\bCalibratedClassifierCV\s*\(')),
+        ("LogisticRegression usage",     re.compile(r'\bLogisticRegression\s*\(')),
+        ("train_baseline call",          re.compile(r'\btrain_baseline\s*\(')),
     ]
+
+    def strip_strings_and_comments(source: str) -> str:
+        """Return source with all string literals and comments replaced by spaces."""
+        result = []
+        try:
+            tokens = list(tokenize.generate_tokens(io.StringIO(source).readline))
+        except tokenize.TokenError:
+            # Fallback for files with tokenization errors: return as-is
+            return source
+        for tok_type, tok_string, tok_start, tok_end, _ in tokens:
+            if tok_type in (tokenize.STRING, tokenize.COMMENT):
+                # Replace with whitespace of equal length to preserve offsets
+                result.append(" " * len(tok_string))
+            else:
+                result.append(tok_string)
+        return "".join(result)
+
     for p in ui_dir.rglob("*.py"):
-        text = p.read_text(encoding="utf-8")
-        for term in forbidden_terms:
-            assert term not in text, f"Violation in {p}: found forbidden scientific computation term '{term}'"
+        raw_text = p.read_text(encoding="utf-8")
+        code_only = strip_strings_and_comments(raw_text)
+        for desc, pattern in forbidden_patterns:
+            assert not pattern.search(code_only), (
+                f"Violation in {p}: found forbidden backend computation pattern '{desc}'. "
+                f"GUI modules must not contain signal processing computation code."
+            )
 
 
 # 14. G1-G7 Rendering Validation
