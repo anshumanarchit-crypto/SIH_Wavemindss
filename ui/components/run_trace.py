@@ -21,10 +21,19 @@ def render_run_trace(
     """Renders the 10-stage execution timeline and trace audit workspace."""
     tokens = get_theme_tokens()
 
-    st.markdown("## ⏱️ Pipeline Execution Trace")
-    st.caption(
-        "Complete 10-stage execution audit trail: telemetry timing, execution mode provenance, "
-        "and per-stage data transformations."
+    st.markdown(
+        """
+        <div style="background: linear-gradient(145deg, #1e293b, #0f172a); padding: 1.5rem; border-radius: 0.75rem; border-left: 4px solid #38bdf8; margin-bottom: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <h2 style="margin: 0; font-size: 1.8rem; font-weight: 800; background: linear-gradient(to right, #38bdf8, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Pipeline Execution Trace</h2>
+                <span style="background: rgba(56, 189, 248, 0.1); color: #38bdf8; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em; border: 1px solid rgba(56, 189, 248, 0.2);">AUDIT TRAIL</span>
+            </div>
+            <div style="color: #94a3b8; font-size: 0.95rem; line-height: 1.5;">
+                Complete 10-stage execution audit trail: telemetry timing, execution mode provenance, and per-stage data transformations.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
     if not result:
@@ -37,21 +46,43 @@ def render_run_trace(
     ladder = result.ladder_level
     conf_pct = (result.final_confidence * 100.0) if result.final_confidence else 0.0
 
-    st.markdown("### 📋 Run Metadata & Epistemic Boundaries")
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        st.metric("Source Mode", source_mode.upper())
-    with c2:
-        st.metric("Final Ladder", ladder)
-    with c3:
-        st.metric("Confidence", f"{conf_pct:.1f}%")
-    with c4:
-        st.metric("Decision State", "ABSTAINED" if result.is_unknown else "CONFIRMED")
+    dec_state = "ABSTAINED" if result.is_unknown else "CONFIRMED"
+    dec_color = "#ef4444" if result.is_unknown else "#f59e0b"
 
-    st.markdown("---")
+    st.markdown(
+        f"""
+        <div style="background: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; padding: 1.25rem; display: flex; gap: 1rem; margin-bottom: 2rem;">
+            <div style="flex: 1; background: rgba(255,255,255,0.03); border-radius: 0.5rem; padding: 1rem; border-bottom: 2px solid #38bdf8;">
+                <div style="font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">Source Mode</div>
+                <div style="font-size: 1.25rem; font-weight: 700; color: #e2e8f0; font-family: monospace;">{source_mode.upper()}</div>
+            </div>
+            <div style="flex: 1; background: rgba(255,255,255,0.03); border-radius: 0.5rem; padding: 1rem; border-bottom: 2px solid #a855f7;">
+                <div style="font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">Final Ladder</div>
+                <div style="font-size: 1.25rem; font-weight: 700; color: #e2e8f0; font-family: monospace;">{ladder}</div>
+            </div>
+            <div style="flex: 1; background: rgba(255,255,255,0.03); border-radius: 0.5rem; padding: 1rem; border-bottom: 2px solid #10b981;">
+                <div style="font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">Confidence</div>
+                <div style="font-size: 1.25rem; font-weight: 700; color: #e2e8f0; font-family: monospace;">{conf_pct:.1f}%</div>
+            </div>
+            <div style="flex: 1; background: rgba(255,255,255,0.03); border-radius: 0.5rem; padding: 1rem; border-bottom: 2px solid {dec_color};">
+                <div style="font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">Decision State</div>
+                <div style="font-size: 1.25rem; font-weight: 700; color: #e2e8f0; font-family: monospace;">{dec_state}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # 2. 10-Stage Execution Timeline Cards
-    st.markdown("### 🔄 10-Stage Execution Trace")
+    st.markdown(
+        """
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; margin-top: 1rem;">
+            <div style="background: #38bdf8; width: 8px; height: 24px; border-radius: 4px;"></div>
+            <h3 style="margin: 0; font-size: 1.4rem; color: #f8fafc; font-weight: 700;">10-Stage Execution Trace</h3>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # Build Stage Telemetry
     # Stage 1: Ingest & Preprocessing
@@ -256,17 +287,56 @@ def render_run_trace(
         "UNAVAILABLE": "badge-ladder",
     }
 
-    for s in stages:
-        b_class = badge_colors.get(s["status"], "badge-ladder")
-        with st.expander(f"**Step {s['num']}**: {s['name']}  —  [{s['status']}]", expanded=False):
-            st.markdown(
-                f"""
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
-                    <div><b>Owner / Upstream:</b> {s['team']}</div>
-                    <div><span class="sq-badge {b_class}">{s['status']}</span></div>
+    st.markdown(
+        """
+        <style>
+        .stage-card-hover {
+            transition: transform 0.2s ease;
+        }
+        .stage-card-hover:hover {
+            transform: translateY(-2px);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    accent_colors = ["#38bdf8", "#a855f7", "#ec4899", "#f43f5e", "#f59e0b", "#84cc16", "#10b981", "#14b8a6", "#0ea5e9", "#6366f1"]
+
+    for i, s in enumerate(stages):
+        status = s["status"]
+        if status in ["LIVE", "REAL", "PASS", "CONFIRMED"]:
+            b_color = "#10b981"
+        elif status == "REPLAY":
+            b_color = "#f59e0b"
+        elif status in ["FAIL", "CONFLICT", "ABSTAINED"]:
+            b_color = "#ef4444"
+        else:
+            b_color = "#6b7280"
+            
+        accent = accent_colors[i % len(accent_colors)]
+        
+        st.markdown(
+            f"""
+            <div class="stage-card-hover" style="display: flex; gap: 1rem; margin-bottom: 0.5rem;">
+                <div style="display: flex; flex-direction: column; align-items: center; min-width: 2rem;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: {accent}; margin-top: 0.6rem; z-index: 1;"></div>
+                    <div style="flex: 1; width: 2px; background: #334155; margin-top: 4px; margin-bottom: -2.5rem; min-height: 2.5rem;"></div>
                 </div>
-                <div style="margin-bottom:0.6rem; color:{tokens['text_muted']};">{s['summary']}</div>
-                """,
-                unsafe_allow_html=True,
-            )
+                <div style="flex: 1; background: #1e293b; border: 1px solid #334155; border-radius: 0.5rem; padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span style="background: rgba(255,255,255,0.1); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.8rem; font-weight: 600; color: {accent};">S{s['num']}</span>
+                            <span style="font-weight: 700; color: #f8fafc; font-size: 1rem;">{s['name']}</span>
+                            <span style="color: #64748b; font-size: 0.8rem;">— {s['team']}</span>
+                        </div>
+                        <span style="background: {b_color}20; color: {b_color}; border: 1px solid {b_color}40; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em;">{s['status']}</span>
+                    </div>
+                    <div style="color: #94a3b8; font-size: 0.9rem;">{s['summary']}</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        with st.expander(f"S{s['num']} {s['name']}", expanded=False):
             st.json(s["data"])
