@@ -12,6 +12,7 @@ This module is UI-only; zero DSP computation in the UI layer.
 from __future__ import annotations
 import io
 import json
+from pathlib import Path
 import struct
 import time
 import zipfile
