@@ -29,7 +29,7 @@ def generate_sigmf_metadata(
             "core:version": "1.0.0",
             "core:sha512": None,
             "core:description": desc,
-            "core:author": "SpectralQ NTRO SIH26147",
+            "core:author": "SpectralQ SpectralQ Defense",
             "spectralq:sha256": sha,
             "spectralq:ladder_level": result.ladder_level if result else None,
             "spectralq:modulation": result.top_hypothesis.modulation if result else None,

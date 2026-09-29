@@ -1,6 +1,6 @@
 """
 UI Decoder Panel Component.
-Renders Arpit's demodulation, deinterleaving, and FEC decoding metrics:
+Renders Demodulation, deinterleaving, and FEC decoding metrics:
 FEC scheme, interleaver, decoded bit count, CRC checksum, and residual BER.
 Explicitly highlights UNSUPPORTED capabilities without fabricating data.
 """
@@ -16,7 +16,7 @@ def render_decoder_panel(
     result: Optional[NormalizedResult],
 ):
     """Renders the comprehensive decoder integrity & telemetry panel."""
-    st.markdown("### Demodulation, Deinterleaving & FEC Decoding (Arpit's Stage)")
+    st.markdown("### Demodulation, Deinterleaving & FEC Decoding (FEC Decoding Stage)")
 
     if not decoder and not result:
         st.info("No decoder telemetry available.")
@@ -74,9 +74,9 @@ def render_decoder_panel(
         with st.expander("⚠️ View Decoder Diagnostic Warning / Failure Rationale"):
             st.warning(failure_reason)
 
-    # Reference Closure (Official Sinchana Reference Benchmark for G1/G5)
+    # Reference Closure (Official Reference Benchmark for G1/G5)
     st.markdown("---")
-    st.markdown("#### 🔬 Ground Truth Reference Closure (Sinchana Reference Benchmark)")
+    st.markdown("#### 🔬 Ground Truth Reference Closure (Reference Benchmark)")
     has_ref = (decoder and decoder.reference_available) or (result and result.source_mode.upper() == "SYNTHETIC")
     ref_cols = st.columns(4)
     with ref_cols[0]:

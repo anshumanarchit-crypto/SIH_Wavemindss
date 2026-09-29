@@ -36,7 +36,7 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
                 <span class="sq-pulse-dot emerald" title="System Operational • Defense Grade"></span>
             </div>
             <div style="font-size:0.68rem; font-weight:700; color:#64748b; letter-spacing:0.08em; text-transform:uppercase;">
-                NTRO • PS: SIH26147 • SIGINT SUITE
+                SpectralQ Defense v2.0
             </div>
         </div>
         """,

@@ -28,7 +28,7 @@ def render_modulation_hypotheses(
                     <span style="color:#818cf8;">⚡</span> MODULATION &amp; HYPOTHESIS ARBITRATION
                 </div>
                 <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">
-                    Neural Modulation Classification (Harsh) &amp; Physical AMC Decision Consensus (Sinchana / Archit)
+                    Neural Modulation Classification (SpectralQ) &amp; Physical AMC Decision Consensus (SpectralQ / SpectralQ)
                 </div>
             </div>
             <div style="display:flex; align-items:center; gap:0.5rem;">
@@ -230,7 +230,7 @@ def render_modulation_hypotheses(
                     <span style="color:#00f2fe;">🔬</span> EXTRACTION &amp; DECISION GATE FEATURES
                 </div>
                 <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">
-                    Critical physical thresholds evaluated by Sinchana's AMC rules and Harsh's classifier
+                    Critical physical thresholds evaluated by SpectralQ's AMC rules and SpectralQ's classifier
                 </div>
             </div>
         </div>

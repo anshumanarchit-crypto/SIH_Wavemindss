@@ -166,7 +166,7 @@ def render_signal_lab() -> None:
                 capture_id="SIMULATED_TEST",
             )
 
-            # Stage 5-6: ML Classification (Harsh) & AMC Rules (Sinchana)
+            # Stage 5-6: ML Classification & AMC Rules
             model_path = Path("models/baseline_rf.joblib")
             if model_path.exists():
                 clf_adapter = ClassifierAdapter.load_from_file(str(model_path))
@@ -183,7 +183,7 @@ def render_signal_lab() -> None:
             est_cfo = float(analysis.estimates.cfo.value)
             est_baud = float(analysis.estimates.baud.value)
 
-            # Stage 7-9: Demodulation, FEC Chain, and Sync Word Detection (Arpit)
+            # Stage 7-9: Demodulation, FEC Chain, and Sync Word Detection
             dec_out = run_arpit_decoder(
                 capture_input=sig,
                 capture_id="SIMULATED_TEST",

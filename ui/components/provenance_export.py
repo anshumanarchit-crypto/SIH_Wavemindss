@@ -32,9 +32,9 @@ def _generate_sigmf_metadata_dict(
             "core:version": "1.0.0",
             "core:sha512": provenance.get("sha256", "precomputed_synthetic_capture_digest"),
             "core:description": f"SpectralQ RF Capture: {result.capture_id if result else 'UNKNOWN'}",
-            "core:author": "SpectralQ Autonomous SIGINT Engine (SIH26147)",
+            "core:author": "SpectralQ Autonomous SIGINT Engine ()",
             "core:recorder": "SpectralQ Ingest Subsystem",
-            "core:license": "Proprietary NTRO Evaluation",
+            "core:license": "Proprietary SpectralQ Evaluation",
             "spectralq:ladder_level": result.ladder_level if result else "N/A",
             "spectralq:modulation": result.top_hypothesis.modulation if result else "UNKNOWN",
             "spectralq:confidence": result.final_confidence if result else 0.0,
@@ -102,7 +102,7 @@ def render_provenance_export(
                     • <b>Target Capture ID:</b> <code>{result.capture_id if result else 'UNKNOWN'}</code><br>
                     • <b>Source Origin:</b> <code>{provenance.get('name', 'Direct Stream / Ingest')}</code><br>
                     • <b>Ingest Mode:</b> <span class="sq-badge {'badge-replay' if provenance.get('is_replay', True) else 'badge-pass'}">{'OFFLINE REPLAY' if provenance.get('is_replay', True) else 'LIVE SDR INGEST'}</span><br>
-                    • <b>Pipeline Software:</b> <code>SpectralQ Core v2.0 (SIH26147)</code><br>
+                    • <b>Pipeline Software:</b> <code>SpectralQ Core v2.0 ()</code><br>
                     • <b>Target File:</b> <code>{provenance.get('uploaded_file') or provenance.get('result_source', 'Direct RF Stream')}</code>
                 </div>
             </div>

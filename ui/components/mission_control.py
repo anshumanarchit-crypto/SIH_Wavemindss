@@ -143,7 +143,7 @@ def render_mission_control(
                 pen_txt = f"{result.rule_ml_penalty:.2f}" if result.rule_ml_penalty is not None else "0.00"
                 why_narrative = (
                     f"Operational abstention triggered. Verification check syndrome errors exceeded threshold or "
-                    f"AMC classifiers diverged. Sinchana's Rule AMC proposed <b>'{result.rule_prediction}'</b> while "
+                    f"AMC classifiers diverged. SpectralQ's Rule AMC proposed <b>'{result.rule_prediction}'</b> while "
                     f"the neural model predicted <b>'{result.ml_prediction}'</b>. Calibrated penalty: <code>-{pen_txt}</code>."
                 )
             else:

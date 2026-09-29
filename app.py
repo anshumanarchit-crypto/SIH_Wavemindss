@@ -1,7 +1,7 @@
 """
 SpectralQ Streamlit Main Application.
-Production GUI & User-Facing Intelligence Interface for SIH26147 (NTRO).
-Owner: Himanshu (Streamlit GUI, visualization, evidence-bundle presentation).
+Production GUI & User-Facing Intelligence Interface for SpectralQ Defense.
+Owner: SpectralQ (Streamlit GUI, visualization, evidence-bundle presentation).
 
 Strict Architectural Invariant:
 Strictly consumes backend contracts and genuine RF captures.

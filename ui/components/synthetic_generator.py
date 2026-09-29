@@ -41,7 +41,7 @@ SCENARIO_CATALOG = {
         "mod": "QPSK", "snr_db": 35.0, "sps": 8, "cfo_hz": 0.0,
         "fec": "none", "interleaver": "none", "corrupt_bits": 0,
         "stream_type": "framed", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
-        "description": "Golden reference uncoded QPSK. Mirrors G1 Sinchana reference. CRC PASS with zero BER.",
+        "description": "Golden reference uncoded QPSK. Mirrors G1 golden reference. CRC PASS with zero BER.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "BYPASS", "outer_fec": "BYPASS", "crc": "PASS"},
         "tags": ["golden", "g1", "uncoded", "pass"],
         "icon": "✅",
@@ -268,7 +268,7 @@ def _generate_synthetic_capture(scenario: Dict[str, Any], num_symbols: int, fs_h
             return np.concatenate([sync, enc])
         return np.concatenate([sync, bits])
 
-    payload_text = b"SPECTRALQ_SYNTHETIC_CAPTURE_TEST_PAYLOAD_WAVEMINDS_SIH26147"
+    payload_text = b"SPECTRALQ_SYNTHETIC_CAPTURE_TEST_PAYLOAD_WAVEMINDS_"
 
     if stream_type == "noise" or mod == "NOISE":
         samples = (rng.standard_normal(num_symbols * sps) + 1j * rng.standard_normal(num_symbols * sps)).astype(np.complex64) * 0.1

@@ -1,6 +1,6 @@
 """
 UI Evidence Ledger Component.
-Renders the complete, immutable evidence chain collected by Archit's decision layer.
+Renders the complete, immutable evidence chain collected by Decision Layer.
 Each item clearly exposes ID, source, check name, status, value, explanation, and failure rationale.
 """
 

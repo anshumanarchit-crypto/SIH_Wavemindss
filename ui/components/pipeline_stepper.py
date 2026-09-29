@@ -22,16 +22,16 @@ def render_pipeline_stepper(
     st.markdown("### Signal Intelligence Pipeline Traversal")
 
     stages = [
-        {"id": "ingest", "name": "1. Ingest", "owner": "Sinchana"},
-        {"id": "forensics", "name": "2. Forensics", "owner": "Sinchana"},
-        {"id": "bursts", "name": "3. Bursts", "owner": "Sinchana"},
-        {"id": "estimation", "name": "4. DSP Estimation", "owner": "Sinchana"},
-        {"id": "modulation", "name": "5. Modulation", "owner": "Harsh / Archit"},
-        {"id": "demod", "name": "6. Demodulation", "owner": "Arpit"},
-        {"id": "fec", "name": "7. FEC / Deintl", "owner": "Arpit"},
-        {"id": "bitstream", "name": "8. Bitstream", "owner": "Arpit"},
-        {"id": "evidence", "name": "9. Evidence Ledger", "owner": "Archit"},
-        {"id": "result", "name": "10. Decision", "owner": "Archit"},
+        {"id": "ingest", "name": "1. Ingest", "owner": "DSP Engine"},
+        {"id": "forensics", "name": "2. Forensics", "owner": "DSP Engine"},
+        {"id": "bursts", "name": "3. Bursts", "owner": "DSP Engine"},
+        {"id": "estimation", "name": "4. DSP Estimation", "owner": "DSP Engine"},
+        {"id": "modulation", "name": "5. Modulation", "owner": "AMC Engine"},
+        {"id": "demod", "name": "6. Demodulation", "owner": "FEC Decoder"},
+        {"id": "fec", "name": "7. FEC / Deintl", "owner": "FEC Decoder"},
+        {"id": "bitstream", "name": "8. Bitstream", "owner": "FEC Decoder"},
+        {"id": "evidence", "name": "9. Evidence Ledger", "owner": "Evidence Engine"},
+        {"id": "result", "name": "10. Decision", "owner": "Evidence Engine"},
     ]
 
     # Compute status per stage honestly

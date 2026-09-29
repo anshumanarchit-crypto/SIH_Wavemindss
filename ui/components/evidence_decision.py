@@ -37,11 +37,11 @@ def render_evidence_decision(
                     <span style="color:#10b981;">⚖️</span> EVIDENCE LEDGER &amp; DECISION ENGINE
                 </div>
                 <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">
-                    Stage 10: Hierarchical Verification Ladder (L1–L5), Cryptographic Audit Trail (Archit), and Confidence Calibration
+                    Stage 10: Hierarchical Verification Ladder (L1–L5), Cryptographic Audit Trail (SpectralQ), and Confidence Calibration
                 </div>
             </div>
             <div style="display:flex; align-items:center; gap:0.5rem;">
-                <span class="sq-badge badge-ladder">ARCHIT LEDGER V2.0</span>
+                <span class="sq-badge badge-ladder">SpectralQ LEDGER V2.0</span>
                 <span class="sq-pulse-dot emerald"></span>
             </div>
         </div>

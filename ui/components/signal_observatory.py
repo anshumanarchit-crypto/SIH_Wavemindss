@@ -145,7 +145,7 @@ def render_signal_observatory(
                     <span style="color:#00f2fe;">🔬</span> EXTRACTED PHYSICAL &amp; STATISTICAL PARAMETERS
                 </div>
                 <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">
-                    Estimated blindly via Sinchana's DSP cyclostationary &amp; higher-order cumulant estimators
+                    Estimated blindly via SpectralQ's DSP cyclostationary &amp; higher-order cumulant estimators
                 </div>
             </div>
             <span class="sq-badge badge-pass">95% CONFIDENCE INTERVALS VERIFIED</span>
@@ -265,7 +265,7 @@ def render_signal_observatory(
     st.markdown("---")
 
     # =========================================================================
-    # HIERARCHY LEVEL 4: Receiver Validation (Arpit's Real Decoder Telemetry)
+    # HIERARCHY LEVEL 4: Receiver Validation ( Real Decoder Telemetry)
     # =========================================================================
     st.markdown(
         """
@@ -278,7 +278,7 @@ def render_signal_observatory(
                     Demodulation lock, Viterbi trellis decoding, and cyclic redundancy checksum validation
                 </div>
             </div>
-            <span class="sq-badge badge-pass">ARPIT DECODER ENGINE</span>
+            <span class="sq-badge badge-pass">SpectralQ DECODER ENGINE</span>
         </div>
         """,
         unsafe_allow_html=True,

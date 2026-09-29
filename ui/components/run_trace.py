@@ -136,7 +136,7 @@ def render_run_trace(
         {
             "num": "01",
             "name": "Ingest & Sample Validation",
-            "team": "Sinchana",
+            "team": "DSP Engine",
             "status": "LIVE" if not prov.get("is_replay") else "REPLAY",
             "summary": f"Sampling Rate: {fs_val/1e3:.1f} kHz ({fs_src}) | SHA-256 Verified",
             "data": {
@@ -149,7 +149,7 @@ def render_run_trace(
         {
             "num": "02",
             "name": "Burst Detection & Energy Thresholding",
-            "team": "Sinchana",
+            "team": "DSP Engine",
             "status": "LIVE" if not prov.get("is_replay") else "REPLAY",
             "summary": f"Detected {bursts_ct} burst region(s) using dynamic CFAR energy thresholding",
             "data": {
@@ -161,7 +161,7 @@ def render_run_trace(
         {
             "num": "03",
             "name": "Blind Parameter Estimation",
-            "team": "Sinchana",
+            "team": "DSP Engine",
             "status": "LIVE" if not prov.get("is_replay") else "REPLAY",
             "summary": f"Baud: {baud_val} | SNR: {snr_val} | CFO: {cfo_val}",
             "data": {
@@ -174,7 +174,7 @@ def render_run_trace(
         {
             "num": "04",
             "name": "Higher-Order Cumulants & Constellation Features",
-            "team": "Sinchana / Himanshu",
+            "team": "SpectralQ Engine",
             "status": "LIVE" if not prov.get("is_replay") else "REPLAY",
             "summary": f"Clusters: {clusters_val} | EVM: {evm_val} | Multi-Restart Lloyd's k-means",
             "data": {
@@ -195,7 +195,7 @@ def render_run_trace(
         {
             "num": "05",
             "name": "Explainable Rule-Based AMC",
-            "team": "Archit",
+            "team": "Evidence Engine",
             "status": "REAL",
             "summary": f"Predicted: {rule_pred} via cumulant decision tree & physical invariants",
             "data": {
@@ -206,7 +206,7 @@ def render_run_trace(
         {
             "num": "06",
             "name": "Machine Learning Automatic Modulation Classification",
-            "team": "Harsh",
+            "team": "ML Classifier",
             "status": "REAL",
             "summary": f"Predicted: {ml_pred} (ML Prob: {ml_prob}) via Calibrated Random Forest",
             "data": {
@@ -219,7 +219,7 @@ def render_run_trace(
         {
             "num": "07",
             "name": "N5 Hybrid Consensus & Agreement Fusion",
-            "team": "Archit / Harsh",
+            "team": "AMC Engine",
             "status": "PASS" if agree else "CONFLICT",
             "summary": f"{'CONSENSUS REACHED' if agree else 'DIVERGENCE DETECTED'} (Penalty: {penalty:.2f})",
             "data": {
@@ -232,7 +232,7 @@ def render_run_trace(
         {
             "num": "08",
             "name": "Demod Chain, Synchronization & FEC Decoder",
-            "team": "Arpit",
+            "team": "FEC Decoder",
             "status": "CONFIRMED" if dec_stat.lower() == "ok" else ("FAIL" if dec_stat.lower() == "failed" else "UNAVAILABLE"),
             "summary": f"Sync: {sync_w} | CRC: {crc_stat} | BER: {decoder.reencode_ber if decoder and decoder.reencode_ber is not None else 'UNAVAILABLE'}",
             "data": {
@@ -247,7 +247,7 @@ def render_run_trace(
         {
             "num": "09",
             "name": "Evidence Ledger Compilation & Cross-Checking",
-            "team": "Archit",
+            "team": "Evidence Engine",
             "status": "REAL",
             "summary": f"Compiled {ev_count} independent checks ({failed_ct} failed checks recorded)",
             "data": {
@@ -260,7 +260,7 @@ def render_run_trace(
         {
             "num": "10",
             "name": "Defensible Confidence & Abstention Engine",
-            "team": "Archit / Himanshu",
+            "team": "SpectralQ Engine",
             "status": "CONFIRMED" if not result.is_unknown else "ABSTAINED",
             "summary": f"Final: {final_mod} | Confidence: {conf_pct:.1f}% | Ladder: {ladder}",
             "data": {

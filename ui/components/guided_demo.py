@@ -35,7 +35,7 @@ DEMO_SCENARIOS = [
         "target_workspace": "Mission Control",
         "narrative": (
             "Establishes a clean baseline with high SNR AWGN channel. Both Harsh's ML classifier "
-            "and Sinchana's rule-based AMC reach 100% agreement on QPSK modulation."
+            "and  rule-based AMC reach 100% agreement on QPSK modulation."
         ),
         "why_it_matters": "Demonstrates perfect consensus alignment and zero penalty application under standard channel conditions.",
         "key_metrics": "Consensus: AGREE | Rule Penalty: 0.00 | Confidence: High",
@@ -46,7 +46,7 @@ DEMO_SCENARIOS = [
         "case_match": "G2:",
         "target_workspace": "Signal Observatory",
         "narrative": (
-            "Introduces carrier frequency offset (CFO). Sinchana's blind 4th-power estimator locks onto "
+            "Introduces carrier frequency offset (CFO). blind 4th-power estimator locks onto "
             "the carrier offset and recovers the phase constellation prior to AMC classification."
         ),
         "why_it_matters": "Highlights blind DSP carrier recovery robustness against severe Doppler / LO drift.",
@@ -58,7 +58,7 @@ DEMO_SCENARIOS = [
         "case_match": "G3:",
         "target_workspace": "Modulation & Hypotheses",
         "narrative": (
-            "Higher-order 16-QAM modulation under multipath dispersion. Demonstrates Harsh's neural AMC "
+            "Higher-order 16-QAM modulation under multipath dispersion. Demonstrates neural AMC classifier "
             "differentiating multi-level constellations using higher-order cumulants and cyclic moments."
         ),
         "why_it_matters": "Demonstrates discriminative power on complex, multi-amplitude constellations.",
@@ -70,7 +70,7 @@ DEMO_SCENARIOS = [
         "case_match": "G4:",
         "target_workspace": "Decoder & Bitstream",
         "narrative": (
-            "Continuous-phase FSK transmission passing through Arpit's blind interleaver detection. "
+            "Continuous-phase FSK transmission passing through blind interleaver detection. "
             "The system detects periodicity in the demodulated bitstream and de-interleaves before frame sync."
         ),
         "why_it_matters": "Highlights blind FEC intelligence without requiring pre-shared configuration keys.",
@@ -85,7 +85,7 @@ DEMO_SCENARIOS = [
             "A low-SNR, ambiguous capture. When confidence drops below operational threshold or rule-ML AMC "
             "diverges, SpectralQ DELIBERATELY ABSTAINS and returns UNKNOWN. It never hallucinates a guess."
         ),
-        "why_it_matters": "Crucial NTRO requirement: An honest UNKNOWN is infinitely superior to a catastrophic false-positive.",
+        "why_it_matters": "critical requirement: An honest UNKNOWN is infinitely superior to a catastrophic false-positive.",
         "key_metrics": "Decision: UNKNOWN | Abstained: True | Evidence Check Failures: Logged",
     },
     {

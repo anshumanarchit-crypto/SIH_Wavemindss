@@ -30,7 +30,7 @@ def render_header(
                     </span>
                 </h1>
                 <div class="sq-subtitle">
-                    Evidence-First Blind RF Signal Intelligence &amp; Multi-Stage Demodulation System • NTRO PS-SIH26147
+                    Evidence-First Blind RF Signal Intelligence &amp; Multi-Stage Demodulation System • SpectralQ Defense v2.0
                 </div>
             </div>
             <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:3px;">

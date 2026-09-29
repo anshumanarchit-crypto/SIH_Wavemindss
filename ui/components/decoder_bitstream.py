@@ -67,7 +67,7 @@ def render_decoder_bitstream(
                 </div>
             </div>
             <div style="display:flex; align-items:center; gap:0.5rem;">
-                <span class="sq-badge badge-ladder">ARPIT ENGINE V2.0</span>
+                <span class="sq-badge badge-ladder">SpectralQ ENGINE V2.0</span>
                 <span class="sq-pulse-dot emerald"></span>
             </div>
         </div>

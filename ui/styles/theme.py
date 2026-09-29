@@ -15,7 +15,7 @@ import streamlit as st
 TOOLTIPS: Dict[str, str] = {
     "CFO": (
         "Carrier Frequency Offset (Hz): Frequency misalignment between transmitter and receiver "
-        "caused by local oscillator mismatch or Doppler shift. Sinchana's blind estimator tracks this."
+        "caused by local oscillator mismatch or Doppler shift.  blind estimator tracks this."
     ),
     "SNR": (
         "Signal-to-Noise Ratio (dB): Ratio of desired signal power to background thermal noise. "

@@ -1,6 +1,6 @@
 """
 UI Decoder Adapter.
-Converts Arpit's DecoderOutputContract or legacy decoder evidence into normalized UI view models.
+Converts  DecoderOutputContract or legacy decoder evidence into normalized UI view models.
 Strictly read-only; performs zero FEC decoding, deinterleaving, or BER calculations.
 """
 
@@ -85,7 +85,7 @@ class NormalizedDecoder:
 
 def adapt_decoder(raw_data: Any) -> NormalizedDecoder:
     """
-    Validates and adapts Arpit's decoder output into NormalizedDecoder.
+    Validates and adapts  decoder output into NormalizedDecoder.
     Also handles compatible decoder evidence formats safely without inventing values.
     """
     if isinstance(raw_data, DecoderOutputContract):
