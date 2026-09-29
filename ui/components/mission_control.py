@@ -200,75 +200,307 @@ def render_mission_control(
     st.markdown("---")
 
     # -------------------------------------------------------------------------
-    # 3. 10-Stage Visual Connected Pipeline Stepper
+    # 3. 10-Stage Visual Connected Pipeline Stepper — Premium Redesign
     # -------------------------------------------------------------------------
+
+    # Determine stage statuses
+    def _stage_status(idx):
+        if not result:
+            return "idle", "#64748b", "⬤"
+        if result.is_unknown and idx >= 6:
+            return "abstain", "#f43f5e", "✕"
+        return "active", "#10b981", "✓"
+
+    stages_info = [
+        # (num, icon, name, subtitle, phase, target_ws, accent_col, detail)
+        ("01", "📥", "INGEST",    "Capture I/O",       "INGEST & FORENSICS",    "Signal Observatory",       "#38bdf8", "Raw IQ ingestion, format detection, sample integrity verification"),
+        ("02", "🔬", "FORENSICS", "I/Q Purity",        "INGEST & FORENSICS",    "Signal Observatory",       "#38bdf8", "DC offset removal, I/Q balance correction, time-domain statistics"),
+        ("03", "⚡", "BURSTS",    "Energy Detection",  "INGEST & FORENSICS",    "Signal Observatory",       "#22d3ee", "Cyclostationary burst detection, onset & offset gating, energy profiling"),
+        ("04", "📐", "DSP EST",   "CFO / Baud",        "BLIND DSP",             "Signal Observatory",       "#22d3ee", "4th-power CFO, cyclic baud, M2M4 SNR, OBW — all with 95% CI"),
+        ("05", "🧮", "AMC FEAT",  "Cumulants",         "BLIND DSP",             "Modulation & Hypotheses",  "#818cf8", "Swami & Sadler C20/C40/C42 higher-order cumulant feature extraction"),
+        ("06", "🤖", "NEURAL",    "Classifier",        "MODULATION CLASS.",     "Modulation & Hypotheses",  "#818cf8", "Calibrated Random Forest + Rule AMC N5 Hybrid Consensus Engine"),
+        ("07", "📡", "DEMOD",     "Constellation",     "DEMOD & FEC",           "Decoder & Bitstream",      "#c084fc", "Costas PLL carrier lock, MMSE symbol timing, hard-decision bit slicer"),
+        ("08", "🔓", "FEC",       "Viterbi / RS",      "DEMOD & FEC",           "Decoder & Bitstream",      "#c084fc", "K=7 Viterbi convolutional decode, Reed-Solomon RS(255,223), de-interleave"),
+        ("09", "🧾", "BITSTREAM", "CRC Check",         "DEMOD & FEC",           "Decoder & Bitstream",      "#10b981", "Frame sync preamble lock, CRC-16/32 syndrome validation, BER compute"),
+        ("10", "⚖️", "LEDGER",    "Consensus",         "EVIDENCE LEDGER",       "Evidence & Decision",      "#f59e0b", "Deterministic evidence ladder L1–L5, UNKNOWN abstention, provenance seal"),
+    ]
+
+    # Phase metadata — label, icon, color, stage span (0-indexed inclusive)
+    phases = [
+        ("INGEST & FORENSICS",   "📥", "#38bdf8", [0, 1, 2]),
+        ("BLIND DSP ESTIMATION", "📐", "#22d3ee", [3, 4]),
+        ("MODULATION CLASS.",    "🤖", "#818cf8", [5]),
+        ("DEMOD & FEC DECODING", "🔓", "#c084fc", [6, 7, 8]),
+        ("EVIDENCE LEDGER",      "⚖️", "#f59e0b", [9]),
+    ]
+
+    # Build one large HTML block for the entire pipeline
+    pipeline_css = """
+    <style>
+    @keyframes sq-flow-pulse {
+        0%   { opacity: 0.3; transform: scaleX(1);   }
+        50%  { opacity: 1.0; transform: scaleX(1.04); }
+        100% { opacity: 0.3; transform: scaleX(1);   }
+    }
+    @keyframes sq-dot-glow {
+        0%,100% { box-shadow: 0 0 4px 1px currentColor; }
+        50%     { box-shadow: 0 0 10px 3px currentColor; }
+    }
+    .sq-pipe-wrap {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+    .sq-pipe-grid {
+        display: grid;
+        grid-template-columns: repeat(10, minmax(88px, 1fr));
+        gap: 0;
+        min-width: 860px;
+        position: relative;
+    }
+    .sq-pipe-phase-header {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.58rem;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        padding: 3px 6px;
+        border-radius: 4px 4px 0 0;
+        margin-bottom: 0;
+    }
+    .sq-pipe-connector {
+        position: absolute;
+        top: 50%;
+        height: 2px;
+        border-radius: 2px;
+        animation: sq-flow-pulse 2.2s ease-in-out infinite;
+        pointer-events: none;
+        z-index: 1;
+    }
+    .sq-pipe-stage {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        position: relative;
+        padding: 0 4px;
+    }
+    .sq-pipe-card {
+        background: rgba(15, 23, 42, 0.82);
+        border-radius: 0 0 10px 10px;
+        border: 1px solid rgba(255,255,255,0.07);
+        border-top: none;
+        padding: 9px 7px 8px 7px;
+        text-align: center;
+        flex: 1;
+        position: relative;
+        transition: all 0.22s ease;
+        cursor: pointer;
+    }
+    .sq-pipe-card:hover {
+        background: rgba(30, 41, 59, 0.95);
+        transform: translateY(-2px);
+    }
+    .sq-pipe-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        right: -10px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
+        font-size: 14px;
+    }
+    .sq-pipe-num {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.58rem;
+        font-weight: 800;
+        opacity: 0.9;
+        margin-bottom: 3px;
+    }
+    .sq-pipe-icon {
+        font-size: 1.25rem;
+        line-height: 1;
+        margin-bottom: 4px;
+    }
+    .sq-pipe-name {
+        font-weight: 800;
+        font-size: 0.68rem;
+        color: #f1f5f9;
+        letter-spacing: 0.05em;
+        margin-bottom: 2px;
+    }
+    .sq-pipe-sub {
+        font-size: 0.57rem;
+        color: #64748b;
+        line-height: 1.3;
+        margin-bottom: 5px;
+    }
+    .sq-pipe-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.52rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        padding: 2px 6px;
+        border-radius: 999px;
+        margin-top: 2px;
+    }
+    .sq-pipe-status-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        animation: sq-dot-glow 2s ease-in-out infinite;
+    }
+    </style>
+    """
+    st.markdown(pipeline_css, unsafe_allow_html=True)
+
+    # Section header
     st.markdown(
-        """
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.6rem;">
-            <div style="font-size:1.1rem; font-weight:800; color:#f1f5f9; display:flex; align-items:center; gap:0.5rem;">
-                <span style="color:#00f2fe;">🔄</span> 10-STAGE BLIND RF ANALYSIS PIPELINE
+        f"""
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.55rem;">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+                <div style="width:3px; height:22px; background:linear-gradient(180deg,#38bdf8,#818cf8); border-radius:2px;"></div>
+                <div style="font-size:1.05rem; font-weight:800; color:#f1f5f9; letter-spacing:-0.01em;">
+                    10-STAGE BLIND RF ANALYSIS PIPELINE
+                </div>
+                <span style="font-size:0.62rem; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.1);
+                      border:1px solid rgba(56,189,248,0.25); border-radius:4px; padding:2px 8px; letter-spacing:0.06em;">
+                    AUTONOMOUS
+                </span>
             </div>
-            <div style="font-size:0.72rem; color:#64748b;">
-                Click any stage tile to jump to its deep analytical workspace
+            <div style="font-size:0.68rem; color:#475569; font-style:italic;">
+                Click any stage to jump to its analytical workspace ↗
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    stages_info = [
-        ("01", "INGEST", "Capture IO", "Signal Observatory", "#38bdf8"),
-        ("02", "FORENSICS", "I/Q Purity", "Signal Observatory", "#38bdf8"),
-        ("03", "BURSTS", "Energy Cut", "Signal Observatory", "#00f2fe"),
-        ("04", "DSP EST", "CFO/Baud", "Signal Observatory", "#00f2fe"),
-        ("05", "AMC FEAT", "Cumulants", "Modulation & Hypotheses", "#818cf8"),
-        ("06", "NEURAL", "Classifier", "Modulation & Hypotheses", "#818cf8"),
-        ("07", "DEMOD", "Constell.", "Decoder & Bitstream", "#c084fc"),
-        ("08", "VITERBI", "FEC Sync", "Decoder & Bitstream", "#c084fc"),
-        ("09", "BITSTREAM", "CRC Check", "Decoder & Bitstream", "#10b981"),
-        ("10", "LEDGER", "Consensus", "Evidence & Decision", "#38bdf8"),
-    ]
+    # Build phase→stages map
+    phase_for_stage = {}
+    for ph_label, ph_icon, ph_color, ph_idxs in phases:
+        for i in ph_idxs:
+            phase_for_stage[i] = (ph_label, ph_icon, ph_color)
 
-    p_cols = st.columns(10)
-    for idx, (num, name, subtitle, target_ws, accent_col) in enumerate(stages_info):
+    # Render phase header row + cards row in one sweep using columns
+    p_cols = st.columns(10, gap="small")
+
+    for idx, (num, icon, name, subtitle, phase_label, target_ws, accent_col, detail) in enumerate(stages_info):
+        status, status_color, status_sym = _stage_status(idx)
+        ph_label, ph_icon, ph_color = phase_for_stage[idx]
+
+        # Is this the first stage in its phase?
+        is_phase_start = (idx == 0) or (phase_for_stage[idx][0] != phase_for_stage[idx - 1][0])
+        is_phase_end   = (idx == 9) or (phase_for_stage[idx][0] != phase_for_stage[idx + 1][0])
+        is_last        = (idx == 9)
+
+        status_bg = {
+            "active":  "rgba(16,185,129,0.12)",
+            "abstain": "rgba(244,63,94,0.12)",
+            "idle":    "rgba(100,116,139,0.10)",
+        }[status]
+        status_text = {"active": "ACTIVE", "abstain": "ABSTAIN", "idle": "IDLE"}[status]
+
+        # Phase header pill
+        border_radius_header = "8px 0 0 0" if is_phase_start else ("0 8px 0 0" if is_phase_end else "0")
+        phase_bg = f"rgba({int(ph_color[1:3],16)},{int(ph_color[3:5],16)},{int(ph_color[5:7],16)},0.13)"
+        phase_border = f"1px solid rgba({int(ph_color[1:3],16)},{int(ph_color[3:5],16)},{int(ph_color[5:7],16)},0.35)"
+
+        # Right border only on phase end (visual group separator)
+        card_border_right = f"1px solid rgba({int(ph_color[1:3],16)},{int(ph_color[3:5],16)},{int(ph_color[5:7],16)},0.35)" if is_phase_end and not is_last else "none"
+
         with p_cols[idx]:
-            is_active = True
-            status_text = "ACTIVE"
-            dot_class = "emerald"
-
-            if result and result.is_unknown and idx >= 6:
-                status_text = "ABSTAIN"
-                dot_class = "rose"
-            elif not result:
-                status_text = "IDLE"
-                dot_class = "cyan"
-
-            # Render stage visual tile
             st.markdown(
                 f"""
-                <div style="background:rgba(15,23,42,0.7); border:1px solid rgba(56,189,248,0.18);
-                     border-top:2px solid {accent_col}; border-radius:10px; padding:0.55rem 0.35rem;
-                     text-align:center; margin-bottom:0.35rem; transition:transform 0.2s;"
-                     onmouseover="this.style.borderColor='{accent_col}';" onmouseout="this.style.borderColor='rgba(56,189,248,0.18)';">
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:0 2px;">
-                        <span style="font-family:'JetBrains Mono'; font-size:0.62rem; font-weight:800; color:{accent_col};">
-                            S{num}
-                        </span>
-                        <span class="sq-pulse-dot {dot_class}"></span>
+                <div style="display:flex; flex-direction:column; height:100%;">
+                    <!-- Phase header band -->
+                    <div style="background:{phase_bg}; border:{phase_border};
+                         border-bottom:none; border-radius:{border_radius_header};
+                         padding:4px 5px; min-height:28px;
+                         display:flex; align-items:center; justify-content:center; gap:3px;">
+                        {'<span style="font-size:0.6rem;">'+ph_icon+'</span><span style="font-size:0.52rem; font-weight:800; color:'+ph_color+'; letter-spacing:0.07em; text-transform:uppercase; line-height:1.2; text-align:center;">'+ph_label+'</span>' if is_phase_start else '<div style="height:2px; width:80%; background:linear-gradient(90deg, transparent, '+ph_color+'44, transparent); border-radius:1px;"></div>'}
                     </div>
-                    <div style="font-weight:700; font-size:0.72rem; color:#f1f5f9; margin:3px 0 1px 0; letter-spacing:0.04em;">
-                        {name}
-                    </div>
-                    <div style="font-size:0.58rem; color:#64748b;">
-                        {subtitle}
+
+                    <!-- Stage card -->
+                    <div style="background:rgba(15,23,42,0.85);
+                         border-left:1px solid rgba({int(ph_color[1:3],16)},{int(ph_color[3:5],16)},{int(ph_color[5:7],16)},0.2);
+                         border-right:{card_border_right};
+                         border-bottom:1px solid rgba({int(ph_color[1:3],16)},{int(ph_color[3:5],16)},{int(ph_color[5:7],16)},0.2);
+                         border-top:3px solid {accent_col};
+                         border-radius:0 0 8px 8px;
+                         padding:10px 6px 8px 6px;
+                         text-align:center;
+                         position:relative;
+                         flex:1;
+                         transition:all 0.2s ease;"
+                         onmouseover="this.style.background='rgba(30,41,59,0.97)';this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba({int(accent_col[1:3],16)},{int(accent_col[3:5],16)},{int(accent_col[5:7],16)},0.18)';"
+                         onmouseout="this.style.background='rgba(15,23,42,0.85)';this.style.transform='translateY(0)';this.style.boxShadow='none';"
+                         title="{detail}">
+
+                        <!-- Stage number + status dot row -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                            <span style="font-family:'JetBrains Mono'; font-size:0.6rem; font-weight:800;
+                                  color:{accent_col}; opacity:0.85;">S{num}</span>
+                            <span style="width:7px; height:7px; border-radius:50%;
+                                  background:{status_color};
+                                  box-shadow:0 0 6px 2px {status_color}88;
+                                  animation:sq-dot-glow 2s ease-in-out infinite;
+                                  display:inline-block;"></span>
+                        </div>
+
+                        <!-- Icon -->
+                        <div style="font-size:1.35rem; line-height:1; margin-bottom:5px;">{icon}</div>
+
+                        <!-- Stage name -->
+                        <div style="font-weight:800; font-size:0.7rem; color:#f1f5f9;
+                              letter-spacing:0.05em; margin-bottom:3px;">{name}</div>
+
+                        <!-- Subtitle -->
+                        <div style="font-size:0.6rem; color:#94a3b8; line-height:1.3; margin-bottom:7px;">{subtitle}</div>
+
+                        <!-- Status pill -->
+                        <div style="display:inline-flex; align-items:center; gap:3px;
+                              background:{status_bg};
+                              border:1px solid {status_color}44;
+                              border-radius:999px; padding:2px 7px;">
+                            <span style="font-size:0.52rem; font-weight:800;
+                                  color:{status_color}; letter-spacing:0.06em;">{status_text}</span>
+                        </div>
+
+                        <!-- Flow arrow (not on last card) -->
+                        {'<div style="position:absolute; right:-11px; top:42%; z-index:20; color:'+accent_col+'; font-size:0.75rem; opacity:0.7; line-height:1;">▶</div>' if not is_last else ''}
                     </div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
-            if st.button("Inspect ↗", key=f"step_btn_{num}", use_container_width=True):
+            if st.button(f"↗ Open", key=f"step_btn_{num}", use_container_width=True,
+                         help=f"Navigate to {target_ws}: {detail}"):
                 set_workspace(target_ws)
                 st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Phase legend row
+    legend_html = '<div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem; padding:0.4rem 0.6rem; background:rgba(15,23,42,0.5); border-radius:8px; border:1px solid rgba(255,255,255,0.05);">'
+    legend_html += '<span style="font-size:0.6rem; color:#475569; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; margin-right:0.3rem;">PHASES:</span>'
+    for ph_label, ph_icon, ph_color, ph_idxs in phases:
+        stage_range = f"S{ph_idxs[0]+1:02d}{'–S'+f'{ph_idxs[-1]+1:02d}' if len(ph_idxs)>1 else ''}"
+        legend_html += f'''<span style="display:inline-flex; align-items:center; gap:4px;
+            background:rgba({int(ph_color[1:3],16)},{int(ph_color[3:5],16)},{int(ph_color[5:7],16)},0.1);
+            border:1px solid rgba({int(ph_color[1:3],16)},{int(ph_color[3:5],16)},{int(ph_color[5:7],16)},0.3);
+            border-radius:999px; padding:2px 9px;">
+            <span style="font-size:0.65rem;">{ph_icon}</span>
+            <span style="font-size:0.58rem; font-weight:700; color:{ph_color}; letter-spacing:0.04em;">{ph_label}</span>
+            <span style="font-size:0.55rem; color:#475569;">({stage_range})</span>
+        </span>'''
+    legend_html += "</div>"
+    st.markdown(legend_html, unsafe_allow_html=True)
 
     st.markdown("---")
 
