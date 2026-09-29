@@ -28,7 +28,7 @@ def render_modulation_hypotheses(
                     <span style="color:#818cf8;">⚡</span> MODULATION &amp; HYPOTHESIS ARBITRATION
                 </div>
                 <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">
-                    Neural Modulation Classification (SpectralQ) &amp; Physical AMC Decision Consensus (SpectralQ / SpectralQ)
+                    Neural Modulation Classification (ML Engine) &amp; Physical AMC Decision Consensus (Rule AMC Engine)
                 </div>
             </div>
             <div style="display:flex; align-items:center; gap:0.5rem;">

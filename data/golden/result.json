@@ -30,7 +30,7 @@
   "evidence": [
     {
       "evidence_id": "EV_001",
-      "source": "Sinchana",
+      "source": "DSP Engine",
       "check_name": "burst_power",
       "status": "PASS",
       "value": -12.4,

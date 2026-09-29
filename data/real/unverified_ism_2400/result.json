@@ -71,7 +71,7 @@
     {
       "evidence_id": "EV_INGEST_REAL_ISM_2400M_BURST",
       "hypothesis_id": null,
-      "source": "Sinchana (Ingest)",
+      "source": "DSP Ingest Engine",
       "check_name": "burst_energy_check",
       "status": "PASS",
       "value": null,
@@ -86,7 +86,7 @@
     {
       "evidence_id": "EV_EST_REAL_ISM_2400M_BURST",
       "hypothesis_id": null,
-      "source": "Sinchana (Blind Estimation)",
+      "source": "DSP Estimation Engine",
       "check_name": "parameter_uncertainty_check",
       "status": "PASS",
       "value": null,
@@ -101,7 +101,7 @@
     {
       "evidence_id": "EV_FEAT_PHASE_AMB_REAL_ISM_2400M_BURST",
       "hypothesis_id": null,
-      "source": "Sinchana (Features)",
+      "source": "DSP Feature Extractor",
       "check_name": "phase_ambiguity_quality_check",
       "status": "UNAVAILABLE",
       "value": null,
@@ -110,13 +110,13 @@
       "threshold": null,
       "provenance": null,
       "run_id": "RUN_REAL_REAL_ISM_240_42",
-      "explanation": "Phase ambiguity quality was not computed by Sinchana; marked UNAVAILABLE per contract",
+      "explanation": "Phase ambiguity quality was not computed by DSP Engine; marked UNAVAILABLE per contract",
       "failure_reason": null
     },
     {
       "evidence_id": "EV_FEAT_CYCLIC_REAL_ISM_2400M_BURST",
       "hypothesis_id": null,
-      "source": "Sinchana (Features)",
+      "source": "DSP Feature Extractor",
       "check_name": "cyclic_prefix_check",
       "status": "UNAVAILABLE",
       "value": null,
@@ -156,7 +156,7 @@
     {
       "evidence_id": "EV_CRC_REAL_ISM_2400M_BURST",
       "hypothesis_id": null,
-      "source": "Arpit (Decoder)",
+      "source": "FEC Decoder Engine",
       "check_name": "crc_checksum_check",
       "status": "NOT_RUN",
       "value": null,
@@ -171,7 +171,7 @@
     {
       "evidence_id": "EV_BER_REAL_ISM_2400M_BURST",
       "hypothesis_id": null,
-      "source": "Arpit (Decoder)",
+      "source": "FEC Decoder Engine",
       "check_name": "reencode_ber_check",
       "status": "UNAVAILABLE",
       "value": null,
@@ -186,7 +186,7 @@
     {
       "evidence_id": "EV_LADDER_REAL_ISM_2400M_BURST",
       "hypothesis_id": null,
-      "source": "Archit (Evidence Ladder)",
+      "source": "Evidence Ladder Engine",
       "check_name": "ladder_level_evaluation",
       "status": "PASS",
       "value": "L2",

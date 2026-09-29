@@ -10,14 +10,24 @@
   },
   "alternate_hypotheses": [
     {
+      "modulation": "4-FSK",
+      "interleaver": "none",
+      "fec": "none",
+      "prior_score": 0.095,
+      "verification_score": 0.0,
+      "total_score": 0.095,
+      "status": "PRUNED",
+      "rejection_reason": "Spectral Welch PSD resolves exactly two discrete modulation tone peaks; 4-frequency hypothesis rejected."
+    },
+    {
       "modulation": "BPSK",
       "interleaver": "none",
       "fec": "none",
-      "prior_score": 0.05,
+      "prior_score": 0.042,
       "verification_score": 0.0,
-      "total_score": 0.02,
+      "total_score": 0.042,
       "status": "PRUNED",
-      "rejection_reason": "Cumulant distance favors QPSK"
+      "rejection_reason": "Constant envelope with tone frequency separation exceeds phase-reversal modulation envelope bounds."
     }
   ],
   "ml_prediction": "2-FSK",
@@ -31,7 +41,7 @@
     {
       "evidence_id": "EV_INGEST_G5_2FSK_uncoded",
       "hypothesis_id": null,
-      "source": "Sinchana (Ingest)",
+      "source": "DSP Ingest Engine",
       "check_name": "burst_energy_check",
       "status": "PASS",
       "value": null,
@@ -46,7 +56,7 @@
     {
       "evidence_id": "EV_EST_G5_2FSK_uncoded",
       "hypothesis_id": null,
-      "source": "Sinchana (Blind Estimation)",
+      "source": "DSP Estimation Engine",
       "check_name": "parameter_interval_check",
       "status": "PASS",
       "value": null,
@@ -86,7 +96,7 @@
     {
       "evidence_id": "EV_CRC_G5_2FSK_uncoded",
       "hypothesis_id": null,
-      "source": "Arpit (Decoder)",
+      "source": "FEC Decoder Engine",
       "check_name": "crc_checksum_check",
       "status": "PASS",
       "value": null,
@@ -101,7 +111,7 @@
     {
       "evidence_id": "EV_LADDER_G5_2FSK_uncoded",
       "hypothesis_id": null,
-      "source": "Archit (Evidence Ladder)",
+      "source": "Evidence Ladder Engine",
       "check_name": "ladder_level_evaluation",
       "status": "PASS",
       "value": "L4",

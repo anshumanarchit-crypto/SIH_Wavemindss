@@ -11,12 +11,12 @@
     "filename": "sinchana_g1_g5_refs.zip",
     "sha256": "4bb2799ee91b19dafe7f61cab16f442a2984bb07b40c3c0bb5863e37974579ab",
     "received_date": "2026-09-25",
-    "staging_dir": "data/official/sinchana/reference_bits/"
+    "staging_dir": "data/official/DSP Engine/reference_bits/"
   },
   "cases": {
     "G1": {
-      "capture_path": "data/official/sinchana/golden/G1_QPSK_uncoded.cf32",
-      "truth_metadata_path": "data/official/sinchana/golden/G1_QPSK_uncoded.truth.json",
+      "capture_path": "data/official/DSP Engine/golden/G1_QPSK_uncoded.cf32",
+      "truth_metadata_path": "data/official/DSP Engine/golden/G1_QPSK_uncoded.truth.json",
       "metadata_validation": {
         "schema_version": "spectraq.truth.v1",
         "modulation": "QPSK",
@@ -38,7 +38,7 @@
         "truth_bit_sha256": "d9a271e61be963f46ccd61ae105969c941cfe34cfe8c1a75678b9f9da9a38402",
         "tx_hash_match": true,
         "external_reference_available": true,
-        "reference_file": "data\\official\\sinchana\\reference_bits\\bitsG1.txt",
+        "reference_file": "data\\official\\DSP Engine\\reference_bits\\bitsG1.txt",
         "reference_bit_count": 4096
       },
       "demod_result": {
@@ -616,8 +616,8 @@
       }
     },
     "G2": {
-      "capture_path": "data/official/sinchana/golden/G2_BPSK_conv_block.cf32",
-      "truth_metadata_path": "data/official/sinchana/golden/G2_BPSK_conv_block.truth.json",
+      "capture_path": "data/official/DSP Engine/golden/G2_BPSK_conv_block.cf32",
+      "truth_metadata_path": "data/official/DSP Engine/golden/G2_BPSK_conv_block.truth.json",
       "metadata_validation": {
         "schema_version": "spectraq.truth.v1",
         "modulation": "BPSK",
@@ -1270,8 +1270,8 @@
       }
     },
     "G3": {
-      "capture_path": "data/official/sinchana/golden/G3_8PSK_RS_diagonal.cf32",
-      "truth_metadata_path": "data/official/sinchana/golden/G3_8PSK_RS_diagonal.truth.json",
+      "capture_path": "data/official/DSP Engine/golden/G3_8PSK_RS_diagonal.cf32",
+      "truth_metadata_path": "data/official/DSP Engine/golden/G3_8PSK_RS_diagonal.truth.json",
       "metadata_validation": {
         "schema_version": "spectraq.truth.v1",
         "modulation": "8PSK",
@@ -1895,8 +1895,8 @@
       }
     },
     "G4": {
-      "capture_path": "data/official/sinchana/golden/G4_16QAM_LDPC_pseudorandom.cf32",
-      "truth_metadata_path": "data/official/sinchana/golden/G4_16QAM_LDPC_pseudorandom.truth.json",
+      "capture_path": "data/official/DSP Engine/golden/G4_16QAM_LDPC_pseudorandom.cf32",
+      "truth_metadata_path": "data/official/DSP Engine/golden/G4_16QAM_LDPC_pseudorandom.truth.json",
       "metadata_validation": {
         "schema_version": "spectraq.truth.v1",
         "modulation": "16QAM",
@@ -2439,8 +2439,8 @@
       }
     },
     "G5_uncoded": {
-      "capture_path": "data/official/sinchana/golden/G5_2FSK_uncoded.cf32",
-      "truth_metadata_path": "data/official/sinchana/golden/G5_2FSK_uncoded.truth.json",
+      "capture_path": "data/official/DSP Engine/golden/G5_2FSK_uncoded.cf32",
+      "truth_metadata_path": "data/official/DSP Engine/golden/G5_2FSK_uncoded.truth.json",
       "metadata_validation": {
         "schema_version": "spectraq.truth.v1",
         "modulation": "2-FSK",
@@ -2462,7 +2462,7 @@
         "truth_bit_sha256": "d9a271e61be963f46ccd61ae105969c941cfe34cfe8c1a75678b9f9da9a38402",
         "tx_hash_match": true,
         "external_reference_available": true,
-        "reference_file": "data\\official\\sinchana\\reference_bits\\bitsG5.txt",
+        "reference_file": "data\\official\\DSP Engine\\reference_bits\\bitsG5.txt",
         "reference_bit_count": 4096
       },
       "demod_result": {
@@ -2928,8 +2928,8 @@
       }
     },
     "G5_coded": {
-      "capture_path": "data/official/sinchana/golden/G5_2FSK_RS_Conv_interleaved.cf32",
-      "truth_metadata_path": "data/official/sinchana/golden/G5_2FSK_RS_Conv_interleaved.truth.json",
+      "capture_path": "data/official/DSP Engine/golden/G5_2FSK_RS_Conv_interleaved.cf32",
+      "truth_metadata_path": "data/official/DSP Engine/golden/G5_2FSK_RS_Conv_interleaved.truth.json",
       "metadata_validation": {
         "schema_version": "spectraq.truth.v1",
         "modulation": "2-FSK",
@@ -3419,8 +3419,8 @@
       }
     },
     "G6": {
-      "capture_path": "data/official/sinchana/golden/G6_BPSK_conv_interleaved.cf32",
-      "truth_metadata_path": "data/official/sinchana/golden/G6_BPSK_conv_interleaved.truth.json",
+      "capture_path": "data/official/DSP Engine/golden/G6_BPSK_conv_interleaved.cf32",
+      "truth_metadata_path": "data/official/DSP Engine/golden/G6_BPSK_conv_interleaved.truth.json",
       "metadata_validation": {
         "schema_version": "spectraq.truth.v1",
         "modulation": "BPSK",
@@ -4072,8 +4072,8 @@
       }
     },
     "G7": {
-      "capture_path": "data/official/sinchana/golden/G7_QPSK_conv_near_threshold.cf32",
-      "truth_metadata_path": "data/official/sinchana/golden/G7_QPSK_conv_near_threshold.truth.json",
+      "capture_path": "data/official/DSP Engine/golden/G7_QPSK_conv_near_threshold.cf32",
+      "truth_metadata_path": "data/official/DSP Engine/golden/G7_QPSK_conv_near_threshold.truth.json",
       "metadata_validation": {
         "schema_version": "spectraq.truth.v1",
         "modulation": "QPSK",

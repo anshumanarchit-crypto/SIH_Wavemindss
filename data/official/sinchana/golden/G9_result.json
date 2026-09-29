@@ -10,14 +10,24 @@
   },
   "alternate_hypotheses": [
     {
-      "modulation": "BPSK",
+      "modulation": "8-PSK",
       "interleaver": "none",
       "fec": "none",
-      "prior_score": 0.05,
+      "prior_score": 0.082,
       "verification_score": 0.0,
-      "total_score": 0.02,
+      "total_score": 0.082,
       "status": "PRUNED",
-      "rejection_reason": "Cumulant distance favors QPSK"
+      "rejection_reason": "Constellation phase histogram has 4 distinct quadrants; circular phase variance rules out 8-phase division."
+    },
+    {
+      "modulation": "16-QAM",
+      "interleaver": "none",
+      "fec": "none",
+      "prior_score": 0.038,
+      "verification_score": 0.0,
+      "total_score": 0.038,
+      "status": "PRUNED",
+      "rejection_reason": "Constant envelope |C42| invariant = -1.0 rejects multi-amplitude ring grid; zero inner ring detected."
     }
   ],
   "ml_prediction": "QPSK",
@@ -31,7 +41,7 @@
     {
       "evidence_id": "EV_INGEST_G9_Headerless_Raw_swapped",
       "hypothesis_id": null,
-      "source": "Sinchana (Ingest)",
+      "source": "DSP Ingest Engine",
       "check_name": "burst_energy_check",
       "status": "PASS",
       "value": null,
@@ -46,7 +56,7 @@
     {
       "evidence_id": "EV_EST_G9_Headerless_Raw_swapped",
       "hypothesis_id": null,
-      "source": "Sinchana (Blind Estimation)",
+      "source": "DSP Estimation Engine",
       "check_name": "parameter_interval_check",
       "status": "PASS",
       "value": null,
@@ -87,7 +97,7 @@
     {
       "evidence_id": "EV_CRC_G9_Headerless_Raw_swapped",
       "hypothesis_id": null,
-      "source": "Arpit (Decoder)",
+      "source": "FEC Decoder Engine",
       "check_name": "crc_checksum_check",
       "status": "PASS",
       "value": null,
@@ -102,7 +112,7 @@
     {
       "evidence_id": "EV_LADDER_G9_Headerless_Raw_swapped",
       "hypothesis_id": null,
-      "source": "Archit (Evidence Ladder)",
+      "source": "Evidence Ladder Engine",
       "check_name": "ladder_level_evaluation",
       "status": "PASS",
       "value": "L4",

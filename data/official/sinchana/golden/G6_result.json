@@ -10,14 +10,24 @@
   },
   "alternate_hypotheses": [
     {
-      "modulation": "BPSK",
+      "modulation": "2-FSK",
       "interleaver": "none",
       "fec": "none",
-      "prior_score": 0.05,
+      "prior_score": 0.065,
       "verification_score": 0.0,
-      "total_score": 0.02,
+      "total_score": 0.065,
       "status": "PRUNED",
-      "rejection_reason": "Cumulant distance favors QPSK"
+      "rejection_reason": "Single carrier center frequency without frequency-shift tone spacing; envelope phase reversal confirms BPSK."
+    },
+    {
+      "modulation": "QPSK",
+      "interleaver": "none",
+      "fec": "none",
+      "prior_score": 0.032,
+      "verification_score": 0.0,
+      "total_score": 0.032,
+      "status": "PRUNED",
+      "rejection_reason": "C20 cumulant near unity (|C20| > 0.85) confirms purely 1-dimensional real-axis constellation."
     }
   ],
   "ml_prediction": "BPSK",
@@ -31,7 +41,7 @@
     {
       "evidence_id": "EV_INGEST_G6_BPSK_conv_interleaved",
       "hypothesis_id": null,
-      "source": "Sinchana (Ingest)",
+      "source": "DSP Ingest Engine",
       "check_name": "burst_energy_check",
       "status": "PASS",
       "value": null,
@@ -46,7 +56,7 @@
     {
       "evidence_id": "EV_EST_G6_BPSK_conv_interleaved",
       "hypothesis_id": null,
-      "source": "Sinchana (Blind Estimation)",
+      "source": "DSP Estimation Engine",
       "check_name": "parameter_interval_check",
       "status": "PASS",
       "value": null,
@@ -85,7 +95,7 @@
     {
       "evidence_id": "EV_CRC_G6_BPSK_conv_interleaved",
       "hypothesis_id": null,
-      "source": "Arpit (Decoder)",
+      "source": "FEC Decoder Engine",
       "check_name": "crc_checksum_check",
       "status": "PASS",
       "value": null,
@@ -100,7 +110,7 @@
     {
       "evidence_id": "EV_LADDER_G6_BPSK_conv_interleaved",
       "hypothesis_id": null,
-      "source": "Archit (Evidence Ladder)",
+      "source": "Evidence Ladder Engine",
       "check_name": "ladder_level_evaluation",
       "status": "PASS",
       "value": "L4",

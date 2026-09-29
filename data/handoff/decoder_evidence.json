@@ -3,8 +3,8 @@
   "provenance": {
     "phase": "3",
     "implementation_version": "0.1.0",
-    "producer": "Arpit (Python Decoder Core)",
-    "consumer": "Archit (Hypothesis Aggregator)",
+    "producer": "FEC Decoder (Python Decoder Core)",
+    "consumer": "Evidence Engine (Hypothesis Aggregator)",
     "truth_data_used_in_production": false
   },
   "cases": {

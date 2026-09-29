@@ -68,7 +68,7 @@
   },
   "reference_bits": {
     "G1": {
-      "reference_file": "data/official/sinchana/reference_bits/bitsG1.txt",
+      "reference_file": "data/official/DSP Engine/reference_bits/bitsG1.txt",
       "bit_count": 4096,
       "sha256": "4bb2799ee91b19dafe7f61cab16f442a2984bb07b40c3c0bb5863e37974579ab",
       "source_package": "data/_incoming/sinchana_g1_g5_refs.zip",
@@ -77,7 +77,7 @@
       "coding": "uncoded"
     },
     "G5_uncoded": {
-      "reference_file": "data/official/sinchana/reference_bits/bitsG5.txt",
+      "reference_file": "data/official/DSP Engine/reference_bits/bitsG5.txt",
       "bit_count": 4096,
       "sha256": "4bb2799ee91b19dafe7f61cab16f442a2984bb07b40c3c0bb5863e37974579ab",
       "source_package": "data/_incoming/sinchana_g1_g5_refs.zip",

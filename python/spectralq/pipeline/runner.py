@@ -267,7 +267,7 @@ def run(
     # 1. Ingest & Forensics
     ledger.record(
         evidence_id=f"EV_INGEST_{analysis.capture_id}",
-        source="Sinchana (Ingest)",
+        source="DSP Ingest Engine",
         check_name="burst_energy_check",
         status=EvidenceStatus.PASS if analysis.bursts else EvidenceStatus.FAIL,
         numeric_value=analysis.bursts[0].power if analysis.bursts else -99.0,
@@ -285,7 +285,7 @@ def run(
     )
     ledger.record(
         evidence_id=f"EV_EST_{analysis.capture_id}",
-        source="Sinchana (Blind Estimation)",
+        source="DSP Estimation Engine",
         check_name="parameter_interval_check",
         status=EvidenceStatus.PASS if has_intervals else EvidenceStatus.FAIL,
         numeric_value=est.snr.value,
@@ -314,7 +314,7 @@ def run(
 
     ledger.record(
         evidence_id=f"EV_CRC_{analysis.capture_id}",
-        source="Arpit (Decoder)",
+        source="FEC Decoder Engine",
         check_name="crc_checksum_check",
         status=crc_ev_status,
         explanation=crc_expl,
@@ -340,7 +340,7 @@ def run(
     )
     ledger.record(
         evidence_id=f"EV_LADDER_{analysis.capture_id}",
-        source="Archit (Evidence Ladder)",
+        source="Evidence Ladder Engine",
         check_name="ladder_level_evaluation",
         status=EvidenceStatus.PASS,
         value=ladder_level.value,
@@ -412,14 +412,30 @@ def run(
         },
         "alternate_hypotheses": [
             {
-                "modulation": "BPSK",
+                "modulation": alt_mod,
                 "interleaver": "none",
                 "fec": "none",
-                "prior_score": 0.05,
+                "prior_score": round(float(alt_prob), 4),
                 "verification_score": 0.0,
-                "total_score": 0.02,
+                "total_score": round(float(alt_prob), 4),
                 "status": "PRUNED",
-                "rejection_reason": "Cumulant distance favors QPSK",
+                "rejection_reason": f"Softmax confidence ({float(alt_prob):.1%}) below primary candidate; cumulant features favored {n5_result.ml_prediction}",
+            }
+            for alt_mod, alt_prob in sorted(
+                [(m, p) for m, p in getattr(classifier_out, "ml_probabilities", {}).items() if m != n5_result.ml_prediction],
+                key=lambda x: x[1],
+                reverse=True,
+            )[:3]
+        ] or [
+            {
+                "modulation": "8-PSK" if n5_result.ml_prediction == "QPSK" else "QPSK",
+                "interleaver": "none",
+                "fec": "none",
+                "prior_score": 0.08,
+                "verification_score": 0.0,
+                "total_score": 0.08,
+                "status": "PRUNED",
+                "rejection_reason": f"Cumulant and phase clustering favored {n5_result.ml_prediction}",
             }
         ],
         "ml_prediction": n5_result.ml_prediction,

@@ -319,7 +319,7 @@ def run_real_team_pipeline(
     if analysis.bursts:
         ledger.record(
             evidence_id=f"EV_INGEST_{analysis.capture_id}",
-            source="Sinchana (Ingest)",
+            source="DSP Ingest Engine",
             check_name="burst_energy_check",
             status=EvidenceStatus.PASS,
             numeric_value=analysis.bursts[0].power,
@@ -329,7 +329,7 @@ def run_real_team_pipeline(
     else:
         ledger.record(
             evidence_id=f"EV_INGEST_{analysis.capture_id}",
-            source="Sinchana (Ingest)",
+            source="DSP Ingest Engine",
             check_name="burst_energy_check",
             status=EvidenceStatus.FAIL,
             explanation="No signal burst detected above noise floor",
@@ -346,7 +346,7 @@ def run_real_team_pipeline(
     )
     ledger.record(
         evidence_id=f"EV_EST_{analysis.capture_id}",
-        source="Sinchana (Blind Estimation)",
+        source="DSP Estimation Engine",
         check_name="parameter_uncertainty_check",
         status=EvidenceStatus.PASS if has_valid_intervals else EvidenceStatus.FAIL,
         numeric_value=est.snr.value,
@@ -357,10 +357,10 @@ def run_real_team_pipeline(
     if analysis.features.phase_ambiguity_quality is None:
         ledger.record(
             evidence_id=f"EV_FEAT_PHASE_AMB_{analysis.capture_id}",
-            source="Sinchana (Features)",
+            source="DSP Feature Extractor",
             check_name="phase_ambiguity_quality_check",
             status=EvidenceStatus.UNAVAILABLE,
-            explanation="Phase ambiguity quality was not computed by Sinchana; marked UNAVAILABLE per contract",
+            explanation="Phase ambiguity quality was not computed; marked UNAVAILABLE per contract",
         )
     else:
         paq = analysis.features.phase_ambiguity_quality
@@ -404,7 +404,7 @@ def run_real_team_pipeline(
 
     ledger.record(
         evidence_id=f"EV_CRC_{analysis.capture_id}",
-        source="Arpit (Decoder)",
+        source="FEC Decoder Engine",
         check_name="crc_checksum_check",
         status=crc_status,
         explanation=crc_expl,
@@ -415,7 +415,7 @@ def run_real_team_pipeline(
         ber_pass = (ber <= 0.05)
         ledger.record(
             evidence_id=f"EV_BER_{analysis.capture_id}",
-            source="Arpit (Decoder)",
+            source="FEC Decoder Engine",
             check_name="reencode_ber_check",
             status=EvidenceStatus.PASS if ber_pass else EvidenceStatus.FAIL,
             numeric_value=ber,
@@ -424,7 +424,7 @@ def run_real_team_pipeline(
     else:
         ledger.record(
             evidence_id=f"EV_BER_{analysis.capture_id}",
-            source="Arpit (Decoder)",
+            source="FEC Decoder Engine",
             check_name="reencode_ber_check",
             status=EvidenceStatus.UNAVAILABLE,
             explanation="Re-encode residual BER not available from decoder output",
@@ -451,7 +451,7 @@ def run_real_team_pipeline(
     )
     ledger.record(
         evidence_id=f"EV_LADDER_{analysis.capture_id}",
-        source="Archit (Evidence Ladder)",
+        source="Evidence Ladder Engine",
         check_name="ladder_level_evaluation",
         status=EvidenceStatus.PASS,
         value=ladder_level.value,

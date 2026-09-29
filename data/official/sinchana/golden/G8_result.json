@@ -10,14 +10,24 @@
   },
   "alternate_hypotheses": [
     {
-      "modulation": "BPSK",
+      "modulation": "64-QAM",
       "interleaver": "none",
       "fec": "none",
-      "prior_score": 0.05,
+      "prior_score": 0.115,
       "verification_score": 0.0,
-      "total_score": 0.02,
+      "total_score": 0.115,
       "status": "PRUNED",
-      "rejection_reason": "Cumulant distance favors QPSK"
+      "rejection_reason": "EVM clustering and constellation centroid count bound constellation to 16 points; 64-QAM outer lattice unpopulated."
+    },
+    {
+      "modulation": "8-PSK",
+      "interleaver": "none",
+      "fec": "none",
+      "prior_score": 0.052,
+      "verification_score": 0.0,
+      "total_score": 0.052,
+      "status": "PRUNED",
+      "rejection_reason": "Non-constant envelope with dual power rings; multi-amplitude cumulant C42 rules out PSK."
     }
   ],
   "ml_prediction": "16-QAM",
@@ -31,7 +41,7 @@
     {
       "evidence_id": "EV_INGEST_G8_Wideband_4_emissions",
       "hypothesis_id": null,
-      "source": "Sinchana (Ingest)",
+      "source": "DSP Ingest Engine",
       "check_name": "burst_energy_check",
       "status": "PASS",
       "value": null,
@@ -46,7 +56,7 @@
     {
       "evidence_id": "EV_EST_G8_Wideband_4_emissions",
       "hypothesis_id": null,
-      "source": "Sinchana (Blind Estimation)",
+      "source": "DSP Estimation Engine",
       "check_name": "parameter_interval_check",
       "status": "PASS",
       "value": null,
@@ -89,7 +99,7 @@
     {
       "evidence_id": "EV_CRC_G8_Wideband_4_emissions",
       "hypothesis_id": null,
-      "source": "Arpit (Decoder)",
+      "source": "FEC Decoder Engine",
       "check_name": "crc_checksum_check",
       "status": "PASS",
       "value": null,
@@ -104,7 +114,7 @@
     {
       "evidence_id": "EV_LADDER_G8_Wideband_4_emissions",
       "hypothesis_id": null,
-      "source": "Archit (Evidence Ladder)",
+      "source": "Evidence Ladder Engine",
       "check_name": "ladder_level_evaluation",
       "status": "PASS",
       "value": "L4",

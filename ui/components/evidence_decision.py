@@ -214,8 +214,34 @@ def render_evidence_decision(
             index=0,
             key="ev_status_filter",
         )
+    def _clean_source(s_val: Optional[str]) -> str:
+        if not s_val:
+            return "SpectralQ Subsystem"
+        t = str(s_val)
+        import re
+        for pat, rep in [
+            (r"\bSinchana\s*\(Ingest\)", "DSP Ingest Engine"),
+            (r"\bSinchana\s*\(Blind Estimation\)", "DSP Estimation Engine"),
+            (r"\bSinchana\s*\(Features\)", "DSP Feature Extractor"),
+            (r"\bArpit\s*\(Decoder\)", "FEC Decoder Engine"),
+            (r"\bArchit\s*\(Evidence Ladder\)", "Evidence Ladder Engine"),
+            (r"\bArchit\s*\(Decision Engine\)", "Decision Consensus Engine"),
+            (r"\bHarsh\s*\(Classifier\)", "ML AMC Classifier"),
+            (r"\bHimanshu\s*\(GUI\)", "SpectralQ UI"),
+            (r"\bPrince\s*\(Lab\)", "Signal Simulation Engine"),
+            (r"\bSinchana\b", "DSP Engine"),
+            (r"\bArpit\b", "FEC Decoder"),
+            (r"\bArchit\b", "Evidence Engine"),
+            (r"\bHarsh\b", "ML Classifier"),
+            (r"\bHimanshu\b", "SpectralQ"),
+            (r"\bPrince\b", "Signal Lab"),
+            (r"\bNTRO\b", "SpectralQ Defense"),
+        ]:
+            t = re.sub(pat, rep, t, flags=re.IGNORECASE)
+        return t
+
     with f_col2:
-        all_sources = sorted(list(set(e.source for e in all_evidence))) if all_evidence else []
+        all_sources = sorted(list(set(_clean_source(e.source) for e in all_evidence))) if all_evidence else []
         source_filter = st.selectbox(
             "Filter by Source Subsystem:",
             ["ALL"] + all_sources,
@@ -230,19 +256,19 @@ def render_evidence_decision(
     if status_filter != "ALL":
         filtered_evidence = [e for e in filtered_evidence if e.status == status_filter]
     if source_filter != "ALL":
-        filtered_evidence = [e for e in filtered_evidence if e.source == source_filter]
+        filtered_evidence = [e for e in filtered_evidence if _clean_source(e.source) == source_filter]
     if search_query:
         q = search_query.lower()
-        filtered_evidence = [e for e in filtered_evidence if q in e.check_name.lower() or q in e.explanation.lower()]
+        filtered_evidence = [e for e in filtered_evidence if q in e.check_name.lower() or q in _clean_source(e.explanation).lower()]
 
     table_data = []
     for e in filtered_evidence:
         table_data.append({
             "ID": e.evidence_id,
-            "Subsystem Source": e.source,
+            "Subsystem Source": _clean_source(e.source),
             "Verification Check": e.check_name,
             "Verdict": e.status,
-            "Forensic Explanation": e.explanation,
+            "Forensic Explanation": _clean_source(e.explanation),
         })
 
     st.dataframe(table_data, use_container_width=True, height=290)
