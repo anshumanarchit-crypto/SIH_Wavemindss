@@ -83,7 +83,7 @@ def render_evidence_decision(
     current_ladder = result.ladder_level
     if decoder is not None:
         _crc_ok = getattr(decoder, "crc_passed", False)
-        _ber_val = getattr(decoder, "reencode_ber", None)
+        _ber_val = getattr(decoder, "ber", None)
         _sync_ok = getattr(decoder, "sync_word", None) is not None
         _ber_zero = _ber_val is not None and _ber_val == 0.0
         if _crc_ok or (_ber_zero and _sync_ok):
@@ -259,7 +259,7 @@ def render_evidence_decision(
         filtered_evidence = [e for e in filtered_evidence if _clean_source(e.source) == source_filter]
     if search_query:
         q = search_query.lower()
-        filtered_evidence = [e for e in filtered_evidence if q in e.check_name.lower() or q in _clean_source(e.explanation).lower()]
+        filtered_evidence = [e for e in filtered_evidence if q in e.check_name.lower() or q in (e.explanation or "").lower() or q in (e.source or "").lower()]
 
     table_data = []
     for e in filtered_evidence:
@@ -273,23 +273,91 @@ def render_evidence_decision(
 
     st.dataframe(table_data, use_container_width=True, height=290)
 
-    # 5. "Explain Decision" Interactive Drawer
     with st.expander("💡 Deep Dive: Mathematical Confidence Aggregation Formulation", expanded=False):
-        st.markdown("#### Confidence Aggregation Mathematical Formulation")
-        st.latex(r"C_{\text{final}} = P_{\text{ML}} \cdot (1 - \text{Penalty}_{\text{Consensus}}) \cdot \prod_{i} (1 - P_{\text{check}, i})")
-        raw_prob_txt = f"{result.ml_probability:.4f}" if result.ml_probability is not None else "N/A"
-        pen_txt = f"DIVERGENCE (-{result.rule_ml_penalty:.2f} penalty)" if (result.rule_ml_penalty is not None and not result.rule_ml_agreement) else ("CONSENSUS (0.00 penalty)" if result.rule_ml_agreement else "DISCORDANT")
-        cal_prob_txt = f"{result.calibrated_ml_probability:.4f}" if result.calibrated_ml_probability is not None else (f"{result.ml_probability:.4f} (Uncalibrated)" if result.ml_probability is not None else "N/A")
-        cwa_txt = f"{result.cross_window_agreement:.2f}" if result.cross_window_agreement is not None else "1.00"
-        fin_conf_txt = f"{result.final_confidence:.4f}" if result.final_confidence is not None else "N/A"
+        st.markdown("#### Confidence Aggregation — Live Mathematical Breakdown")
 
-        st.markdown(
-            f"""
-            - **Raw Softmax ML Probability:** `p = {raw_prob_txt}`
-            - **AMC Rule-Consensus Status:** `{pen_txt}`
-            - **Calibrated ML Probability:** `p_cal = {cal_prob_txt}`
-            - **Multi-Window Agreement:** `alpha = {cwa_txt}`
-            - **Final Defensible Confidence Score:** `C = {fin_conf_txt}`
-            - **Decision System Engine:** `{result.confidence_version or 'SpectralQ Engine v2.0'}`
-            """
+        # All values sourced from live result contract
+        ml_prob   = result.ml_probability or 0.0
+        cal_prob  = result.calibrated_ml_probability or (ml_prob * (1.0 - (result.rule_ml_penalty or 0.0)))
+        penalty   = result.rule_ml_penalty or 0.0
+        agreement = result.rule_ml_agreement
+        cwa       = result.cross_window_agreement if result.cross_window_agreement is not None else 1.0
+        final_conf= result.final_confidence or 0.0
+        top_mod   = result.top_hypothesis.modulation if result.top_hypothesis else "UNKNOWN"
+        rule_pred = result.rule_prediction or "N/A"
+        ml_pred   = result.ml_prediction or "N/A"
+        conf_ver  = result.confidence_version or "SpectralQ Confidence Engine v2.0"
+        ladder    = result.ladder_level or "L3"
+        fail_ct   = len(result.failed_checks or [])
+        unavail_ct= len(result.unavailable_checks or [])
+        total_ev  = len(result.evidence or [])
+        post_pen  = 1.0 - penalty
+
+        st.latex(
+            r"C_{\text{final}} = P_{\text{ML}} \times (1 - \delta_{\text{penalty}}) \times \alpha_{\text{CWA}}"
+        )
+        st.markdown("---")
+
+        mc1, mc2 = st.columns(2)
+        with mc1:
+            st.markdown(f"""
+**Step 1 — Raw ML Softmax Probability**
+```
+P_ML({ml_pred}) = {ml_prob:.4f}  ({ml_prob*100:.2f}%)
+ML Prediction : {ml_pred}
+Rule Prediction: {rule_pred}
+N5 Status      : {'CONSENSUS ✓' if agreement else 'DIVERGENCE ✗'}
+```
+
+**Step 2 — AMC Consensus Penalty**
+```
+δ_penalty = {penalty:.4f}
+{'Rule & ML agree → zero penalty applied' if agreement else f'Rule={rule_pred} ≠ ML={ml_pred} → δ={penalty:.3f}'}
+(1 − δ) = {post_pen:.4f}
+```
+
+**Step 3 — Calibrated ML Probability**
+```
+P_cal = P_ML × (1 − δ)
+P_cal = {ml_prob:.4f} × {post_pen:.4f}
+P_cal = {ml_prob * post_pen:.4f}   [stored: {cal_prob:.4f}]
+```
+""")
+        with mc2:
+            st.markdown(f"""
+**Step 4 — Cross-Window Agreement (α)**
+```
+α_CWA = {cwa:.4f}  ({cwa*100:.1f}% temporal stability)
+{'Single-window → α = 1.00, no penalty' if cwa >= 1.0 else f'{cwa*100:.1f}% of windows consistent'}
+```
+
+**Step 5 — Evidence Ledger Audit**
+```
+Total checks audited : {total_ev}
+Failed checks        : {fail_ct}  {'✓ zero failures' if fail_ct == 0 else '⚠ failures recorded'}
+Unavailable checks   : {unavail_ct}
+Net evidence factor  ≈ 1.00 (embedded in engine)
+```
+
+**Step 6 — Final Confidence Score**
+```
+C_final = P_cal × α_CWA
+C_final = {cal_prob:.4f} × {cwa:.4f}
+C_final = {final_conf:.4f}  ({final_conf*100:.2f}%)
+Evidence Ladder: {ladder}  |  Top: {top_mod}
+```
+""")
+
+        st.markdown("---")
+        agree_txt = (f"Rule AMC (`{rule_pred}`) and ML (`{ml_pred}`) **agreed** → zero consensus penalty."
+                     if agreement else
+                     f"Rule AMC predicted **`{rule_pred}`** but ML predicted **`{ml_pred}`** → disagreement penalty **{penalty:.3f}** applied.")
+        cwa_txt = ("Single-window analysis — α = 1.00, no temporal penalty."
+                   if cwa >= 1.0 else
+                   f"Multi-window temporal agreement α = {cwa:.4f} → reduced confidence by {(1-cwa)*100:.1f}%.")
+        st.info(
+            f"📐 **Derivation:** {agree_txt}  \n"
+            f"{cwa_txt}  \n"
+            f"Final confidence: **{final_conf*100:.2f}%** at evidence ladder **{ladder}**.  \n"
+            f"Engine: `{conf_ver}`"
         )
