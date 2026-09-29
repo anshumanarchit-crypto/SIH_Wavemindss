@@ -501,9 +501,6 @@ def _render_filter_bar() -> str:
 
 def _render_scenario_grid(filtered: Dict, selected_name: str) -> Optional[str]:
     """Renders scenario cards in a 3-column grid. Returns clicked scenario name or current."""
-    crc_color_map = {"PASS": "#22c55e22", "FAIL": "#ef444422", "NOT_RUN": "#6b728022"}
-    crc_border_map = {"PASS": "#22c55e55", "FAIL": "#ef444455", "NOT_RUN": "#6b728055"}
-
     names = list(filtered.keys())
     if not names:
         st.info("No scenarios match the selected filter.")
@@ -517,41 +514,44 @@ def _render_scenario_grid(filtered: Dict, selected_name: str) -> Optional[str]:
             sc = filtered[name]
             crc = sc["expected"].get("crc", "NOT_RUN")
             is_sel = name == selected_name
-            border_color = "#3b82f6" if is_sel else crc_border_map.get(crc, "#334155")
-            bg_color = "#1e3a5f33" if is_sel else crc_color_map.get(crc, "#11182744")
 
+            crc_color = {"PASS": "#22c55e", "FAIL": "#ef4444", "NOT_RUN": "#6b7280"}.get(crc, "#6b7280")
+            
+            box_shadow = "0 0 0 2px #3b82f6, 0 8px 24px rgba(59,130,246,0.15)" if is_sel else "none"
+            bg_color = "rgba(30,64,175,0.12)" if is_sel else "rgba(15,23,42,0.4)"
+            
             tag_html = " ".join([
-                f'<span style="background:#1e293b;color:#64748b;font-size:0.6rem;'
-                f'padding:1px 6px;border-radius:4px;letter-spacing:.05em;">{t}</span>'
+                f'<span style="background:#0f172a; color:#475569; border:1px solid rgba(255,255,255,0.05); '
+                f'font-size:0.58rem; padding:1px 7px; border-radius:4px; letter-spacing:0.04em;">{t}</span>'
                 for t in sc["tags"][:3]
             ])
-            crc_col = STAGE_COLORS.get(crc, "#6b7280")
 
             with col:
                 st.markdown(
                     f"""
                     <div style="
-                        background:{bg_color};
-                        border:{'2px' if is_sel else '1px'} solid {border_color};
-                        border-radius:12px;
-                        padding:1rem;
-                        margin-bottom:0.5rem;
-                        min-height:120px;
-                        cursor:pointer;
-                        transition:border .2s;
+                        background: {bg_color};
+                        border-radius: 12px;
+                        padding: 1rem 1.1rem;
+                        min-height: 130px;
+                        border-left: 3px solid {crc_color};
+                        border-top: 1px solid rgba(255,255,255,0.05);
+                        border-right: 1px solid rgba(255,255,255,0.05);
+                        border-bottom: 1px solid rgba(255,255,255,0.05);
+                        box-shadow: {box_shadow};
+                        margin-bottom: 0.5rem;
                     ">
                         <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.4rem;">
-                            <span style="font-size:1.4rem;">{sc['icon']}</span>
-                            <span style="background:{crc_col}22;color:{crc_col};border:1px solid {crc_col}44;
-                                font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:999px;
-                                letter-spacing:.08em;">{crc}</span>
+                            <div style="font-size:0.82rem;font-weight:700;color:#ffffff;line-height:1.3;max-width:75%;">{name[:52]}{'…' if len(name)>52 else ''}</div>
+                            <span style="background:{crc_color}22;color:{crc_color};border:1px solid {crc_color}44;
+                                font-size:0.58rem;font-weight:700;padding:2px 6px;border-radius:999px;
+                                letter-spacing:.08em;margin-left:0.25rem;">{crc}</span>
                         </div>
-                        <div style="font-size:0.8rem;font-weight:600;color:#e2e8f0;margin-bottom:0.3rem;
-                            line-height:1.3;">{name[:52]}{'…' if len(name)>52 else ''}</div>
-                        <div style="font-size:0.68rem;color:#64748b;line-height:1.4;margin-bottom:0.5rem;">
-                            {sc['mod']} · {sc['stream_type']} · {sc['snr_db']:+.0f} dB SNR
+                        <div style="margin-bottom:0.6rem; display:flex; align-items:center; gap:6px;">
+                            <span style="background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.25); color:#38bdf8; border-radius:4px; padding:1px 7px; font-size:0.62rem; font-weight:700;">{sc['mod']}</span>
+                            <span style="font-size:0.62rem;color:#64748b;">{sc['stream_type']} · {sc['snr_db']:+.0f} dB SNR</span>
                         </div>
-                        <div style="display:flex;flex-wrap:wrap;gap:3px;">{tag_html}</div>
+                        <div style="display:flex;flex-wrap:wrap;gap:4px;">{tag_html}</div>
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -597,22 +597,52 @@ def _render_scenario_detail(scenario: Dict, name: str, tokens: Dict):
 
 
 def _render_format_selector():
-    st.markdown("#### 📁 Output Format")
+    st.markdown(
+        """
+        <div style="margin-bottom: 1rem; margin-top: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div style="width: 4px; height: 1.2rem; background: #3b82f6; border-radius: 4px;"></div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: #f8fafc; letter-spacing: 0.02em;">Output Format</div>
+            </div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.2rem; margin-left: 1.15rem;">Select the container format for synthesized signals</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     cols = st.columns(4)
     selected_fmt = st.session_state.get("synth_format", ".wav")
     for col, (fmt, info) in zip(cols, FORMAT_META.items()):
         is_sel = fmt == selected_fmt
-        border = "#3b82f6" if is_sel else "#1e293b"
-        bg = "#1e3a5f33" if is_sel else "#0f172a"
+        
+        bg = "rgba(30,64,175,0.15)" if is_sel else "rgba(15,23,42,0.9)"
+        border = "2px solid #3b82f6" if is_sel else "1px solid rgba(255,255,255,0.07)"
+        shadow = "0 0 16px rgba(59,130,246,0.25)" if is_sel else "none"
+        top_bar_color = "#3b82f6" if is_sel else "rgba(255,255,255,0.05)"
+        title_color = "#ffffff" if is_sel else "#94a3b8"
+
         with col:
             st.markdown(
                 f"""
-                <div style="background:{bg};border:{'2px' if is_sel else '1px'} solid {border};
-                    border-radius:10px;padding:0.8rem;text-align:center;cursor:pointer;">
-                    <div style="font-size:1.5rem;">{info['icon']}</div>
-                    <div style="font-weight:700;color:#e2e8f0;font-size:0.85rem;">{fmt}</div>
-                    <div style="font-size:0.65rem;color:#64748b;margin-top:2px;line-height:1.3;">{info['desc']}</div>
-                    <div style="font-size:0.58rem;color:#475569;margin-top:3px;">{info['sub']}</div>
+                <div style="
+                    background: {bg};
+                    border: {border};
+                    box-shadow: {shadow};
+                    border-radius: 12px;
+                    padding: 1.2rem;
+                    position: relative;
+                    overflow: hidden;
+                    text-align: center;
+                ">
+                    <div style="
+                        position: absolute;
+                        top: 0; left: 0; right: 0;
+                        height: 3px;
+                        background: {top_bar_color};
+                        border-radius: 3px 3px 0 0;
+                    "></div>
+                    <div style="font-family: monospace; font-weight: 700; font-size: 1rem; color: {title_color}; margin-bottom: 0.3rem; margin-top: 0.3rem;">{fmt}</div>
+                    <div style="font-size: 0.68rem; color: #64748b; line-height: 1.4; margin-bottom: 0.4rem;">{info['desc']}</div>
+                    <div style="font-size: 0.58rem; color: #475569;">{info['sub']}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -624,7 +654,18 @@ def _render_format_selector():
 
 
 def _render_param_controls(scenario: Dict) -> Tuple[float, float, int, float]:
-    st.markdown("#### ⚙️ Generation Parameters")
+    st.markdown(
+        """
+        <div style="margin-bottom: 1rem; margin-top: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div style="width: 4px; height: 1.2rem; background: #3b82f6; border-radius: 4px;"></div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: #f8fafc; letter-spacing: 0.02em;">Generation Parameters</div>
+            </div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.2rem; margin-left: 1.15rem;">Override default synthetic parameters and environment variables</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     pc1, pc2, pc3 = st.columns(3)
     with pc1:
         snr_val = st.slider(
