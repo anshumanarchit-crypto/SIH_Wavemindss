@@ -1,0 +1,145 @@
+{
+  "schema_version": "1.0.0",
+  "input_hash": "b69f616917d79c6e9a5c6cefc59e707f00e5beb2af730b6b1ce0edd37cc6cd7e",
+  "capture_id": "11_2FSK_concatenated",
+  "source_mode": "replay",
+  "cached_at_utc": "2026-09-28T20:52:11.796718+00:00",
+  "generation_parameters": {},
+  "payload_checksum": "ace7ee157ad56390f0084f85de49e11ae53a43e46a15842e4a10bf5523652a8d",
+  "analysis": {
+    "schema_version": "1.0.0",
+    "capture_id": "11_2FSK_concatenated",
+    "source_mode": "replay",
+    "fs_hz": 800000.0,
+    "fs_source": "inferred",
+    "bursts": [
+      {
+        "start_ms": 0.0,
+        "end_ms": 41.52,
+        "power": 0.13574928477965492
+      }
+    ],
+    "estimates": {
+      "baud": {
+        "value": 100000.0,
+        "ci_lo": 90000.0,
+        "ci_hi": 110000.0,
+        "method": "iq_symbol_rate_inferred"
+      },
+      "cfo": {
+        "value": -156262.8125,
+        "ci_lo": -164262.8125,
+        "ci_hi": -148262.8125,
+        "method": "iq_phase_difference"
+      },
+      "bandwidth": {
+        "value": 125000.0,
+        "ci_lo": 100000.0,
+        "ci_hi": 150000.0,
+        "method": "iq_baud_estimate"
+      },
+      "snr": {
+        "value": 15.005643424291993,
+        "ci_lo": 13.005643424291993,
+        "ci_hi": 17.005643424291993,
+        "method": "m2m4_moment"
+      }
+    },
+    "features": {
+      "cumulants": {
+        "C20": 3.813420710278599e-08,
+        "C21": 0.9999999281916362,
+        "C40": 0.002905913390518831,
+        "C42": -0.939604253477305,
+        "C60": 0.004753266865814692,
+        "C63": 3.643542403671196,
+        "C80": 0.003026837576302994
+      },
+      "cluster": {
+        "count": 4,
+        "silhouette": 0.22,
+        "intra_var": 0.45,
+        "inter_dist": 0.8
+      },
+      "evm": 0.17325773369506114,
+      "phase_ambiguity_quality": 0.376,
+      "cyclic": null
+    },
+    "sub_windows": [
+      {
+        "window_id": 0,
+        "C20": 2.062150906137612e-08,
+        "C21": 0.9999999887192702,
+        "C40": 0.0063204376655857115,
+        "C42": -0.938987753786283,
+        "C60": 0.018891911514983727,
+        "C63": 3.6406128756987215,
+        "C80": 0.014865409232193705,
+        "cluster_count": 2.0,
+        "silhouette": 0.22,
+        "intra_var": 0.45,
+        "inter_dist": 0.8,
+        "evm": 0.17325773369506114,
+        "phase_ambiguity_quality": 0.376,
+        "snr": 15.005643424291993,
+        "baud": 100000.0
+      },
+      {
+        "window_id": 1,
+        "C20": 7.876301420311875e-08,
+        "C21": 1.0000000174112587,
+        "C40": 0.004625313532312948,
+        "C42": -0.9392666305027988,
+        "C60": 0.016268816196313016,
+        "C63": 3.641282972793549,
+        "C80": 0.012277794175243884,
+        "cluster_count": 2.0,
+        "silhouette": 0.22,
+        "intra_var": 0.45,
+        "inter_dist": 0.8,
+        "evm": 0.17325773369506114,
+        "phase_ambiguity_quality": 0.376,
+        "snr": 15.005643424291993,
+        "baud": 100000.0
+      },
+      {
+        "window_id": 2,
+        "C20": 1.0388577861309595e-08,
+        "C21": 1.000000018169217,
+        "C40": 0.003484078864971883,
+        "C42": -0.9386667088564213,
+        "C60": 0.017362481043680836,
+        "C63": 3.6382770986063004,
+        "C80": 0.007009967889116586,
+        "cluster_count": 2.0,
+        "silhouette": 0.22,
+        "intra_var": 0.45,
+        "inter_dist": 0.8,
+        "evm": 0.17325773369506114,
+        "phase_ambiguity_quality": 0.376,
+        "snr": 15.005643424291993,
+        "baud": 100000.0
+      },
+      {
+        "window_id": 3,
+        "C20": 6.975478575795064e-09,
+        "C21": 1.0000000582481505,
+        "C40": 0.009779546770975181,
+        "C42": -0.9392042325938639,
+        "C60": 0.006622475663103661,
+        "C63": 3.6407666522764277,
+        "C80": 0.004003248187405681,
+        "cluster_count": 2.0,
+        "silhouette": 0.22,
+        "intra_var": 0.45,
+        "inter_dist": 0.8,
+        "evm": 0.17325773369506114,
+        "phase_ambiguity_quality": 0.376,
+        "snr": 15.005643424291993,
+        "baud": 100000.0
+      }
+    ],
+    "notes": null,
+    "capability_available": null
+  }
+}

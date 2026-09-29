@@ -36,6 +36,8 @@ from ui.components import (
     render_provenance_export,
     render_signal_lab,
     render_guided_demo_banner,
+    render_wideband_scanner,
+    render_run_trace,
 )
 from spectralq.visualization.artifacts import ObservatoryArtifacts
 
@@ -135,8 +137,14 @@ elif current_ws == "Provenance & Export":
         provenance=prov,
     )
 
+elif current_ws == "Wideband Scanner":
+    render_wideband_scanner()
+
 elif current_ws == "Signal Lab / Simulation":
     render_signal_lab()
+
+elif current_ws == "Run Trace":
+    render_run_trace(result=res, analysis=ana, decoder=dec, provenance=prov)
 
 else:
     st.error(f"Unknown workspace: {current_ws}")

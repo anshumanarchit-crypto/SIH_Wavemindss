@@ -137,10 +137,15 @@ def run_arpit_decoder(
     is_success = (res.status == ResultStatus.CONFIRMED and has_bits)
 
     crc_stat = CrcStatus.NOT_RUN.value
-    if res.sync_detection and res.sync_detection.found:
+    # RULE 9 INVARIANT: sync found ≠ CRC checked ≠ CRC passed.
+    # Only set CRC_PASS when the decoder explicitly ran and confirmed a passing checksum.
+    # Sync detection alone is NOT sufficient for a CRC PASS claim.
+    if res.decoded_frame and res.decoded_frame.crc_valid is True:
         crc_stat = CrcStatus.PASS.value
-    elif res.decoded_frame and res.decoded_frame.crc_valid:
-        crc_stat = CrcStatus.PASS.value
+    elif res.decoded_frame and res.decoded_frame.crc_valid is False:
+        crc_stat = CrcStatus.FAIL.value
+    # sync_detection.found alone → CRC remains NOT_RUN (sync ≠ CRC check)
+
 
     # EVM extraction
     evm_pct = None
@@ -162,18 +167,37 @@ def run_arpit_decoder(
             "BARKER_7": "72",
         }
         sync_w = sync_map.get(s_name, s_name)
-    elif res.decoded_frame and res.decoded_frame.sync_pattern:
-        sync_w = res.decoded_frame.sync_pattern
+    elif res.decoded_frame and hasattr(res.decoded_frame, "sync_name") and res.decoded_frame.sync_name:
+        s_name = res.decoded_frame.sync_name
+        sync_map = {
+            "CCSDS_32": "1ACFFC1D",
+            "SPECTRALQ_16": "ABCD",
+            "AX25_HDLC_16": "7E7E",
+            "BARKER_13": "1F35",
+            "BARKER_11": "0712",
+            "BARKER_7": "72",
+        }
+        sync_w = sync_map.get(s_name, s_name)
 
-    # Re-encode BER estimate if available
+    # RULE 11 INVARIANT: Re-encode BER is ONLY exposed when the following sequence ran:
+    #   decoded payload → actual encoder → re-encoded bits → bit comparison → BER
+    # CRC pass alone does NOT yield reencode_ber=0.0 (that conflates CRC with BER).
+    # EVM alone does NOT yield reencode_ber (that conflates constellation quality with BER).
+    # Only report reencode_ber if the pipeline directly computed it via actual re-encoding.
     reencode_ber = None
-    if crc_stat == CrcStatus.PASS.value:
-        reencode_ber = 0.0
-    elif evm_pct is not None:
-        reencode_ber = float(min(1.0, max(0.0, (evm_pct / 100.0) * 0.12)))
+    if res is not None and hasattr(res, "reencode_ber") and res.reencode_ber is not None:
+        reencode_ber = float(res.reencode_ber)
 
-    status_str = DecoderStatus.OK.value if is_success else DecoderStatus.FAILED.value
-    failure_msg = None if is_success else "Carrier or constellation lock failed to yield verified bitstream"
+    # Contract Invariant: Decoder status cannot be 'ok' when crc_status is 'fail'
+    if crc_stat == CrcStatus.FAIL.value:
+        status_str = DecoderStatus.FAILED.value
+        failure_msg = "Payload CRC checksum verification failed"
+    elif is_success:
+        status_str = DecoderStatus.OK.value
+        failure_msg = None
+    else:
+        status_str = DecoderStatus.FAILED.value
+        failure_msg = "Carrier or constellation lock failed to yield verified bitstream"
 
     return validate_decoder_output_dict({
         "schema_version": "1.0.0",

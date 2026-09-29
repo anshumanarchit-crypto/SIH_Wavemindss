@@ -24,6 +24,8 @@ from ui.components.evidence_decision import render_evidence_decision
 from ui.components.provenance_export import render_provenance_export
 from ui.components.signal_lab import render_signal_lab
 from ui.components.guided_demo import render_guided_demo_banner
+from ui.components.wideband_scanner import render_wideband_scanner
+from ui.components.run_trace import render_run_trace
 
 __all__ = [
     "render_header",
@@ -46,4 +48,6 @@ __all__ = [
     "render_provenance_export",
     "render_signal_lab",
     "render_guided_demo_banner",
+    "render_wideband_scanner",
+    "render_run_trace",
 ]

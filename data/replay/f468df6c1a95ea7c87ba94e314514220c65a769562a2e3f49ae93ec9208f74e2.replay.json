@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0.0",
+  "input_hash": "f468df6c1a95ea7c87ba94e314514220c65a769562a2e3f49ae93ec9208f74e2",
+  "capture_id": "10_16QAM_LDPC_pseudo",
+  "source_mode": "replay",
+  "cached_at_utc": "2026-09-29T01:44:42.222164+00:00",
+  "generation_parameters": {},
+  "payload_checksum": "86f056661c40951804eaa5d1f34ada234df063c0b55c74a70888313483203d6c",
+  "analysis": {
+    "schema_version": "1.0.0",
+    "capture_id": "10_16QAM_LDPC_pseudo",
+    "source_mode": "replay",
+    "fs_hz": 800000.0,
+    "fs_source": "inferred",
+    "bursts": [
+      {
+        "start_ms": 0.0,
+        "end_ms": 0.24000000000000002,
+        "power": 0.11115350488904785
+      }
+    ],
+    "estimates": {
+      "baud": {
+        "value": 100000.0,
+        "ci_lo": 90000.0,
+        "ci_hi": 110000.0,
+        "method": "iq_symbol_rate_inferred"
+      },
+      "cfo": {
+        "value": -357845.46875,
+        "ci_lo": -365845.46875,
+        "ci_hi": -349845.46875,
+        "method": "iq_phase_difference"
+      },
+      "bandwidth": {
+        "value": 125000.0,
+        "ci_lo": 100000.0,
+        "ci_hi": 150000.0,
+        "method": "iq_baud_estimate"
+      },
+      "snr": {
+        "value": -2.8672399283069727,
+        "ci_lo": -4.867239928306972,
+        "ci_hi": -0.8672399283069727,
+        "method": "m2m4_moment"
+      }
+    },
+    "features": {
+      "cumulants": {
+        "C20": 2.5903808494629896e-08,
+        "C21": 1.000000033389007,
+        "C40": 1.2980814309436117,
+        "C42": -0.02205975625986034,
+        "C60": 2.2624229569048366,
+        "C63": -0.5423509538667872,
+        "C80": 10.07978804427878
+      },
+      "cluster": {
+        "count": 8,
+        "silhouette": 0.6944290995597839,
+        "intra_var": 0.29359596967697144,
+        "inter_dist": 1.6926738023757935
+      },
+      "evm": 0.31179057593209375,
+      "phase_ambiguity_quality": 0.7555432796478272,
+      "cyclic": null
+    },
+    "sub_windows": null,
+    "notes": null,
+    "capability_available": null
+  }
+}

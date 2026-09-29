@@ -163,15 +163,17 @@ def render_provenance_export(
         st.markdown(
             f"""
             <div class="sq-card">
-                <div class="sq-card-title">PACKAGE CONTENTS</div>
+                <div class="sq-card-title">CANONICAL EVIDENCE BUNDLE CONTENTS</div>
                 <div style="font-size:0.85rem; line-height:1.6;">
-                    ✅ <code>result.json</code> — Stage 10 Hypothesis & Confidence Contract<br>
-                    ✅ <code>analysis.json</code> — Stage 4 Blind DSP Estimations<br>
-                    ✅ <code>decoder_output.json</code> — Stage 7-9 Demod & Bitstream Telemetry<br>
                     ✅ <code>capture.sigmf-meta</code> — Official SigMF Standard RF Metadata<br>
-                    ✅ <code>provenance.json</code> — Input Hash & Environmental Verification<br>
+                    ✅ <code>result.json</code> & <code>evidence_ledger.json</code> — Stage 10 Contracts & Ledgers<br>
+                    ✅ <code>canonical_metrics.json</code> — 8 Physical Metrics (CFO, SNR, EVM, Baud, BW, Ladder, Mod, BER)<br>
+                    ✅ <code>hypotheses.json</code> — Ranked AMC Hypotheses & Probabilities<br>
+                    ✅ <code>decoded_frame.bin</code> & <code>decoded_frame.hex</code> — Payload Stream & Hex Dump<br>
+                    ✅ <code>iq_constellation.png</code> & <code>iq_spectrum.png</code> — Rendered RF Graphical Plots<br>
+                    ✅ <code>pipeline_summary.json</code> & <code>provenance.json</code> — Cryptographic Execution Summary<br>
                     ✅ <code>evidence_summary.csv</code> — Tabular Audit Trail of All Checks<br>
-                    ✅ <code>observatory_artifacts.json</code> — Decimated Visual Telemetry
+                    ✅ <code>sha256_manifest.txt</code> — Full Cryptographic Digest Verification Manifest
                 </div>
             </div>
             """,

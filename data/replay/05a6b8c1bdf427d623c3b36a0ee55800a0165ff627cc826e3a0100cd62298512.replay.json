@@ -1,14 +1,14 @@
 {
   "schema_version": "1.0.0",
   "input_hash": "05a6b8c1bdf427d623c3b36a0ee55800a0165ff627cc826e3a0100cd62298512",
-  "capture_id": "BPSK_FEC_VITERBI",
+  "capture_id": "06_BPSK_conv_viterbi",
   "source_mode": "replay",
-  "cached_at_utc": "2026-09-28T17:59:36.655940+00:00",
+  "cached_at_utc": "2026-09-28T20:51:58.730439+00:00",
   "generation_parameters": {},
-  "payload_checksum": "1d7a32233fdd2cc5b0dd4e51be844821c3d6e2cbe66daca66268febc30426f68",
+  "payload_checksum": "f4a20cec967ee79a92df8d76a63d1253a7a132cb63355a5f0aec8f2f77056a63",
   "analysis": {
     "schema_version": "1.0.0",
-    "capture_id": "BPSK_FEC_VITERBI",
+    "capture_id": "06_BPSK_conv_viterbi",
     "source_mode": "replay",
     "fs_hz": 100000.0,
     "fs_source": "inferred",

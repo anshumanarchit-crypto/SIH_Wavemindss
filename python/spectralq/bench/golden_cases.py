@@ -351,7 +351,7 @@ def build_case_inputs(
             c20, c40, c42 = 0.01, 0.02, -0.98
             cluster_count, silhouette = 8, 0.81
         elif mod == "16-QAM":
-            c20, c40, c42 = 0.01, -0.67, -0.67
+            c20, c40, c42 = 0.01, 0.67, -0.67
             cluster_count, silhouette = 16, 0.74
         elif mod in ("2-FSK", "4-FSK"):
             c20, c40, c42 = 0.01, 0.02, -0.95

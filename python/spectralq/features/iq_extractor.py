@@ -266,7 +266,22 @@ def estimate_constellation_clusters(
     if n_sym < 4:
         return (2, 0.1, 0.5, 0.5)
 
-    symbols = z[sps // 2::sps][:n_sym]
+    # Optimal symbol strobe timing offset estimation:
+    # Scan through candidate sample offsets in range(sps) to locate the peak symbol instant
+    # where eye opening is maximal (maximal constellation dispersion |E[s^4]| relative to transitions)
+    best_offset = sps // 2
+    if sps > 1 and len(z) >= sps * 8:
+        best_metric = -1.0
+        for off in range(sps):
+            cand = z[off::sps]
+            if len(cand) < 8:
+                continue
+            cand_p4 = abs(complex(np.mean(cand ** 4)))
+            if cand_p4 > best_metric:
+                best_metric = cand_p4
+                best_offset = off
+
+    symbols = z[best_offset::sps][:n_sym]
 
     # Continuous phase rotation check: in FSK, the phase rotates continuously on the circle,
     # so the all-sample angle histogram peak-to-average ratio (PAR) is moderate (< 2.2 vs >= 3.5 for PSK),
@@ -342,37 +357,49 @@ def _vmeans_scores(
     pts: np.ndarray,
     k: int,
     seed: int = 42,
-    max_iter: int = 50,
+    max_iter: int = 40,
+    n_init: int = 3,
 ) -> Tuple[np.ndarray, float, float, float]:
     """
-    Vectorized Lloyd's k-means with approximate silhouette score.
+    Vectorized Lloyd's k-means with approximate silhouette score and multi-restart initialization.
     All distance computations use numpy broadcasting (no Python loops over points).
 
     Returns: (centroids, silhouette, intra_var, inter_dist)
     """
-    rng = np.random.default_rng(seed)
     n = len(pts)
     k = min(k, n)
+    if k <= 1 or n <= 1:
+        return (np.zeros((k, 2)), 0.0, 1.0, 0.0)
 
-    # Forgy initialization: pick k distinct points
-    idx = rng.choice(n, size=k, replace=False)
-    centroids = pts[idx].copy()  # (k, 2)
+    best_inertia = 1e12
+    best_centroids = None
 
-    for _ in range(max_iter):
-        # (n, k) distance matrix via broadcasting
-        diff = pts[:, np.newaxis, :] - centroids[np.newaxis, :, :]  # (n, k, 2)
-        dists = np.sqrt(np.sum(diff ** 2, axis=2))  # (n, k)
-        labels = np.argmin(dists, axis=1)  # (n,)
+    for trial in range(n_init):
+        rng = np.random.default_rng(seed + trial * 100)
+        idx = rng.choice(n, size=k, replace=False)
+        centroids = pts[idx].copy()
 
-        new_centroids = np.array([
-            pts[labels == j].mean(axis=0) if (labels == j).any() else centroids[j]
-            for j in range(k)
-        ])
-        if np.allclose(centroids, new_centroids, atol=1e-6):
-            break
-        centroids = new_centroids
+        for _ in range(max_iter):
+            diff = pts[:, np.newaxis, :] - centroids[np.newaxis, :, :]  # (n, k, 2)
+            dists_sq = np.sum(diff ** 2, axis=2)  # (n, k)
+            labels = np.argmin(dists_sq, axis=1)
 
-    # Final assignment
+            new_centroids = np.array([
+                pts[labels == j].mean(axis=0) if (labels == j).any() else centroids[j]
+                for j in range(k)
+            ])
+            if np.allclose(centroids, new_centroids, atol=1e-5):
+                break
+            centroids = new_centroids
+
+        diff = pts[:, np.newaxis, :] - centroids[np.newaxis, :, :]
+        dists_sq = np.sum(diff ** 2, axis=2)
+        inertia = float(np.sum(np.min(dists_sq, axis=1)))
+        if inertia < best_inertia:
+            best_inertia = inertia
+            best_centroids = centroids
+
+    centroids = best_centroids
     diff = pts[:, np.newaxis, :] - centroids[np.newaxis, :, :]  # (n, k, 2)
     dists = np.sqrt(np.sum(diff ** 2, axis=2))  # (n, k)
     labels = np.argmin(dists, axis=1)

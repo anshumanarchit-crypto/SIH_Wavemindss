@@ -57,7 +57,9 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
         "Decoder & Bitstream": "🔓",
         "Evidence & Decision": "⚖️",
         "Provenance & Export": "📦",
+        "Wideband Scanner": "📡",
         "Signal Lab / Simulation": "🔬",
+        "Run Trace": "⏱️",
     }
 
     for ws in WORKSPACES:
@@ -72,6 +74,17 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
             if current_ws != ws:
                 st.session_state["active_workspace"] = ws
                 st.rerun()
+
+    # Specialized Tools
+    c_s1, c_s2 = st.sidebar.columns(2)
+    with c_s1:
+        if c_s1.button("📡 Scanner", key="nav_btn_wb", type="primary" if current_ws == "Wideband Scanner" else "secondary", use_container_width=True):
+            st.session_state["active_workspace"] = "Wideband Scanner"
+            st.rerun()
+    with c_s2:
+        if c_s2.button("⏱️ Trace", key="nav_btn_trace", type="primary" if current_ws == "Run Trace" else "secondary", use_container_width=True):
+            st.session_state["active_workspace"] = "Run Trace"
+            st.rerun()
 
     st.sidebar.markdown("---")
 

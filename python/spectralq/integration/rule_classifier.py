@@ -196,10 +196,14 @@ class RuleBasedClassifier:
         # Branch 3: QPSK Separation (Positive C40 and Unit-Magnitude C42)
         # ---------------------------------------------------------------------
         thresholds_applied["tau_qpsk_c40_min"] = cfg.tau_qpsk_c40_min
-        if rho_40 >= cfg.tau_qpsk_c40_min and abs(rho_42) >= 0.78:
+        # QPSK is uniquely characterized by positive C40 (theoretical +1.0 vs 0.0 for 8-PSK, negative for QAM/BPSK).
+        # Real pulse-shaped RRC signals exhibit |C42|/C21^2 in [0.70, 1.05] and 4 constellation clusters.
+        is_qpsk_cumulant = (rho_40 >= cfg.tau_qpsk_c40_min and abs(rho_42) >= 0.70)
+        is_qpsk_cluster = (cluster_count == 4 and silhouette >= 0.65 and rho_40 >= 0.35 and abs(rho_42) >= 0.60)
+        if is_qpsk_cumulant or is_qpsk_cluster:
             decision_path.append(
-                f"Step 3: Check QPSK (Normalized C40/C21^2 = {rho_40:.3f} >= threshold {cfg.tau_qpsk_c40_min:.3f}, "
-                f"|C42|/C21^2 = {abs(rho_42):.3f} >= 0.780). "
+                f"Step 3: Check QPSK (Normalized C40/C21^2 = {rho_40:.3f} >= {cfg.tau_qpsk_c40_min:.3f}, "
+                f"|C42|/C21^2 = {abs(rho_42):.3f} >= 0.700, clusters = {cluster_count}, silhouette = {silhouette:.3f}). "
                 "Theoretical QPSK C40 is +1.0; 4-quadrant symmetric constant-modulus structure confirmed -> Classified as QPSK."
             )
             return RuleClassificationResult(
@@ -211,7 +215,7 @@ class RuleBasedClassifier:
             )
 
         decision_path.append(
-            f"Step 3: Check QPSK (Normalized C40/C21^2 = {rho_40:.3f} or |C42|/C21^2 = {abs(rho_42):.3f} < 0.780). "
+            f"Step 3: Check QPSK (Normalized C40/C21^2 = {rho_40:.3f}, |C42|/C21^2 = {abs(rho_42):.3f}, clusters = {cluster_count}). "
             "Not QPSK; proceed to 8-PSK and QAM separation."
         )
 

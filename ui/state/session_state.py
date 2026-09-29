@@ -22,6 +22,13 @@ WORKSPACES = [
     "Signal Lab / Simulation",
 ]
 
+EXTENDED_WORKSPACES = [
+    "Wideband Scanner",
+    "Run Trace",
+]
+
+ALL_WORKSPACES = WORKSPACES + EXTENDED_WORKSPACES
+
 
 def init_session_state():
     """Initializes standard session state keys if not already present."""

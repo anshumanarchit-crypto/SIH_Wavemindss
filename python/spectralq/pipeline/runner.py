@@ -162,10 +162,25 @@ def run(
         elif Path(capture_path).exists() and Path(capture_path).is_file():
             import core.io
             from spectralq.features.iq_extractor import iq_to_analysis_contract
+            # RULE 5 INVARIANT: Never silently assume sampling rate.
+            # Check for companion metadata file first (written by navigation.py for raw IQ).
+            comp_fs = None
+            comp_json_path = Path(capture_path).with_suffix(".json")
+            if comp_json_path.exists():
+                import json as _json
+                comp_meta = _json.loads(comp_json_path.read_text())
+                comp_fs = float(comp_meta.get("fs_hz", comp_meta.get("sample_rate", 0.0))) or None
             sig = core.io.load_signal(capture_path)
+            fs_hz_final = comp_fs or sig.sample_rate
+            if fs_hz_final is None or fs_hz_final <= 0:
+                raise ValueError(
+                    f"Cannot ingest '{capture_path}': no sampling rate available. "
+                    "WAV files embed rate in header; raw IQ/CF32 files require a companion metadata JSON "
+                    "or explicit user-provided sample rate via the ingest panel."
+                )
             analysis = iq_to_analysis_contract(
                 sig.samples,
-                fs_hz=sig.sample_rate or 100000.0,
+                fs_hz=fs_hz_final,
                 capture_id=Path(capture_path).stem,
             )
             stage_status["Ingest & Forensics"] = "LIVE"

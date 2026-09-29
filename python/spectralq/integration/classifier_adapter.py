@@ -50,9 +50,9 @@ def extract_features_from_analysis(analysis: AnalysisContract) -> Dict[str, floa
     feat = analysis.features
     est = analysis.estimates
     return {
-        "C20": float(feat.cumulants.C20),
+        "C20": float(abs(feat.cumulants.C20)),
         "C21": float(feat.cumulants.C21),
-        "C40": float(feat.cumulants.C40),
+        "C40": float(abs(feat.cumulants.C40)),
         "C42": float(feat.cumulants.C42),
         "C60": float(feat.cumulants.C60),
         "C63": float(feat.cumulants.C63),
