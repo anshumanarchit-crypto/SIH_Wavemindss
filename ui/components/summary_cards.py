@@ -11,7 +11,6 @@ import streamlit as st
 from ui.adapters.result_adapter import NormalizedResult
 from ui.adapters.analysis_adapter import NormalizedAnalysis
 from ui.adapters.decoder_adapter import NormalizedDecoder
-from ui.components.icons import get_icon_svg
 
 
 def render_summary_cards(
@@ -37,9 +36,7 @@ def render_summary_cards(
         st.markdown(
             f"""
             <div class="sq-card">
-                <div class="sq-card-title" style="display:flex; align-items:center; gap:6px;">
-                    {get_icon_svg("modulation_hypotheses", size=13, color="#53D7FF")} Modulation Scheme
-                </div>
+                <div class="sq-card-title">Modulation Scheme</div>
                 <div class="sq-card-value">{mod_val}</div>
                 <div class="sq-card-sub">{mod_sub}</div>
                 <div style="margin-top: 0.4rem;">{mod_badge}</div>
@@ -62,9 +59,7 @@ def render_summary_cards(
         st.markdown(
             f"""
             <div class="sq-card">
-                <div class="sq-card-title" style="display:flex; align-items:center; gap:6px;">
-                    {get_icon_svg("activity", size=13, color="#53D7FF")} Symbol Rate (Baud)
-                </div>
+                <div class="sq-card-title">Symbol Rate (Baud)</div>
                 <div class="sq-card-value">{baud_val}</div>
                 <div class="sq-card-sub">{baud_sub}</div>
                 <div style="margin-top: 0.4rem;">{baud_badge}</div>
@@ -87,9 +82,7 @@ def render_summary_cards(
         st.markdown(
             f"""
             <div class="sq-card">
-                <div class="sq-card-title" style="display:flex; align-items:center; gap:6px;">
-                    {get_icon_svg("radio", size=13, color="#53D7FF")} Carrier Offset (CFO)
-                </div>
+                <div class="sq-card-title">Carrier Offset (CFO)</div>
                 <div class="sq-card-value">{cfo_val}</div>
                 <div class="sq-card-sub">{cfo_sub}</div>
                 <div style="margin-top: 0.4rem;">{cfo_badge}</div>
@@ -112,9 +105,7 @@ def render_summary_cards(
         st.markdown(
             f"""
             <div class="sq-card">
-                <div class="sq-card-title" style="display:flex; align-items:center; gap:6px;">
-                    {get_icon_svg("spectrum", size=13, color="#53D7FF")} Occupied Bandwidth
-                </div>
+                <div class="sq-card-title">Occupied Bandwidth</div>
                 <div class="sq-card-value">{bw_val}</div>
                 <div class="sq-card-sub">{bw_sub}</div>
                 <div style="margin-top: 0.4rem;">{bw_badge}</div>
@@ -140,9 +131,7 @@ def render_summary_cards(
         st.markdown(
             f"""
             <div class="sq-card">
-                <div class="sq-card-title" style="display:flex; align-items:center; gap:6px;">
-                    {get_icon_svg("waveform", size=13, color="#53D7FF")} Estimated SNR
-                </div>
+                <div class="sq-card-title">Estimated SNR</div>
                 <div class="sq-card-value">{snr_val}</div>
                 <div class="sq-card-sub">{snr_sub}</div>
                 <div style="margin-top: 0.4rem;">{snr_badge}</div>
@@ -174,9 +163,7 @@ def render_summary_cards(
         st.markdown(
             f"""
             <div class="sq-card">
-                <div class="sq-card-title" style="display:flex; align-items:center; gap:6px;">
-                    {get_icon_svg("decoder_bitstream", size=13, color="#53D7FF")} Forward Error Correction
-                </div>
+                <div class="sq-card-title">Forward Error Correction</div>
                 <div class="sq-card-value">{fec_val}</div>
                 <div class="sq-card-sub">{fec_sub}</div>
                 <div style="margin-top: 0.4rem;">{fec_badge}</div>
@@ -203,9 +190,7 @@ def render_summary_cards(
         st.markdown(
             f"""
             <div class="sq-card">
-                <div class="sq-card-title" style="display:flex; align-items:center; gap:6px;">
-                    {get_icon_svg("layers", size=13, color="#53D7FF")} Interleaver Scheme
-                </div>
+                <div class="sq-card-title">Interleaver Scheme</div>
                 <div class="sq-card-value">{intl_val}</div>
                 <div class="sq-card-sub">{intl_sub}</div>
                 <div style="margin-top: 0.4rem;">{intl_badge}</div>
@@ -238,9 +223,7 @@ def render_summary_cards(
         st.markdown(
             f"""
             <div class="sq-card">
-                <div class="sq-card-title" style="display:flex; align-items:center; gap:6px;">
-                    {get_icon_svg("evidence_decision", size=13, color="#53D7FF")} Decision Confidence
-                </div>
+                <div class="sq-card-title">Decision Confidence</div>
                 <div class="sq-card-value">{conf_val}</div>
                 <div class="sq-card-sub">{conf_sub}</div>
                 <div style="margin-top: 0.4rem;">{conf_badge}</div>

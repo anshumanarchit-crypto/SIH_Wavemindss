@@ -10,7 +10,6 @@ import streamlit as st
 
 from ui.adapters import NormalizedAnalysis, NormalizedDecoder, NormalizedResult
 from ui.styles.theme import get_theme_tokens
-from ui.components.icons import get_icon_svg
 
 
 def render_run_trace(
@@ -22,15 +21,7 @@ def render_run_trace(
     """Renders the 10-stage execution timeline and trace audit workspace."""
     tokens = get_theme_tokens()
 
-    st.markdown(
-        f"""
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:0.25rem;">
-            {get_icon_svg("run_trace", size=24, color=tokens["primary"])}
-            <h2 style="margin:0; font-size:1.4rem; font-weight:700;">Pipeline Execution Trace</h2>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown("## ⏱️ Pipeline Execution Trace")
     st.caption(
         "Complete 10-stage execution audit trail: telemetry timing, execution mode provenance, "
         "and per-stage data transformations."
@@ -46,7 +37,7 @@ def render_run_trace(
     ladder = result.ladder_level
     conf_pct = (result.final_confidence * 100.0) if result.final_confidence else 0.0
 
-    st.markdown("### Run Metadata & Epistemic Boundaries")
+    st.markdown("### 📋 Run Metadata & Epistemic Boundaries")
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.metric("Source Mode", source_mode.upper())
@@ -60,7 +51,7 @@ def render_run_trace(
     st.markdown("---")
 
     # 2. 10-Stage Execution Timeline Cards
-    st.markdown("### 10-Stage Execution Trace")
+    st.markdown("### 🔄 10-Stage Execution Trace")
 
     # Build Stage Telemetry
     # Stage 1: Ingest & Preprocessing

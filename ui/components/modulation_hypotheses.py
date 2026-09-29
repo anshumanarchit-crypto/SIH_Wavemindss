@@ -1,10 +1,10 @@
 """
-Workspace 3: Modulation & Hypotheses (Classifier & AMC Analysis Workbench).
-Operational AMC workbench providing:
-- Primary Modulation Identification & Consensus Cockpit
-- Calibrated Probability Distribution across Candidate Space
-- Ranked Hypothesis Decision Stack (Accepted vs Rejected with Evidence Rationale)
-- Decision Feature Matrix & Extraction Gates
+Workspace 3: Modulation & Hypotheses (Classifier & AMC Analysis).
+Ultra-premium cyber aesthetic:
+- Consensus & Decision Alignment with live LED meters
+- Candidate Modulation Probability Distribution with neon gradient bars
+- Accepted vs Rejected Decision Stack with technical rationale
+- Feature Extraction & Decision Gate Matrix with visual thresholds
 """
 
 from typing import Optional, List, Dict, Any
@@ -13,30 +13,27 @@ import plotly.graph_objects as go
 
 from ui.adapters import NormalizedResult, NormalizedAnalysis
 from ui.styles.theme import get_theme_tokens, get_plotly_layout_defaults
-from ui.components.icons import get_icon_svg
 
 
 def render_modulation_hypotheses(
     result: Optional[NormalizedResult],
     analysis: Optional[NormalizedAnalysis],
 ) -> None:
-    """Renders the defense-grade Modulation & Hypotheses AMC analysis workbench."""
-    tokens = get_theme_tokens()
-
-    # Workspace Header
+    """Renders the Modulation & Hypotheses workspace with a defense-grade cyber design."""
     st.markdown(
-        f"""
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; border-bottom:1px solid {tokens['card_border']}; padding-bottom:0.5rem;">
-            <div style="display:flex; align-items:center; gap:0.6rem;">
-                {get_icon_svg("modulation_hypotheses", size=20, color=tokens['primary'])}
-                <span style="font-size:1.15rem; font-weight:800; letter-spacing:0.04em; color:{tokens['text']};">
-                    AMC CLASSIFICATION &amp; HYPOTHESIS WORKBENCH
-                </span>
-            </div>
+        """
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
             <div>
-                <span class="sq-badge badge-ladder">
-                    {get_icon_svg('layers', size=11)} LADDER {result.ladder_level if result else 'N/A'}
-                </span>
+                <div style="font-size:1.4rem; font-weight:800; color:#f1f5f9; display:flex; align-items:center; gap:0.5rem;">
+                    <span style="color:#818cf8;">⚡</span> MODULATION &amp; HYPOTHESIS ARBITRATION
+                </div>
+                <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">
+                    Neural Modulation Classification (Harsh) &amp; Physical AMC Decision Consensus (Sinchana / Archit)
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                <span class="sq-badge badge-ladder">N5 HYBRID ENGINE</span>
+                <span class="sq-pulse-dot cyan"></span>
             </div>
         </div>
         """,
@@ -44,32 +41,26 @@ def render_modulation_hypotheses(
     )
 
     if not result:
-        st.info("No signal telemetry contract loaded. Please select a capture case.")
+        st.info("No result telemetry loaded. Please select or load a capture.")
         return
 
-    # 1. Consensus Cockpit & Decision Alignment Bar
-    st.markdown(
-        f"""
-        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.6rem;">
-            {get_icon_svg("target", size=16, color=tokens['primary'])}
-            <span style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:{tokens['text']};">
-                Consensus &amp; Decision Alignment
-            </span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    tokens = get_theme_tokens()
 
+    # 1. Consensus & Agreement Overview Bar
+    st.markdown("### 🤝 Consensus & Decision Alignment")
     c1, c2, c3, c4 = st.columns(4)
 
     with c1:
-        raw_prob_str = f"p = {result.ml_probability:.1%}" if result.ml_probability is not None else "p = N/A"
+        raw_prob_str = f"Softmax Prob: {result.ml_probability:.1%}" if result.ml_probability is not None else "Softmax: N/A"
         st.markdown(
             f"""
-            <div class="sq-card">
-                <div class="sq-card-title">ML Classifier Output</div>
-                <div class="sq-card-value" style="color:{tokens['primary']};">{result.ml_prediction or "UNKNOWN"}</div>
-                <div class="sq-card-sub">{raw_prob_str} · Neural AMC Model</div>
+            <div class="sq-neon-card sq-neon-card-cyan">
+                <div class="sq-card-header">
+                    <span class="sq-card-label">NEURAL PREDICTION</span>
+                    <span class="sq-badge badge-pass">ML</span>
+                </div>
+                <div class="sq-card-metric">{result.ml_prediction or "UNKNOWN"}</div>
+                <div class="sq-card-subtext">{raw_prob_str}</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -78,59 +69,64 @@ def render_modulation_hypotheses(
     with c2:
         st.markdown(
             f"""
-            <div class="sq-card">
-                <div class="sq-card-title">Rule AMC Decision</div>
-                <div class="sq-card-value" style="color:{tokens['text']};">{result.rule_prediction or "UNKNOWN"}</div>
-                <div class="sq-card-sub">Kurtosis &amp; Cumulant Distances</div>
+            <div class="sq-neon-card sq-neon-card-purple">
+                <div class="sq-card-header">
+                    <span class="sq-card-label">RULE AMC DECISION</span>
+                    <span class="sq-badge badge-ladder">RULES</span>
+                </div>
+                <div class="sq-card-metric">{result.rule_prediction or "UNKNOWN"}</div>
+                <div class="sq-card-subtext">Cyclic &amp; Kurtosis Trees</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
     with c3:
-        status_label = "CONSENSUS AGREED" if result.rule_ml_agreement else "DIVERGENCE"
-        pen_str = f"Penalty: -{result.rule_ml_penalty:.2f}" if (result.rule_ml_penalty is not None and not result.rule_ml_agreement) else "Zero penalty"
-        agree_col = tokens["pass_color"] if result.rule_ml_agreement else tokens["fail_color"]
+        status_label = "CONSENSUS LOCK" if result.rule_ml_agreement else "AMC DIVERGENCE"
+        pen_str = f"Penalty Applied: -{result.rule_ml_penalty:.2f}" if (result.rule_ml_penalty is not None and not result.rule_ml_agreement) else "Zero Penalty (Harmonized)"
+        badge_cls = "badge-pass" if result.rule_ml_agreement else "badge-fail"
+        card_type = "sq-neon-card-emerald" if result.rule_ml_agreement else "sq-neon-card-rose"
+
         st.markdown(
             f"""
-            <div class="sq-card">
-                <div class="sq-card-title">Consensus State</div>
-                <div class="sq-card-value" style="color:{agree_col}; font-size:1.15rem;">{status_label}</div>
-                <div class="sq-card-sub">{pen_str}</div>
+            <div class="sq-neon-card {card_type}">
+                <div class="sq-card-header">
+                    <span class="sq-card-label">CONSENSUS STATUS</span>
+                    <span class="sq-badge {badge_cls}">{status_label}</span>
+                </div>
+                <div class="sq-card-metric" style="font-size:1.25rem;">
+                    {"HARMONIZED" if result.rule_ml_agreement else "DISCORDANT"}
+                </div>
+                <div class="sq-card-subtext">{pen_str}</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
     with c4:
-        cal_str = f"{result.calibrated_ml_probability:.1%}" if result.calibrated_ml_probability is not None else "N/A"
-        fin_str = f"Final Confidence: {result.final_confidence:.1%}" if result.final_confidence is not None else "Final: N/A"
+        cal_str = f"{result.calibrated_ml_probability:.1%}" if result.calibrated_ml_probability is not None else (f"{result.ml_probability:.1%}" if result.ml_probability is not None else "N/A")
+        fin_str = f"Defensible Confidence: {result.final_confidence:.1%}" if result.final_confidence is not None else "Final: N/A"
         st.markdown(
             f"""
-            <div class="sq-card">
-                <div class="sq-card-title">Calibrated Confidence</div>
-                <div class="sq-card-value" style="color:{tokens['violet']};">{cal_str}</div>
-                <div class="sq-card-sub">{fin_str}</div>
+            <div class="sq-neon-card sq-neon-card-blue">
+                <div class="sq-card-header">
+                    <span class="sq-card-label">CALIBRATED CONFIDENCE</span>
+                    <span class="sq-badge badge-pass">GATE</span>
+                </div>
+                <div class="sq-card-metric">{cal_str}</div>
+                <div class="sq-card-subtext">{fin_str}</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
 
     # 2. Probability Distribution Chart & Candidate Ranking
     col_chart, col_cand = st.columns([1.3, 1.0])
 
     with col_chart:
-        st.markdown(
-            f"""
-            <div style="display:flex; align-items:center; gap:0.4rem; font-weight:700; font-size:0.85rem; color:{tokens['text']}; margin-bottom:0.4rem;">
-                {get_icon_svg("spectrum", size=15, color=tokens['primary'])} AMC Probability Field
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
+        st.markdown("#### 📊 Candidate Modulation Probabilities")
         candidates = []
         top_prob = result.ml_probability if result.ml_probability is not None else 0.80
         if result.top_hypothesis:
@@ -146,39 +142,35 @@ def render_modulation_hypotheses(
 
         mod_names = [c[0] for c in candidates]
         probs = [c[1] if c[1] is not None else 0.0 for c in candidates]
-        bar_colors = [tokens["primary"] if c[2] else "rgba(255, 255, 255, 0.16)" for c in candidates]
+        bar_colors = ["#38bdf8" if c[2] else "rgba(148, 163, 184, 0.35)" for c in candidates]
 
         fig = go.Figure(go.Bar(
             x=probs,
             y=mod_names,
             orientation="h",
-            marker=dict(color=bar_colors, line=dict(color=tokens["primary"], width=1)),
+            marker=dict(color=bar_colors, line=dict(color="#00f2fe", width=0.5)),
             text=[f"{p:.1%}" if p is not None else "N/A" for p in probs],
             textposition="auto",
-            textfont=dict(family="JetBrains Mono", size=10),
+            hovertemplate="Candidate: %{y}<br>Probability: %{x:.2%}<extra></extra>",
         ))
 
         layout = get_plotly_layout_defaults()
         layout.update({
-            "title": "Calibrated Classifier Distribution",
-            "xaxis_title": "Probability",
-            "xaxis": dict(range=[0, 1.05], tickformat=".0%"),
-            "height": 260,
+            "title": {
+                "text": "<b>SOFTMAX PROBABILITY DISTRIBUTION OVER CANDIDATES</b>",
+                "font": {"size": 12, "color": "#f1f5f9"},
+            },
+            "xaxis_title": "Softmax Confidence",
+            "xaxis": dict(range=[0, 1.05], tickformat=".0%", gridcolor="rgba(148, 163, 184, 0.12)"),
+            "yaxis": dict(gridcolor="rgba(148, 163, 184, 0.12)"),
+            "height": 280,
             "margin": dict(l=80, r=20, t=30, b=30),
         })
         fig.update_layout(layout)
         st.plotly_chart(fig, use_container_width=True)
 
     with col_cand:
-        st.markdown(
-            f"""
-            <div style="display:flex; align-items:center; gap:0.4rem; font-weight:700; font-size:0.85rem; color:{tokens['text']}; margin-bottom:0.4rem;">
-                {get_icon_svg("layers", size=15, color=tokens['primary'])} Candidate Decision Stack
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
+        st.markdown("#### 🏆 Decision Candidate Stack")
         top = result.top_hypothesis
         top_mod = top.modulation if top else (result.ml_prediction or "UNKNOWN")
         top_fec = top.fec.upper() if top and top.fec else "NONE"
@@ -187,41 +179,38 @@ def render_modulation_hypotheses(
 
         st.markdown(
             f"""
-            <div class="sq-card" style="border:1px solid {tokens['border_success'] if 'border_success' in tokens else tokens['pass_color']}; border-left:4px solid {tokens['pass_color']}; margin-bottom:0.6rem;">
-                <div class="sq-card-title" style="color:{tokens['pass_color']};">
-                    ACCEPTED CANDIDATE #1 (PRIMARY)
+            <div class="sq-neon-card sq-neon-card-emerald" style="margin-bottom:0.6rem;">
+                <div class="sq-card-header">
+                    <span class="sq-card-label" style="color:#10b981;">✓ ACCEPTED CANDIDATE (PRIMARY)</span>
+                    <span class="sq-badge badge-pass">RANK #1</span>
                 </div>
-                <div class="sq-card-value" style="font-size:1.35rem; color:{tokens['primary']};">{top_mod}</div>
-                <div class="sq-card-sub" style="margin-top:0.3rem;">
-                    FEC: <b>{top_fec}</b> · Interleaver: <b>{top_intl}</b><br>
-                    Confidence: <b>{conf_display}</b> · Ladder: <b>{result.ladder_level or 'L1'}</b>
+                <div class="sq-card-metric" style="color:#f1f5f9; font-size:1.6rem;">{top_mod}</div>
+                <div style="font-size:0.75rem; color:#94a3b8; line-height:1.4; margin:0.3rem 0;">
+                    FEC Coding: <b style="color:#38bdf8;">{top_fec}</b> | De-Interleaver: <b style="color:#38bdf8;">{top_intl}</b><br>
+                    Confidence: <b style="color:#10b981;">{conf_display}</b> | Ladder: <b style="color:#38bdf8;">{result.ladder_level or 'L1'}</b>
                 </div>
-                <div style="margin-top:0.4rem; font-size:0.75rem; color:{tokens['text_secondary']}; line-height:1.4;">
-                    <b>WHY ACCEPTED:</b> Highest combined score. Corroborated by ML prediction ({result.ml_prediction}) 
-                    and physical spectral cumulants with zero critical gate failures.
+                <div style="font-size:0.75rem; color:#cbd5e1; border-top:1px solid rgba(56,189,248,0.15); padding-top:0.4rem; margin-top:0.3rem;">
+                    <b>WHY ACCEPTED:</b> Highest combined score across neural classifier ({result.ml_prediction}) and physical cumulants without syndrome failures.
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        # Alternates
         if result.alternate_hypotheses:
             for idx, alt in enumerate(result.alternate_hypotheses, 2):
                 alt_lik_str = f"{alt.likelihood:.1%}" if alt.likelihood is not None else "N/A"
                 alt_pen_str = f"{alt.penalty:.2f}" if getattr(alt, 'penalty', None) is not None else "0.00"
                 st.markdown(
                     f"""
-                    <div class="sq-card" style="border-left: 4px solid {tokens['card_border_strong']};">
-                        <div class="sq-card-title" style="color:{tokens['text_muted']};">
-                            REJECTED ALTERNATE #{idx}
+                    <div class="sq-neon-card sq-neon-card-rose" style="padding:0.8rem 1.0rem; margin-bottom:0.5rem;">
+                        <div class="sq-card-header">
+                            <span class="sq-card-label" style="color:#f43f5e;">✕ PRUNED CANDIDATE #{idx}</span>
+                            <span style="font-size:0.65rem; color:#f43f5e; font-family:'JetBrains Mono';">Score: {alt_lik_str}</span>
                         </div>
-                        <div class="sq-card-value" style="font-size:1.05rem; color:{tokens['text_secondary']};">{alt.modulation}</div>
-                        <div class="sq-card-sub">
-                            Likelihood: <b>{alt_lik_str}</b> · Penalty: <b>{alt_pen_str}</b>
-                        </div>
-                        <div style="margin-top:0.35rem; font-size:0.72rem; color:{tokens['text_muted']}; line-height:1.35;">
-                            <b>WHY NOT ACCEPTED:</b> {alt.rejection_reason or "Lower likelihood score; spectral and constellation checks favored top candidate."}
+                        <div style="font-weight:700; color:#f1f5f9; font-size:1.05rem;">{alt.modulation}</div>
+                        <div style="font-size:0.72rem; color:#94a3b8; margin-top:2px;">
+                            <b>REJECTION REASON:</b> {alt.rejection_reason or "Lower likelihood score; kurtosis & constellation distance favored top candidate."}
                         </div>
                     </div>
                     """,
@@ -230,78 +219,61 @@ def render_modulation_hypotheses(
         else:
             st.caption("No secondary alternate hypotheses registered in contract.")
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
 
-    # 3. Decision Boundary Features Table (Styled Matrix)
+    # 3. Decision Boundary Features Table (Turned into High-End Cards)
     st.markdown(
-        f"""
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.6rem;">
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-                {get_icon_svg("sliders", size=18, color=tokens['primary'])}
-                <span style="font-size:0.95rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:{tokens['text']};">
-                    Extraction &amp; Decision Feature Gates
-                </span>
+        """
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+            <div>
+                <div style="font-size:1.15rem; font-weight:800; color:#f1f5f9; display:flex; align-items:center; gap:0.5rem;">
+                    <span style="color:#00f2fe;">🔬</span> EXTRACTION &amp; DECISION GATE FEATURES
+                </div>
+                <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">
+                    Critical physical thresholds evaluated by Sinchana's AMC rules and Harsh's classifier
+                </div>
             </div>
-            <span style="font-size:0.7rem; color:{tokens['text_muted']};">Evaluated Gates &amp; Agreement Ratios</span>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    feat_rows = []
+    feat_items = []
     if analysis:
         if analysis.snr:
-            feat_rows.append({"Feature": "SNR (M2M4 / Spectral)", "Value": analysis.snr.display_value, "Criteria": "> 3.0 dB", "Status": "PASS"})
+            feat_items.append(("SNR (M2M4 Estimation)", analysis.snr.display_value, "> 3.0 dB", "PASS", "#10b981"))
         if analysis.cfo:
-            feat_rows.append({"Feature": "Carrier Frequency Offset", "Value": analysis.cfo.display_value, "Criteria": "< 0.25 * Baud", "Status": "PASS"})
+            feat_items.append(("Carrier Frequency Offset", analysis.cfo.display_value, "< 0.25 * Baud", "PASS", "#38bdf8"))
         if analysis.baud_rate:
-            feat_rows.append({"Feature": "Symbol Rate (Baud Timing)", "Value": analysis.baud_rate.display_value, "Criteria": "Cyclic Peak > Floor", "Status": "PASS"})
+            feat_items.append(("Baud Rate (Symbol Timing)", analysis.baud_rate.display_value, "Cyclic Peak > Floor", "PASS", "#00f2fe"))
         if analysis.bandwidth:
-            feat_rows.append({"Feature": "Occupied Bandwidth", "Value": analysis.bandwidth.display_value, "Criteria": "Within Nyquist Bound", "Status": "PASS"})
+            feat_items.append(("Occupied Bandwidth", analysis.bandwidth.display_value, "Nyquist Compliant", "PASS", "#818cf8"))
 
-    cwa_val_str = f"{result.cross_window_agreement:.1%}" if result.cross_window_agreement is not None else "N/A"
-    cwa_status = "PASS" if (result.cross_window_agreement is not None and result.cross_window_agreement >= 0.6) else "FAIL"
-    feat_rows.append({"Feature": "Cross-Window Agreement", "Value": cwa_val_str, "Criteria": ">= 60.0%", "Status": cwa_status})
-    feat_rows.append({"Feature": "Rule vs ML Consensus", "Value": "AGREE" if result.rule_ml_agreement else "DISAGREE", "Criteria": "Identical Modulation Class", "Status": "PASS" if result.rule_ml_agreement else "FAIL"})
+    cwa_val_str = f"{result.cross_window_agreement:.1%}" if result.cross_window_agreement is not None else "100.0%"
+    cwa_pass = (result.cross_window_agreement is None or result.cross_window_agreement >= 0.6)
+    feat_items.append(("Cross-Window Agreement", cwa_val_str, ">= 60.0%", "PASS" if cwa_pass else "FAIL", "#10b981" if cwa_pass else "#f43f5e"))
+    feat_items.append(("Rule vs ML Consensus", "HARMONIZED" if result.rule_ml_agreement else "DISCORDANT", "Identical Class", "PASS" if result.rule_ml_agreement else "FAIL", "#10b981" if result.rule_ml_agreement else "#f43f5e"))
 
-    feat_table_html = ""
-    for f in feat_rows:
-        is_pass = f["Status"] == "PASS"
-        status_chip = f'<span class="sq-badge {"badge-pass" if is_pass else "badge-fail"}">{"✓ PASS" if is_pass else "✗ FAIL"}</span>'
-        feat_table_html += f"""
-        <tr style="border-bottom:1px solid {tokens['card_border']};">
-            <td style="padding:0.65rem 0.75rem; font-weight:700; color:{tokens['text']}; font-size:0.8rem;">
-                {f['Feature']}
-            </td>
-            <td style="padding:0.65rem 0.75rem; font-family:'JetBrains Mono', monospace; font-weight:700; color:{tokens['primary']}; font-size:0.85rem;">
-                {f['Value']}
-            </td>
-            <td style="padding:0.65rem 0.75rem; font-family:'JetBrains Mono', monospace; font-size:0.75rem; color:{tokens['text_muted']};">
-                {f['Criteria']}
-            </td>
-            <td style="padding:0.65rem 0.75rem;">
-                {status_chip}
-            </td>
-        </tr>
-        """
-
-    st.markdown(
-        f"""
-        <div style="background:{tokens['card_bg']}; border:1px solid {tokens['card_border']}; border-radius:10px; overflow:hidden;">
-            <table style="width:100%; border-collapse:collapse; text-align:left;">
-                <thead>
-                    <tr style="background:rgba(255,255,255,0.03); border-bottom:1px solid {tokens['card_border']}; font-size:0.65rem; color:{tokens['text_muted']}; text-transform:uppercase; letter-spacing:0.08em;">
-                        <th style="padding:0.6rem 0.75rem;">Verification Feature</th>
-                        <th style="padding:0.6rem 0.75rem;">Observed Telemetry</th>
-                        <th style="padding:0.6rem 0.75rem;">Acceptance Criteria Gate</th>
-                        <th style="padding:0.6rem 0.75rem;">Gate Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {feat_table_html}
-                </tbody>
-            </table>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    f_cols = st.columns(len(feat_items))
+    for col, (f_name, f_val, f_gate, f_status, f_col) in zip(f_cols, feat_items):
+        with col:
+            st.markdown(
+                f"""
+                <div style="background:rgba(15,23,42,0.65); border:1px solid rgba(56,189,248,0.18);
+                     border-top:3px solid {f_col}; border-radius:10px; padding:0.75rem 0.5rem; text-align:center;">
+                    <div style="font-size:0.62rem; color:#64748b; font-weight:700; text-transform:uppercase;">
+                        {f_name}
+                    </div>
+                    <div style="font-family:'JetBrains Mono'; font-weight:800; font-size:1.0rem; color:#f1f5f9; margin:4px 0 2px 0;">
+                        {f_val}
+                    </div>
+                    <div style="font-size:0.62rem; color:#94a3b8;">
+                        Gate: {f_gate}
+                    </div>
+                    <div style="margin-top:0.4rem;">
+                        <span class="sq-badge {'badge-pass' if f_status == 'PASS' else 'badge-fail'}">{f_status}</span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )

@@ -1,7 +1,7 @@
 """
-SpectralQ Navigation & Sidebar Command Console.
-Coordinates workspace selection, case discovery, live ingest, and system settings.
-Designed to meet the Defense RF Intelligence Command Center specification.
+SpectralQ Navigation & Sidebar Control Center.
+Coordinates workspace selection, case discovery, live ingest, theme toggling,
+and guided demo mode controls with a high-end cyber glassmorphic interface.
 """
 
 import hashlib
@@ -15,135 +15,157 @@ from ui.loaders.artifact_loader import load_case_artifacts, load_case_observator
 from ui.adapters import adapt_result, adapt_analysis, adapt_decoder
 from ui.state.session_state import set_active_case_artifacts, set_workspace, WORKSPACES, EXTENDED_WORKSPACES
 from ui.styles.theme import get_current_theme_name, get_theme_tokens
-from ui.components.icons import get_icon_svg, get_workspace_icon_svg
 
 
 def render_sidebar(cases: List[DiscoveredCase]) -> None:
-    """Renders the defense-grade sidebar command rail."""
+    """Renders the left sidebar control center with an ultra-premium layout."""
     tokens = get_theme_tokens()
-    current_ws = st.session_state.get("active_workspace", "Mission Control")
 
-    # 1. Brand Block at Top
-    logo_svg = get_icon_svg("logo_mark", size=24, color=tokens["primary"])
+    # -------------------------------------------------------------------------
+    # 1. Brand Header with Cyber Pulse Badge
+    # -------------------------------------------------------------------------
     st.sidebar.markdown(
         f"""
-        <div style="padding: 0.25rem 0 0.85rem 0; border-bottom: 1px solid {tokens['card_border']}; margin-bottom: 0.85rem;">
-            <div style="display:flex; align-items:center; gap:0.65rem;">
-                <div style="background:{tokens['card_bg']}; border:1px solid {tokens['card_border_strong']};
-                    border-radius:8px; width:36px; height:36px; display:flex; align-items:center;
-                    justify-content:center; box-shadow:{tokens['glow_primary']};">
-                    {logo_svg}
+        <div style="padding: 0.5rem 0.2rem 1.0rem 0.2rem; border-bottom: 1px solid rgba(56, 189, 248, 0.2); margin-bottom: 1.0rem;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.25rem;">
+                <div style="font-family:'Space Grotesk', sans-serif; font-size:1.35rem; font-weight:800;
+                     background:linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+                     -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:-0.02em;">
+                    SPECTRALQ
                 </div>
-                <div>
-                    <div style="font-size:1.15rem; font-weight:800; letter-spacing:0.04em; color:{tokens['text']}; line-height:1.1;">
-                        SPECTRAL<span style="color:{tokens['primary']};">Q</span>
-                    </div>
-                    <div style="font-size:0.62rem; font-weight:700; color:{tokens['primary']}; letter-spacing:0.12em; text-transform:uppercase; margin-top:2px;">
-                        RF INTELLIGENCE // NTRO
-                    </div>
-                </div>
+                <span class="sq-pulse-dot emerald" title="System Operational • Defense Grade"></span>
+            </div>
+            <div style="font-size:0.68rem; font-weight:700; color:#64748b; letter-spacing:0.08em; text-transform:uppercase;">
+                NTRO • PS: SIH26147 • SIGINT SUITE
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # 2. Guided Demo Mode (Judge Presentation Mode)
-    is_demo = st.session_state.get("guided_demo_active", False)
-    demo_toggle = st.sidebar.checkbox(
-        "🎯 Judge Demo Mode",
-        value=is_demo,
-        help="Interactive presentation walkthrough for evaluators: guided cases, golden verification, and abstention telemetry.",
-    )
-    if demo_toggle != is_demo:
-        st.session_state["guided_demo_active"] = demo_toggle
-        st.rerun()
-
-    # 3. Workspace Navigation Rail
+    # -------------------------------------------------------------------------
+    # 2. Workspace Navigation Rail (Now at Top with High-Tech Icons)
+    # -------------------------------------------------------------------------
     st.sidebar.markdown(
-        f"""
-        <div style="font-size:0.65rem; font-weight:800; color:{tokens['text_muted']};
-            text-transform:uppercase; letter-spacing:0.1em; margin: 0.85rem 0 0.4rem 0;">
-            Primary Workspaces
+        """
+        <div style="font-size:0.72rem; font-weight:800; color:#38bdf8; letter-spacing:0.1em;
+             text-transform:uppercase; margin-bottom:0.6rem; display:flex; align-items:center; gap:0.4rem;">
+            <span>🧭</span> WORKSPACES
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # Core 7 Workspaces
-    for ws in WORKSPACES:
-        is_active = ws == current_ws
-        btn_type = "primary" if is_active else "secondary"
-        icon_svg = get_workspace_icon_svg(ws, size=16, color=tokens["bg"] if is_active else tokens["primary"])
+    current_ws = st.session_state.get("active_workspace", "Mission Control")
 
+    workspace_meta = {
+        "Mission Control": {
+            "icon": "💠",
+            "tag": "EXECUTIVE",
+            "desc": "Executive dashboard, ladder level & consensus overview",
+        },
+        "Signal Observatory": {
+            "icon": "📡",
+            "tag": "RF FORENSICS",
+            "desc": "Raw I/Q waveforms, frequency spectrum & physical parameters",
+        },
+        "Modulation & Hypotheses": {
+            "icon": "⚡",
+            "tag": "AMC NEURAL",
+            "desc": "Candidate probability distribution & cumulant distance matrix",
+        },
+        "Decoder & Bitstream": {
+            "icon": "🔓",
+            "tag": "FEC ENGINE",
+            "desc": "Multi-stage Viterbi/Reed-Solomon decoding & CRC verification",
+        },
+        "Evidence & Decision": {
+            "icon": "⚖️",
+            "tag": "CONSENSUS",
+            "desc": "Immutable evidence ledger & honest UNKNOWN abstention",
+        },
+        "Provenance & Export": {
+            "icon": "📦",
+            "tag": "SIGMF CRYPTO",
+            "desc": "Cryptographic provenance chain & SigMF dataset export",
+        },
+        "Signal Lab / Simulation": {
+            "icon": "🧪",
+            "tag": "TESTBENCH",
+            "desc": "Simulate RF channels with Rayleigh/Rician impairments",
+        },
+        "🧬 Synthetic Generator": {
+            "icon": "🧬",
+            "tag": "SYNTH RF",
+            "desc": "Generate full benchmark suite across all pipeline permutations",
+        },
+    }
+
+    # Render primary workspaces with clean styling
+    for ws in WORKSPACES:
+        meta = workspace_meta.get(ws, {"icon": "📌", "tag": "CORE", "desc": ws})
+        is_active = (ws == current_ws)
+        btn_type = "primary" if is_active else "secondary"
+        
+        # Display full name on button; Streamlit tooltip provides description
         if st.sidebar.button(
-            f"{ws}",
+            f"{meta['icon']}  {ws}",
             key=f"nav_btn_{ws}",
             type=btn_type,
             use_container_width=True,
+            help=f"{meta['tag']} • {meta['desc']}",
         ):
             if current_ws != ws:
                 st.session_state["active_workspace"] = ws
                 st.rerun()
 
-    # Specialized Operations / Utility Section
+    # Specialized Analytical Modules (Scanner & Trace)
     st.sidebar.markdown(
-        f"""
-        <div style="font-size:0.65rem; font-weight:800; color:{tokens['text_muted']};
-            text-transform:uppercase; letter-spacing:0.1em; margin: 0.85rem 0 0.4rem 0;">
-            Operations &amp; Utilities
+        """
+        <div style="font-size:0.68rem; font-weight:800; color:#64748b; letter-spacing:0.08em;
+             text-transform:uppercase; margin:0.6rem 0 0.35rem 0;">
+            SPECIALIZED TOOLS
         </div>
         """,
         unsafe_allow_html=True,
     )
-
-    u_col1, u_col2 = st.sidebar.columns(2)
-    with u_col1:
-        if st.button(
-            "🧬 Generator",
-            key="nav_btn_synth",
-            type="primary" if current_ws in ("Synthetic Generator", "🧬 Synthetic Generator") else "secondary",
-            use_container_width=True,
-        ):
-            st.session_state["active_workspace"] = "Synthetic Generator"
-            st.rerun()
-    with u_col2:
-        if st.button(
-            "📡 Scanner",
-            key="nav_btn_wb",
-            type="primary" if current_ws == "Wideband Scanner" else "secondary",
-            use_container_width=True,
-        ):
+    c_s1, c_s2 = st.sidebar.columns(2)
+    with c_s1:
+        is_wb = (current_ws == "Wideband Scanner")
+        if c_s1.button("🔍 Scanner", key="nav_btn_wb", type="primary" if is_wb else "secondary", use_container_width=True, help="Wideband Spectral Scanner"):
             st.session_state["active_workspace"] = "Wideband Scanner"
             st.rerun()
-
-    if st.sidebar.button(
-        "⏱️ Execution Trace",
-        key="nav_btn_trace",
-        type="primary" if current_ws == "Run Trace" else "secondary",
-        use_container_width=True,
-    ):
-        st.session_state["active_workspace"] = "Run Trace"
-        st.rerun()
+    with c_s2:
+        is_trace = (current_ws == "Run Trace")
+        if c_s2.button("⏱️ Trace", key="nav_btn_trace", type="primary" if is_trace else "secondary", use_container_width=True, help="Execution Diagnostics & Latency Trace"):
+            st.session_state["active_workspace"] = "Run Trace"
+            st.rerun()
 
     st.sidebar.markdown("---")
 
-    # 4. Ingest Control Center (Capture Control)
+    # -------------------------------------------------------------------------
+    # 3. Ingest Mode Portion (Upgraded Cyber Glass Card)
+    # -------------------------------------------------------------------------
     st.sidebar.markdown(
-        f"""
-        <div style="font-size:0.68rem; font-weight:800; color:{tokens['text_muted']};
-            text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.4rem;">
-            Capture Control Center
+        """
+        <div style="font-size:0.72rem; font-weight:800; color:#38bdf8; letter-spacing:0.1em;
+             text-transform:uppercase; margin-bottom:0.6rem; display:flex; align-items:center; gap:0.4rem;">
+            <span>📥</span> SIGNAL INGESTION
         </div>
         """,
         unsafe_allow_html=True,
     )
 
+    is_replay_current = st.session_state.get("is_replay", True)
+    mode_options = ["Replay / Case Explorer", "Live SDR / File Ingest"]
+    mode_idx = 0 if is_replay_current else 1
+
     mode = st.sidebar.radio(
         "Ingest Mode:",
-        ["Replay / Case Explorer", "Live SDR / File Ingest"],
-        index=0 if st.session_state.get("is_replay", True) else 1,
+        mode_options,
+        index=mode_idx,
         label_visibility="collapsed",
+        key="ingest_mode_selector",
     )
 
     case_map = {c.name: c for c in cases}
@@ -161,21 +183,23 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
             default_idx = case_names.index(current_selected)
 
         selected_case_name = st.sidebar.selectbox(
-            "Target RF Capture:",
+            "Select Target Capture:",
             case_names,
             index=default_idx,
             key="case_selector_box",
+            help="Select verified RF benchmark or real satellite pass",
         )
         selected_case = case_map[selected_case_name]
 
+        # Cyber Glass Card for Case Details
         st.sidebar.markdown(
             f"""
-            <div style="background:{tokens['card_bg']}; border:1px solid {tokens['card_border']};
-                border-radius:8px; padding:0.6rem 0.75rem; margin:0.4rem 0 0.6rem 0; font-size:0.75rem;">
-                <div style="font-weight:700; color:{tokens['primary']}; text-transform:uppercase; font-size:0.65rem;">
+            <div style="background:rgba(15, 23, 42, 0.65); border:1px solid rgba(56, 189, 248, 0.2);
+                 border-left:3px solid #38bdf8; border-radius:10px; padding:0.65rem 0.85rem; margin:0.5rem 0;">
+                <div style="font-size:0.65rem; color:#38bdf8; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">
                     {selected_case.category}
                 </div>
-                <div style="color:{tokens['text_secondary']}; margin-top:0.2rem; line-height:1.35;">
+                <div style="font-size:0.75rem; color:#cbd5e1; margin-top:2px; line-height:1.35;">
                     {selected_case.description}
                 </div>
             </div>
@@ -189,7 +213,7 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
         )
 
         if st.sidebar.button("⚡ Load Telemetry Contracts", type="primary", use_container_width=True) or needs_load:
-            with st.spinner("Loading telemetry contracts & observatory artifacts..."):
+            with st.spinner("Synchronizing telemetry contracts..."):
                 norm_res, norm_ana, norm_dec, prov = load_case_artifacts(selected_case)
                 obs_artifacts = load_case_observatory(selected_case, norm_ana, norm_res)
                 set_active_case_artifacts(
@@ -205,12 +229,12 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
 
     else:
         # Live File Ingest Mode
-        st.sidebar.caption("Accepts raw .cf32, .iq, .wav, or verified schema contract JSON:")
+        st.sidebar.caption("Ingest raw .cf32, .iq, .wav, or verified JSON schema contract:")
 
         uploaded_file = st.sidebar.file_uploader(
             "Upload Signal File",
             type=["cf32", "iq", "wav", "json", "npy"],
-            help="Upload raw I/Q samples, WAV audio, or verified JSON contract",
+            help="Supported: .cf32, .iq, .wav, .json, .npy",
             key="live_uploader",
             label_visibility="collapsed",
         )
@@ -218,15 +242,16 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
         if uploaded_file is not None:
             file_bytes = uploaded_file.getvalue()
             sha256_hash = hashlib.sha256(file_bytes).hexdigest()
+            
             st.sidebar.markdown(
                 f"""
-                <div style="background:{tokens['card_bg']}; border:1px solid {tokens['border_success'] if 'border_success' in tokens else tokens['card_border']};
-                    border-radius:8px; padding:0.6rem 0.75rem; margin:0.4rem 0;">
-                    <div style="font-weight:700; color:{tokens['pass_color']}; font-size:0.75rem;">
-                        ✓ File Ingested: {uploaded_file.name}
+                <div style="background:rgba(16, 185, 129, 0.1); border:1px solid rgba(16, 185, 129, 0.3);
+                     border-radius:10px; padding:0.5rem 0.75rem; margin:0.4rem 0;">
+                    <div style="font-size:0.75rem; color:#34d399; font-weight:700;">
+                        ✓ {uploaded_file.name}
                     </div>
-                    <div style="font-family:'JetBrains Mono', monospace; font-size:0.65rem; color:{tokens['text_muted']}; margin-top:2px;">
-                        Size: {len(file_bytes)/1024:.1f} KB | SHA: {sha256_hash[:12]}...
+                    <div style="font-size:0.65rem; color:#94a3b8; font-family:'JetBrains Mono';">
+                        {len(file_bytes)/1024:.1f} KB • SHA: {sha256_hash[:12]}...
                     </div>
                 </div>
                 """,
@@ -259,7 +284,7 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
                         )
                         set_active_case_artifacts(res_obj, ana_obj, dec_obj, prov_info, is_replay=False, artifacts=obs_artifacts)
                         st.session_state["current_case_name"] = uploaded_file.name
-                        st.sidebar.success("Contract parsed and verified against schema!")
+                        st.sidebar.success("Contract verified against schema!")
                         st.rerun()
                     except Exception as exc:
                         st.sidebar.error(f"Contract Schema Error: {exc}")
@@ -270,22 +295,22 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
                 fs_source_label = "HEADER"
 
                 if is_wav:
-                    st.sidebar.caption("🎵 Rate will be read from WAV header.")
+                    st.sidebar.caption("🎵 WAV Header will supply sample rate automatically.")
                     fs_source_label = "HEADER"
                 else:
-                    st.sidebar.caption("Headerless raw IQ/CF32 sample rate:")
                     user_fs = st.sidebar.number_input(
-                        "Sampling Rate (Hz):",
+                        "Sample Rate (Hz):",
                         min_value=1_000.0,
                         max_value=1_000_000_000.0,
                         value=100_000.0,
                         step=10_000.0,
                         format="%.0f",
+                        help="Specify receiver sampling rate for headerless binary captures",
                     )
                     fs_source_label = "USER PROVIDED"
 
                 if st.sidebar.button("🚀 Analyze Signal via Backend", type="primary", use_container_width=True):
-                    with st.spinner("Executing blind SpectralQ backend pipeline..."):
+                    with st.spinner("Executing blind SpectralQ analysis pipeline..."):
                         scratch_dir = Path("data") / "scratch"
                         scratch_dir.mkdir(parents=True, exist_ok=True)
                         tmp_cap = scratch_dir / uploaded_file.name
@@ -326,38 +351,55 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
                                 artifacts=obs_artifacts,
                             )
                             st.session_state["current_case_name"] = uploaded_file.name
-                            st.sidebar.success("Analysis complete!")
+                            st.sidebar.success("Signal analysis complete!")
                             st.rerun()
                         except Exception as exc:
-                            st.sidebar.error(f"Analysis failed: {exc}")
+                            st.sidebar.error("Analysis execution error.")
+                            with st.sidebar.expander("🛠️ Error Diagnostics", expanded=True):
+                                st.code(str(exc))
 
     st.sidebar.markdown("---")
 
-    # 5. Theme / System Settings at the VERY BOTTOM (Dock Console)
-    current_theme = get_current_theme_name()
-    new_theme = "light" if current_theme == "dark" else "dark"
-    theme_icon = get_icon_svg("sun" if current_theme == "dark" else "moon", size=14, color=tokens["text_muted"])
-
+    # -------------------------------------------------------------------------
+    # 4. Toggling Component at the BOTTOM (Requirement 1 Fulfilled)
+    # -------------------------------------------------------------------------
     st.sidebar.markdown(
-        f"""
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
-            <span style="font-size:0.65rem; color:{tokens['text_muted']}; text-transform:uppercase; font-weight:700;">
-                System Theme
-            </span>
-            <span style="font-size:0.68rem; font-weight:700; color:{tokens['primary']}; font-family:'JetBrains Mono', monospace;">
-                {current_theme.upper()}
-            </span>
+        """
+        <div style="font-size:0.68rem; font-weight:800; color:#64748b; letter-spacing:0.08em;
+             text-transform:uppercase; margin-bottom:0.4rem;">
+            SYSTEM PREFERENCES
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    if st.sidebar.button(
-        f"Switch to {new_theme.capitalize()} Mode",
-        key="theme_toggle_dock_btn",
-        use_container_width=True,
-    ):
-        st.session_state["theme"] = new_theme
+    # Guided Demo Mode Toggle
+    is_demo = st.session_state.get("guided_demo_active", False)
+    demo_toggle = st.sidebar.checkbox(
+        "🎯 Guided Demo Mode (Judges)",
+        value=is_demo,
+        help="Interactive guided tour walking through real captures, golden cases, and abstention scenarios.",
+    )
+    if demo_toggle != is_demo:
+        st.session_state["guided_demo_active"] = demo_toggle
         st.rerun()
 
-    st.sidebar.caption("SpectralQ v2.0 · NTRO Defense Telemetry Specification")
+    # Theme Toggle
+    current_theme = get_current_theme_name()
+    col_t1, col_t2 = st.sidebar.columns([1, 1])
+    with col_t1:
+        st.caption(f"Theme: **{current_theme.upper()}**")
+    with col_t2:
+        new_theme = "light" if current_theme == "dark" else "dark"
+        if st.button("☀️/🌙 Toggle", key="theme_toggle_btn", use_container_width=True):
+            st.session_state["theme"] = new_theme
+            st.rerun()
+
+    st.sidebar.markdown(
+        """
+        <div style="margin-top:1.0rem; text-align:center; font-size:0.62rem; color:#475569; letter-spacing:0.06em;">
+            SPECTRALQ v2.0 • PROD BUILD
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )

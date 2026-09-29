@@ -1,12 +1,12 @@
 """
 SpectralQ UI Styling & Design Tokens Engine.
 Provides engineering-grade telemetry styling with complete Light and Dark theme support.
-Complies strictly with the SpectralQ Master Color System and Defense Command Center specification.
+Includes centralized design tokens, custom CSS badges, metric cards, navigation rail,
+tooltips, and Plotly theme synchronization.
 """
 
 from typing import Dict, Any
 import streamlit as st
-from ui.styles.design_system import DESIGN_TOKENS, get_design_tokens
 
 
 # -----------------------------------------------------------------------------
@@ -37,7 +37,7 @@ TOOLTIPS: Dict[str, str] = {
         "• L1: Signal Detection (burst & physical parameters)\n"
         "• L2: Modulation Identification (AMC consensus)\n"
         "• L3: Blind Symbol Demodulation (constellation lock)\n"
-        "• L4: Coding & FEC Lock (conv / Reed-Solomon / Interleaver sync)\n"
+        "• L4: Coding & FEC Lock (viterbi / Reed-Solomon / Interleaver sync)\n"
         "• L5: Frame Synchronization & CRC Validation (full payload recovery)"
     ),
     "UNKNOWN": (
@@ -59,75 +59,75 @@ TOOLTIPS: Dict[str, str] = {
 
 
 # -----------------------------------------------------------------------------
-# Design Token Palettes (Flagship Dark Command Center & High-Contrast Light)
+# Design Token Palettes (Neon Cyber Glassmorphism)
 # -----------------------------------------------------------------------------
 THEMES = {
     "dark": {
-        "bg": "#070A0F",
-        "card_bg": "#101720",
-        "card_border": "rgba(255, 255, 255, 0.08)",
-        "card_border_strong": "rgba(255, 255, 255, 0.14)",
-        "text": "#F4F7FB",
-        "text_secondary": "#A8B2C2",
-        "text_muted": "#707C90",
-        "primary": "#53D7FF",           # Primary RF Cyan
-        "accent": "#5B8CFF",            # Secondary Electric Blue
-        "violet": "#9A7CFF",
-        "magenta": "#F06BFF",
-        "pass_bg": "rgba(53, 227, 154, 0.12)",
-        "pass_color": "#35E39A",
-        "pass_border": "rgba(53, 227, 154, 0.35)",
-        "fail_bg": "rgba(255, 98, 120, 0.14)",
-        "fail_color": "#FF6278",
-        "fail_border": "rgba(255, 98, 120, 0.35)",
-        "warn_bg": "rgba(255, 184, 77, 0.12)",
-        "warn_color": "#FFB84D",
-        "warn_border": "rgba(255, 184, 77, 0.35)",
-        "unavailable_bg": "#151D27",
-        "unavailable_color": "#707C90",
-        "unavailable_border": "rgba(255, 255, 255, 0.08)",
-        "ladder_bg": "rgba(154, 124, 255, 0.14)",
-        "ladder_color": "#9A7CFF",
-        "ladder_border": "rgba(154, 124, 255, 0.35)",
-        "replay_bg": "rgba(240, 107, 255, 0.14)",
-        "replay_color": "#F06BFF",
-        "replay_border": "rgba(240, 107, 255, 0.35)",
-        "glow_primary": "0 0 16px rgba(83, 215, 255, 0.22)",
-        "glow_pass": "0 0 16px rgba(53, 227, 154, 0.22)",
+        "bg": "#070b14",
+        "card_bg": "rgba(13, 20, 36, 0.78)",
+        "card_border": "rgba(56, 189, 248, 0.18)",
+        "text": "#f1f5f9",
+        "text_muted": "#94a3b8",
+        "primary": "#38bdf8",
+        "accent": "#818cf8",
+        "neon_cyan": "#00f2fe",
+        "neon_blue": "#38bdf8",
+        "neon_purple": "#c084fc",
+        "neon_emerald": "#10b981",
+        "neon_amber": "#f59e0b",
+        "neon_rose": "#f43f5e",
+        "pass_bg": "rgba(16, 185, 129, 0.14)",
+        "pass_color": "#10b981",
+        "pass_border": "rgba(16, 185, 129, 0.4)",
+        "fail_bg": "rgba(244, 63, 94, 0.14)",
+        "fail_color": "#f43f5e",
+        "fail_border": "rgba(244, 63, 94, 0.4)",
+        "warn_bg": "rgba(245, 158, 11, 0.14)",
+        "warn_color": "#f59e0b",
+        "warn_border": "rgba(245, 158, 11, 0.4)",
+        "unavailable_bg": "rgba(30, 41, 59, 0.6)",
+        "unavailable_color": "#94a3b8",
+        "unavailable_border": "rgba(71, 85, 105, 0.4)",
+        "ladder_bg": "rgba(56, 189, 248, 0.14)",
+        "ladder_color": "#38bdf8",
+        "ladder_border": "rgba(56, 189, 248, 0.4)",
+        "replay_bg": "rgba(192, 132, 252, 0.14)",
+        "replay_color": "#c084fc",
+        "replay_border": "rgba(192, 132, 252, 0.4)",
         "plotly_template": "plotly_dark",
     },
     "light": {
-        "bg": "#F4F7FB",
-        "card_bg": "#FFFFFF",
-        "card_border": "#D8E0EA",
-        "card_border_strong": "#B8C4D4",
-        "text": "#152033",
-        "text_secondary": "#5C6B7F",
-        "text_muted": "#8A99AD",
-        "primary": "#0969DA",
-        "accent": "#0550AE",
-        "violet": "#8250DF",
-        "magenta": "#BF3989",
-        "pass_bg": "#DAFBE1",
-        "pass_color": "#1A7F37",
-        "pass_border": "#2DA44E",
-        "fail_bg": "#FFEBE9",
-        "fail_color": "#CF222E",
-        "fail_border": "#FF8182",
-        "warn_bg": "#FFF8C5",
-        "warn_color": "#9A6700",
-        "warn_border": "#D4A72C",
-        "unavailable_bg": "#F6F8FA",
-        "unavailable_color": "#57606A",
-        "unavailable_border": "#AFB8C1",
-        "ladder_bg": "#DDF4FF",
-        "ladder_color": "#0969DA",
-        "ladder_border": "#54AEFF",
-        "replay_bg": "#FBEFFF",
-        "replay_color": "#8250DF",
-        "replay_border": "#C297FF",
-        "glow_primary": "0 2px 10px rgba(9, 105, 218, 0.15)",
-        "glow_pass": "0 2px 10px rgba(26, 127, 55, 0.15)",
+        "bg": "#f8fafc",
+        "card_bg": "rgba(255, 255, 255, 0.92)",
+        "card_border": "rgba(203, 213, 225, 0.8)",
+        "text": "#0f172a",
+        "text_muted": "#64748b",
+        "primary": "#0284c7",
+        "accent": "#4f46e5",
+        "neon_cyan": "#0284c7",
+        "neon_blue": "#2563eb",
+        "neon_purple": "#7c3aed",
+        "neon_emerald": "#059669",
+        "neon_amber": "#d97706",
+        "neon_rose": "#e11d48",
+        "pass_bg": "rgba(5, 150, 105, 0.12)",
+        "pass_color": "#059669",
+        "pass_border": "rgba(5, 150, 105, 0.35)",
+        "fail_bg": "rgba(225, 29, 72, 0.12)",
+        "fail_color": "#e11d48",
+        "fail_border": "rgba(225, 29, 72, 0.35)",
+        "warn_bg": "rgba(217, 119, 6, 0.12)",
+        "warn_color": "#d97706",
+        "warn_border": "rgba(217, 119, 6, 0.35)",
+        "unavailable_bg": "#f1f5f9",
+        "unavailable_color": "#64748b",
+        "unavailable_border": "#cbd5e1",
+        "ladder_bg": "rgba(2, 132, 199, 0.12)",
+        "ladder_color": "#0284c7",
+        "ladder_border": "rgba(2, 132, 199, 0.35)",
+        "replay_bg": "rgba(124, 58, 237, 0.12)",
+        "replay_color": "#7c3aed",
+        "replay_border": "rgba(124, 58, 237, 0.35)",
         "plotly_template": "plotly_white",
     },
 }
@@ -145,39 +145,47 @@ def get_theme_tokens() -> Dict[str, Any]:
 
 
 def get_plotly_layout_defaults() -> Dict[str, Any]:
-    """Returns standard Plotly layout configuration honoring the current theme."""
+    """Returns standard Plotly layout configuration honoring the current theme with neon styling."""
     tokens = get_theme_tokens()
     is_dark = tokens["plotly_template"] == "plotly_dark"
     return {
         "template": tokens["plotly_template"],
-        "paper_bgcolor": tokens["bg"] if is_dark else tokens["bg"],
-        "plot_bgcolor": tokens["card_bg"],
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "plot_bgcolor": "rgba(10, 17, 33, 0.65)" if is_dark else "rgba(241, 245, 249, 0.75)",
         "font": {"color": tokens["text"], "family": "Inter, -apple-system, sans-serif"},
         "margin": {"l": 45, "r": 20, "t": 45, "b": 40},
         "xaxis": {
-            "gridcolor": "rgba(255, 255, 255, 0.06)" if is_dark else "rgba(0, 0, 0, 0.08)",
-            "zerolinecolor": "rgba(255, 255, 255, 0.12)" if is_dark else "rgba(0, 0, 0, 0.15)",
-            "tickfont": {"size": 10, "family": "JetBrains Mono, monospace"},
+            "gridcolor": "rgba(148, 163, 184, 0.12)" if is_dark else "rgba(100, 116, 139, 0.15)",
+            "zerolinecolor": "rgba(56, 189, 248, 0.3)",
         },
         "yaxis": {
-            "gridcolor": "rgba(255, 255, 255, 0.06)" if is_dark else "rgba(0, 0, 0, 0.08)",
-            "zerolinecolor": "rgba(255, 255, 255, 0.12)" if is_dark else "rgba(0, 0, 0, 0.15)",
-            "tickfont": {"size": 10, "family": "JetBrains Mono, monospace"},
+            "gridcolor": "rgba(148, 163, 184, 0.12)" if is_dark else "rgba(100, 116, 139, 0.15)",
+            "zerolinecolor": "rgba(56, 189, 248, 0.3)",
         },
     }
 
 
 def generate_theme_css(tokens: Dict[str, Any]) -> str:
-    """Generates the full scoped CSS string using theme tokens."""
-    is_dark = tokens["plotly_template"] == "plotly_dark"
-    
+    """Generates the full scoped CSS string with neon cyberpunk and glassmorphic styling."""
     return f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
 
-/* Global Root & Typography */
+/* Base Root & Typography */
+:root {{
+    --bg-main: {tokens["bg"]};
+    --card-bg: {tokens["card_bg"]};
+    --card-border: {tokens["card_border"]};
+    --neon-cyan: {tokens.get("neon_cyan", "#00f2fe")};
+    --neon-blue: {tokens.get("neon_blue", "#38bdf8")};
+    --neon-purple: {tokens.get("neon_purple", "#c084fc")};
+    --neon-emerald: {tokens.get("neon_emerald", "#10b981")};
+    --neon-amber: {tokens.get("neon_amber", "#f59e0b")};
+    --neon-rose: {tokens.get("neon_rose", "#f43f5e")};
+}}
+
 html, body, [class*="css"], .stApp {{
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background-color: {tokens["bg"]} !important;
     color: {tokens["text"]} !important;
 }}
@@ -186,239 +194,394 @@ code, pre, .mono, [data-testid="stMarkdownContainer"] code {{
     font-family: 'JetBrains Mono', monospace !important;
 }}
 
-/* Sidebar Command Rail */
-[data-testid="stSidebar"] {{
-    background-color: {'#0B1017' if is_dark else '#EBF0F6'} !important;
-    border-right: 1px solid {tokens["card_border"]} !important;
+/* Top Header Cyber Aesthetic */
+.sq-header {{
+    border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+    padding: 0.75rem 0 1.0rem 0;
+    margin-bottom: 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(90deg, rgba(56, 189, 248, 0.05) 0%, rgba(129, 140, 248, 0.03) 50%, transparent 100%);
+    border-radius: 12px;
+    padding-left: 1rem;
+    padding-right: 1rem;
 }}
 
-[data-testid="stSidebar"] hr {{
-    margin: 1rem 0 !important;
-    border-color: {tokens["card_border"]} !important;
+.sq-title {{
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    font-size: 1.95rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.03em;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
 }}
 
-/* Button Overhaul — No Red Buttons */
-.stButton > button {{
-    background-color: {tokens["card_bg"]} !important;
-    border: 1px solid {tokens["card_border_strong"]} !important;
-    color: {tokens["text"]} !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    font-size: 0.82rem !important;
-    padding: 0.45rem 0.9rem !important;
-    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
+.sq-subtitle {{
+    font-size: 0.84rem;
+    color: {tokens["text_muted"]};
+    margin-top: 0.25rem;
+    letter-spacing: 0.04em;
+    font-weight: 500;
 }}
 
-.stButton > button:hover {{
-    border-color: {tokens["primary"]} !important;
-    color: {tokens["primary"]} !important;
-    transform: translateY(-1px) !important;
-    box-shadow: {tokens["glow_primary"]} !important;
-}}
-
-/* Primary Buttons: High-Fidelity Cyan Accent Gradient */
-.stButton > button[kind="primary"] {{
-    background: linear-gradient(135deg, {tokens["accent"]} 0%, {tokens["primary"]} 100%) !important;
-    border: none !important;
-    color: {'#070A0F' if is_dark else '#FFFFFF'} !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.02em !important;
-    box-shadow: {tokens["glow_primary"]} !important;
-}}
-
-.stButton > button[kind="primary"]:hover {{
-    filter: brightness(1.08) !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 0 20px rgba(83, 215, 255, 0.4) !important;
-}}
-
-/* Streamlit Tabs */
-.stTabs [data-baseweb="tab-list"] {{
-    background-color: transparent !important;
-    border-bottom: 1px solid {tokens["card_border"]} !important;
-    gap: 0.5rem !important;
-}}
-
-.stTabs [data-baseweb="tab"] {{
-    background-color: transparent !important;
-    border: none !important;
-    border-radius: 6px 6px 0 0 !important;
-    color: {tokens["text_muted"]} !important;
-    font-weight: 600 !important;
-    font-size: 0.82rem !important;
-    padding: 0.6rem 1rem !important;
-    transition: all 0.15s ease !important;
-}}
-
-.stTabs [aria-selected="true"] {{
-    background-color: {tokens["card_bg"]} !important;
-    color: {tokens["primary"]} !important;
-    border-bottom: 2px solid {tokens["primary"]} !important;
-}}
-
-/* Expander Overhaul */
-.streamlit-expanderHeader {{
-    background-color: {tokens["card_bg"]} !important;
-    border: 1px solid {tokens["card_border"]} !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    color: {tokens["text"]} !important;
-}}
-
-/* Metric Cards */
-.sq-card {{
-    background-color: {tokens["card_bg"]};
-    border: 1px solid {tokens["card_border"]};
-    border-radius: 10px;
-    padding: 1.0rem 1.15rem;
-    margin-bottom: 0.75rem;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+/* Aerodynamic Cyber HUD Telemetry Bar */
+.sq-meta-hud {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(56, 189, 248, 0.22);
+    border-radius: 14px;
+    padding: 0.85rem 1.2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45), 0 0 15px -3px rgba(56, 189, 248, 0.1);
     position: relative;
     overflow: hidden;
 }}
 
-.sq-card:hover {{
-    border-color: {tokens["card_border_strong"]};
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+.sq-meta-hud::before {{
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc, #10b981);
 }}
 
-.sq-card-hero {{
-    background: linear-gradient(135deg, {tokens["card_bg"]} 0%, {'#151D27' if is_dark else '#F9FAFC'} 100%);
-    border: 1px solid {tokens["border_accent"] if "border_accent" in tokens else tokens["card_border_strong"]};
-    border-radius: 12px;
-    padding: 1.25rem 1.5rem;
+.sq-meta-hud-item {{
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
 }}
 
-.sq-card-title {{
+.sq-meta-hud-label {{
+    color: #64748b;
     font-size: 0.68rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: {tokens["text_muted"]};
-    margin-bottom: 0.35rem;
     font-weight: 700;
+    letter-spacing: 0.08em;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 0.35rem;
 }}
 
-.sq-card-value {{
-    font-size: 1.45rem;
-    font-weight: 800;
-    color: {tokens["text"]};
+.sq-meta-hud-value {{
+    color: #f1f5f9;
     font-family: 'JetBrains Mono', monospace;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
+    font-size: 0.88rem;
+    font-weight: 600;
+    word-break: break-all;
 }}
 
-.sq-card-sub {{
+/* Neon Glowing Cards with Gradient Borders */
+.sq-neon-card {{
+    background: rgba(13, 20, 36, 0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(56, 189, 248, 0.16);
+    border-radius: 14px;
+    padding: 1.15rem 1.25rem;
+    margin-bottom: 0.9rem;
+    position: relative;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}}
+
+.sq-neon-card:hover {{
+    transform: translateY(-3px);
+    border-color: rgba(56, 189, 248, 0.42);
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 0 20px 0 rgba(56, 189, 248, 0.16);
+}}
+
+.sq-neon-card-cyan {{ border-top: 3px solid #00f2fe; }}
+.sq-neon-card-blue {{ border-top: 3px solid #38bdf8; }}
+.sq-neon-card-purple {{ border-top: 3px solid #c084fc; }}
+.sq-neon-card-emerald {{ border-top: 3px solid #10b981; }}
+.sq-neon-card-amber {{ border-top: 3px solid #f59e0b; }}
+.sq-neon-card-rose {{ border-top: 3px solid #f43f5e; }}
+
+.sq-card-header {{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}}
+
+.sq-card-label {{
     font-size: 0.72rem;
-    color: {tokens["text_muted"]};
-    margin-top: 0.35rem;
-    line-height: 1.35;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
 }}
 
-/* Status Badges & Pills */
+.sq-card-metric {{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #f8fafc;
+    letter-spacing: -0.02em;
+    margin: 0.2rem 0;
+}}
+
+.sq-card-subtext {{
+    font-size: 0.74rem;
+    color: #64748b;
+    line-height: 1.4;
+}}
+
+/* Status Badges with Glowing Halo */
 .sq-badge {{
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.2rem 0.55rem;
-    border-radius: 6px;
-    font-size: 0.68rem;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
     font-weight: 700;
     font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
+    transition: all 0.2s ease;
 }}
 
-.badge-pass {{ background-color: {tokens["pass_bg"]}; color: {tokens["pass_color"]}; border: 1px solid {tokens["pass_border"]}; }}
-.badge-fail {{ background-color: {tokens["fail_bg"]}; color: {tokens["fail_color"]}; border: 1px solid {tokens["fail_border"]}; }}
-.badge-warn {{ background-color: {tokens["warn_bg"]}; color: {tokens["warn_color"]}; border: 1px solid {tokens["warn_border"]}; }}
-.badge-unavail {{ background-color: {tokens["unavailable_bg"]}; color: {tokens["unavailable_color"]}; border: 1px solid {tokens["unavailable_border"]}; }}
-.badge-ladder {{ background-color: {tokens["ladder_bg"]}; color: {tokens["ladder_color"]}; border: 1px solid {tokens["ladder_border"]}; }}
-.badge-replay {{ background-color: {tokens["replay_bg"]}; color: {tokens["replay_color"]}; border: 1px solid {tokens["replay_border"]}; }}
-.badge-unknown {{ background-color: {tokens["fail_bg"]}; color: {tokens["fail_color"]}; border: 1px solid {tokens["fail_border"]}; font-weight: 800; }}
-
-/* Command Header & Telemetry Ribbon */
-.sq-header-wrap {{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.6rem 0 1.0rem 0;
-    border-bottom: 1px solid {tokens["card_border"]};
-    margin-bottom: 1.0rem;
+.badge-pass {{
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
 }}
 
-.sq-meta-ribbon {{
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    background-color: {tokens["card_bg"]};
-    border: 1px solid {tokens["card_border"]};
-    border-radius: 8px;
-    padding: 0.6rem 1.0rem;
-    margin-bottom: 1.25rem;
-    align-items: center;
+.badge-fail {{
+    background: rgba(244, 63, 94, 0.15);
+    color: #fb7185;
+    border: 1px solid rgba(244, 63, 94, 0.45);
+    box-shadow: 0 0 10px rgba(244, 63, 94, 0.2);
 }}
 
-.sq-ribbon-cell {{
-    display: flex;
-    flex-direction: column;
-    padding-right: 0.75rem;
-    border-right: 1px solid {tokens["card_border"]};
+.badge-warn {{
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.15);
 }}
 
-.sq-ribbon-cell:last-child {{
-    border-right: none;
-    padding-right: 0;
+.badge-ladder {{
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(129, 140, 248, 0.2) 100%);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.5);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+    font-weight: 800;
 }}
 
-.sq-ribbon-label {{
-    color: {tokens["text_muted"]};
-    font-size: 0.62rem;
-    text-transform: uppercase;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    margin-bottom: 0.15rem;
+.badge-replay {{
+    background: rgba(192, 132, 252, 0.15);
+    color: #d8b4fe;
+    border: 1px solid rgba(192, 132, 252, 0.4);
+    box-shadow: 0 0 10px rgba(192, 132, 252, 0.2);
 }}
 
-.sq-ribbon-val {{
-    color: {tokens["text"]};
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.82rem;
-    font-weight: 700;
+.badge-unknown {{
+    background: rgba(244, 63, 94, 0.2);
+    color: #f43f5e;
+    border: 2px solid #f43f5e;
+    box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
+    font-weight: 800;
 }}
 
-/* Abstention / UNKNOWN Banner */
+.badge-unavail {{
+    background: rgba(51, 65, 85, 0.5);
+    color: #94a3b8;
+    border: 1px solid rgba(71, 85, 105, 0.4);
+}}
+
+/* Pulsing Live Dot */
+.sq-pulse-dot {{
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+}}
+
+.sq-pulse-dot.emerald {{
+    background-color: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: sq-pulse-anim 2s infinite;
+}}
+
+.sq-pulse-dot.cyan {{
+    background-color: #00f2fe;
+    box-shadow: 0 0 8px #00f2fe;
+    animation: sq-pulse-anim 2s infinite;
+}}
+
+.sq-pulse-dot.rose {{
+    background-color: #f43f5e;
+    box-shadow: 0 0 8px #f43f5e;
+    animation: sq-pulse-anim 1.5s infinite;
+}}
+
+@keyframes sq-pulse-anim {{
+    0% {{ transform: scale(0.95); opacity: 0.8; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }}
+    70% {{ transform: scale(1); opacity: 1; box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }}
+    100% {{ transform: scale(0.95); opacity: 0.8; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }}
+}}
+
+/* Streamlit Button Overrides - Remove Crude Red Boxes */
+button[kind="primary"] {{
+    background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(56, 189, 248, 0.4) !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em !important;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}}
+
+button[kind="primary"]:hover {{
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45), 0 0 12px rgba(56, 189, 248, 0.3) !important;
+    border-color: #38bdf8 !important;
+}}
+
+button[kind="secondary"] {{
+    background: rgba(15, 23, 42, 0.75) !important;
+    color: #cbd5e1 !important;
+    border: 1px solid rgba(56, 189, 248, 0.18) !important;
+    border-radius: 10px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}}
+
+button[kind="secondary"]:hover {{
+    background: rgba(30, 41, 59, 0.9) !important;
+    color: #38bdf8 !important;
+    border-color: rgba(56, 189, 248, 0.45) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+}}
+
+/* Sidebar Custom Styling */
+section[data-testid="stSidebar"] {{
+    background-color: rgba(10, 15, 29, 0.98) !important;
+    border-right: 1px solid rgba(56, 189, 248, 0.15) !important;
+    box-shadow: 4px 0 25px rgba(0, 0, 0, 0.45) !important;
+}}
+
+section[data-testid="stSidebar"] .stButton > button {{
+    border-radius: 10px !important;
+    padding: 0.55rem 0.85rem !important;
+    text-align: left !important;
+}}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {{
+    width: 6px;
+    height: 6px;
+}}
+
+::-webkit-scrollbar-track {{
+    background: rgba(15, 23, 42, 0.6);
+}}
+
+::-webkit-scrollbar-thumb {{
+    background: rgba(56, 189, 248, 0.25);
+    border-radius: 4px;
+}}
+
+::-webkit-scrollbar-thumb:hover {{
+    background: rgba(56, 189, 248, 0.5);
+}}
+
+/* Prominent UNKNOWN Banner */
 .sq-unknown-banner {{
-    background: linear-gradient(135deg, rgba(255, 98, 120, 0.12) 0%, {tokens["card_bg"]} 100%);
-    border: 1px solid {tokens["fail_color"]};
-    border-left: 4px solid {tokens["fail_color"]};
-    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(244, 63, 94, 0.18) 0%, rgba(15, 23, 42, 0.95) 100%);
+    border: 2px solid #f43f5e;
+    border-radius: 14px;
     padding: 1.25rem 1.5rem;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0 25px rgba(244, 63, 94, 0.25);
 }}
 
-/* Raw Visualization Unavailable Box */
+.sq-unknown-title {{
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #f43f5e;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}}
+
+.sq-unknown-desc {{
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}}
+
+/* Unavailable Box */
 .sq-unavailable-box {{
-    background-color: {tokens["card_bg"]};
-    border: 1px dashed {tokens["card_border_strong"]};
-    border-radius: 10px;
-    padding: 2.25rem 1.5rem;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px dashed rgba(148, 163, 184, 0.3);
+    border-radius: 12px;
+    padding: 1.75rem;
     text-align: center;
     margin: 1.0rem 0;
 }}
 
-/* Why This Decision Callout */
+.sq-unavailable-title {{
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fbbf24;
+    margin-bottom: 0.5rem;
+}}
+
+.sq-unavailable-msg {{
+    font-size: 0.85rem;
+    color: #94a3b8;
+    max-width: 600px;
+    margin: 0 auto 0.75rem auto;
+    line-height: 1.5;
+}}
+
+/* "Why This Decision?" Callout */
 .sq-why-callout {{
-    background-color: {tokens["card_bg"]};
-    border: 1px solid {tokens["card_border"]};
-    border-left: 4px solid {tokens["primary"]};
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.08) 0%, rgba(129, 140, 248, 0.04) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-left: 4px solid #38bdf8;
     padding: 1.0rem 1.25rem;
-    border-radius: 0 10px 10px 0;
-    margin: 0.5rem 0 1.0rem 0;
+    border-radius: 0 12px 12px 0;
+    margin: 0.75rem 0 1.0rem 0;
+}}
+
+.sq-why-title {{
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #38bdf8;
+    margin-bottom: 0.35rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}}
+
+.sq-why-text {{
+    font-size: 0.88rem;
+    color: #cbd5e1;
+    line-height: 1.5;
+    margin: 0;
 }}
 </style>
 """
@@ -428,3 +591,4 @@ def apply_theme():
     """Injects custom CSS theme into the active Streamlit app."""
     tokens = get_theme_tokens()
     st.markdown(generate_theme_css(tokens), unsafe_allow_html=True)
+

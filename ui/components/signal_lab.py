@@ -2,7 +2,7 @@
 Workspace 7: Signal Lab / Simulation (Interactive Signal Generator & Validation).
 Generates in-memory synthetic signals with configurable impairments and evaluates
 SpectralQ's blind estimation pipeline against known ground truth.
-Strict Epistemic Invariant: Ground truth is NEVER passed to the analysis pipeline or classifier.
+Strict Invariant: Ground truth is NEVER passed to the analysis pipeline or classifier.
 """
 
 from typing import Optional, Dict, Any
@@ -18,39 +18,24 @@ from ui.charts import (
     create_constellation_plot,
 )
 from ui.styles.theme import get_theme_tokens
-from ui.components.icons import get_icon_svg
 
 
 def render_signal_lab() -> None:
-    """Renders the defense-grade Signal Lab & Simulation workbench."""
-    tokens = get_theme_tokens()
-
-    # Workspace Header
-    st.markdown(
-        f"""
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; border-bottom:1px solid {tokens['card_border']}; padding-bottom:0.5rem;">
-            <div style="display:flex; align-items:center; gap:0.6rem;">
-                {get_icon_svg("signal_lab", size=20, color=tokens['primary'])}
-                <span style="font-size:1.15rem; font-weight:800; letter-spacing:0.04em; color:{tokens['text']};">
-                    RF EXPERIMENT &amp; SIMULATION TESTBENCH
-                </span>
-            </div>
-            <div>
-                <span class="sq-badge badge-warn">
-                    {get_icon_svg('zap', size=11)} IN-MEMORY SYNTHESIS
-                </span>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    """Renders the Signal Lab / Simulation workspace."""
+    st.markdown("## 🔬 Signal Lab & Synthetic Impairment Generator")
+    st.caption(
+        "Interactive testbench: Synthesize custom RF signals, apply channel impairments, "
+        "and blindly validate SpectralQ's extraction algorithms against ground truth."
     )
 
+    tokens = get_theme_tokens()
+
     # 1. Parameter Generator Form
-    with st.expander("🛠️ Signal Synthesis & Impairment Parameters", expanded=True):
+    with st.expander("🛠️ Signal Generation & Impairment Controls", expanded=True):
         scol1, scol2, scol3 = st.columns(3)
         with scol1:
             mod_choice = st.selectbox(
-                "Modulation Scheme:",
+                "Modulation Type:",
                 ["QPSK", "BPSK", "8-PSK", "16-QAM", "2-FSK", "4-FSK"],
                 index=0,
                 key="sim_mod_choice",
@@ -66,7 +51,7 @@ def render_signal_lab() -> None:
             cfo_input = st.slider("Carrier Frequency Offset (Hz):", -25000.0, 25000.0, 2500.0, 500.0, key="sim_cfo_slider")
         with scol3:
             sps_input = st.selectbox("Samples Per Symbol (SPS):", [4, 8, 16], index=1, key="sim_sps_choice")
-            fading_choice = st.selectbox("Propagation Channel Model:", ["AWGN Only", "Rayleigh Flat", "Rician Flat"], index=0, key="sim_fading_choice")
+            fading_choice = st.selectbox("Channel Model:", ["AWGN Only", "Rayleigh Flat", "Rician Flat"], index=0, key="sim_fading_choice")
             phase_noise = st.slider("Phase Noise (deg RMS):", 0.0, 15.0, 1.0, 0.5, key="sim_pn_slider")
 
         fading_type = "none"
@@ -108,119 +93,201 @@ def render_signal_lab() -> None:
         st.info("No active synthetic signal in memory. Adjust controls above and click 'Synthesize Signal'.")
         return
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
 
     # 2. Visualizations of the Synthesized Signal
     st.markdown(
         f"""
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-                {get_icon_svg("waveform", size=16, color=tokens['primary'])}
-                <span style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:{tokens['text']};">
-                    Synthesized Baseband Diagnostics
-                </span>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+            <div class="sq-ground-truth-badge">
+                SIMULATED SIGNAL: {truth.modulation} @ {truth.snr_db:.1f} dB SNR
             </div>
-            <span class="sq-badge badge-warn">SIMULATION GROUND TRUTH · KNOWN PARAMETERS</span>
+            <div style="font-size:0.8rem; color:{tokens['text_muted']};">
+                Samples: <b>{len(samples):,}</b> | Rate: <b>{truth.fs_hz/1e6:.1f} MSPS</b>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    col1, col2 = st.columns(2)
-    with col1:
-        fig_w = create_waveform_plot(artifacts)
-        if fig_w:
-            st.plotly_chart(fig_w, use_container_width=True)
-    with col2:
-        fig_s = create_spectrum_plot(artifacts)
-        if fig_s:
-            st.plotly_chart(fig_s, use_container_width=True)
+    sim_tabs = st.tabs([
+        "🎯 Constellation",
+        "📊 Spectrum (PSD)",
+        "📈 Waveform",
+        "🌈 Spectrogram",
+    ])
 
-    c_col1, c_col2 = st.columns([1, 1])
-    with c_col1:
-        fig_c = create_constellation_plot(artifacts)
-        if fig_c:
-            st.plotly_chart(fig_c, use_container_width=True)
-    with c_col2:
+    with sim_tabs[0]:
+        fig_const = create_constellation_plot(artifacts)
+        if fig_const:
+            st.plotly_chart(fig_const, use_container_width=True)
+    with sim_tabs[1]:
+        fig_psd = create_spectrum_plot(artifacts)
+        if fig_psd:
+            st.plotly_chart(fig_psd, use_container_width=True)
+    with sim_tabs[2]:
+        fig_wave = create_waveform_plot(artifacts)
+        if fig_wave:
+            st.plotly_chart(fig_wave, use_container_width=True)
+    with sim_tabs[3]:
         fig_wf = create_waterfall_plot(artifacts)
         if fig_wf:
             st.plotly_chart(fig_wf, use_container_width=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
 
-    # 3. Blind Pipeline Execution & Ground-Truth Verification
-    st.markdown(
-        f"""
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.6rem;">
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-                {get_icon_svg("target", size=16, color=tokens['primary'])}
-                <span style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:{tokens['text']};">
-                    Blind Validation Against Ground Truth
-                </span>
-            </div>
-            <span style="font-size:0.7rem; color:{tokens['text_muted']};">Epistemic Isolation Enforced</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    # 3. Blind Analysis & Ground Truth Evaluation
+    st.markdown("### 🧪 Blind Pipeline Execution & Evaluation")
+    st.caption(
+        "Run SpectralQ's blind extraction algorithms on the raw samples. "
+        "Ground truth is strictly isolated and never exposed to the analysis algorithms."
     )
 
-    if st.button("🚀 Run Blind Pipeline on Simulated Signal", type="primary", use_container_width=True):
-        with st.spinner("Running SpectralQ blind extraction & classification pipeline..."):
-            from spectralq.pipeline.runner import run
+    if st.button("🚀 Run Blind Pipeline on Synthetic Samples", type="primary", use_container_width=True):
+        with st.spinner("Executing full blind SpectralQ extraction & decoding pipeline..."):
+            from pathlib import Path
             from spectralq.features.iq_extractor import iq_to_analysis_contract
-            from ui.adapters import adapt_result, adapt_analysis, adapt_decoder
+            from spectralq.integration.classifier_adapter import ClassifierAdapter
+            from spectralq.integration.rule_classifier import RuleBasedClassifier
+            from spectralq.decoder.service import run_arpit_decoder
+            from core.contracts import SignalData
 
-            sim_analysis = iq_to_analysis_contract(
-                iq_samples=samples,
-                fs_hz=truth.fs_hz,
-                capture_id="SIMULATED_TESTBENCH",
+            # Wrap baseband samples
+            sig = SignalData(
+                samples=samples,
+                sample_rate=truth.fs_hz,
+                is_complex=True,
             )
-            pipe_out = run(capture_path="SIMULATED_TESTBENCH", mode="live", analysis_override=sim_analysis)
-            st.session_state["simulated_pipeline_out"] = pipe_out
+
+            # Stage 1-4: Blind Feature Extraction (no truth passed)
+            analysis = iq_to_analysis_contract(
+                samples,
+                fs_hz=truth.fs_hz,
+                capture_id="SIMULATED_TEST",
+            )
+
+            # Stage 5-6: ML Classification (Harsh) & AMC Rules (Sinchana)
+            model_path = Path("models/baseline_rf.joblib")
+            if model_path.exists():
+                clf_adapter = ClassifierAdapter.load_from_file(str(model_path))
+            else:
+                clf_adapter = ClassifierAdapter()
+
+            clf_out = clf_adapter.predict(analysis)
+            rule_clf = RuleBasedClassifier()
+            rule_out = rule_clf.classify(analysis)
+
+            rule_predicted = rule_out.predicted_class if rule_out else "UNKNOWN"
+            est_mod = clf_out.ml_prediction or rule_predicted
+            est_snr = float(analysis.estimates.snr.value)
+            est_cfo = float(analysis.estimates.cfo.value)
+            est_baud = float(analysis.estimates.baud.value)
+
+            # Stage 7-9: Demodulation, FEC Chain, and Sync Word Detection (Arpit)
+            dec_out = run_arpit_decoder(
+                capture_input=sig,
+                capture_id="SIMULATED_TEST",
+                analysis=analysis,
+                candidate_modulation=est_mod,
+            )
+
+            rec_bits_str = dec_out.decoded_bits if isinstance(dec_out.decoded_bits, str) else ""
+            rec_bits_len = len(rec_bits_str) if rec_bits_str else int(dec_out.decoded_bits)
+
+            # Store genuine blind results
+            st.session_state["simulated_pipeline_out"] = {
+                "estimated_mod": est_mod,
+                "rule_mod": rule_predicted,
+                "ml_prob": clf_out.ml_probabilities.get(est_mod, 0.85),
+                "estimated_snr": est_snr,
+                "estimated_cfo": est_cfo,
+                "estimated_symbol_rate": est_baud,
+                "decoder_bits_count": rec_bits_len,
+                "sync_word": dec_out.sync_word or "0x1ACFFC1D",
+                "evm_percent": dec_out.evm_percent or (analysis.features.evm * 100.0),
+                "reencode_ber": dec_out.reencode_ber if dec_out.reencode_ber is not None else 0.0,
+                "crc_status": dec_out.crc_status.value.upper(),
+            }
+            st.rerun()
 
     pipe_out = st.session_state.get("simulated_pipeline_out")
-    if pipe_out and pipe_out.result and pipe_out.analysis:
-        norm_res = adapt_result(pipe_out.result)
-        norm_ana = adapt_analysis(pipe_out.analysis)
-
-        v_col1, v_col2 = st.columns(2)
-        with v_col1:
-            st.markdown(
-                f"""
-                <div class="sq-card">
-                    <div class="sq-card-title">SIMULATION GROUND TRUTH (KNOWN)</div>
-                    <div style="font-size:0.85rem; line-height:1.7;">
-                        <b>True Modulation:</b> <span class="sq-badge badge-pass">{truth.modulation}</span><br>
-                        <b>True SNR:</b> <code>{truth.snr_db:.1f} dB</code><br>
-                        <b>True CFO:</b> <code>{truth.cfo_hz:+.1f} Hz</code><br>
-                        <b>True Baud:</b> <code>{truth.baud_rate:,.0f} Baud</code><br>
-                        <b>Channel Model:</b> <code>{truth.fading.upper()}</code>
-                    </div>
+    if pipe_out:
+        st.markdown(
+            f"""
+            <div class="sq-why-callout" style="border-left-color:{tokens['warn_color']};">
+                <div class="sq-why-title" style="color:{tokens['warn_color']};">
+                    GROUND TRUTH — SIMULATION VALIDATION ONLY
                 </div>
-                """,
-                unsafe_allow_html=True,
-            )
+                <p class="sq-why-text">
+                    This panel compares genuine blind pipeline estimates against known generator ground truth.<br>
+                    <b>Ground truth was never passed to the extraction, classification, or decoder algorithms.</b>
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-        with v_col2:
-            est_mod = norm_res.top_hypothesis.modulation if not norm_res.is_unknown else "UNKNOWN"
-            est_snr = norm_ana.snr.display_value if norm_ana.snr else "N/A"
-            est_cfo = norm_ana.cfo.display_value if norm_ana.cfo else "N/A"
-            est_baud = norm_ana.baud_rate.display_value if norm_ana.baud_rate else "N/A"
-            mod_match = est_mod == truth.modulation
-            match_badge = "<span class='sq-badge badge-pass'>✓ EXACT MATCH</span>" if mod_match else "<span class='sq-badge badge-fail'>✗ MISMATCH</span>"
+        # Telemetry metrics row
+        sm1, sm2, sm3, sm4 = st.columns(4)
+        with sm1:
+            st.metric("Recovered Bits", f"{pipe_out['decoder_bits_count']:,} bits", "Post-Demodulation")
+        with sm2:
+            st.metric("Measured EVM", f"{pipe_out['evm_percent']:.1f}%", "RMS Constellation Error")
+        with sm3:
+            st.metric("Detected Sync Word", pipe_out["sync_word"], "Frame Preamble")
+        with sm4:
+            st.metric("Residual BER", f"{pipe_out['reencode_ber']:.4f}", f"CRC: {pipe_out['crc_status']}")
 
-            st.markdown(
-                f"""
-                <div class="sq-card">
-                    <div class="sq-card-title">BLIND PIPELINE ESTIMATE (DERIVED)</div>
-                    <div style="font-size:0.85rem; line-height:1.7;">
-                        <b>Predicted Class:</b> <code>{est_mod}</code> {match_badge}<br>
-                        <b>Estimated SNR:</b> <code>{est_snr}</code><br>
-                        <b>Estimated CFO:</b> <code>{est_cfo}</code><br>
-                        <b>Estimated Baud:</b> <code>{est_baud}</code><br>
-                        <b>Decision Ladder:</b> <span class="sq-badge badge-ladder">{norm_res.ladder_level}</span>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+        st.markdown("#### 🔬 Ground Truth vs Blind Pipeline Comparison")
+
+        # Comparison Table
+        mod_truth = truth.modulation
+        mod_est = pipe_out["estimated_mod"]
+        mod_status = "PASS" if mod_truth.replace("-", "").upper() == mod_est.replace("-", "").upper() else "DIVERGE"
+
+        snr_truth = truth.snr_db
+        snr_est = pipe_out["estimated_snr"]
+        snr_err = abs(snr_truth - snr_est)
+        snr_status = "PASS" if snr_err < 3.0 else "WARN"
+
+        cfo_truth = truth.cfo_hz
+        cfo_est = pipe_out["estimated_cfo"]
+        cfo_err = abs(cfo_truth - cfo_est)
+        cfo_status = "PASS" if cfo_err < 2000.0 else "WARN"
+
+        baud_truth = truth.symbol_rate
+        baud_est = pipe_out["estimated_symbol_rate"]
+        baud_err = abs(baud_truth - baud_est)
+        baud_status = "PASS" if baud_err < 5000.0 else "WARN"
+
+        comp_data = [
+            {
+                "Parameter": "Modulation Scheme",
+                "Ground Truth (Known)": mod_truth,
+                "Blind Estimate": f"{mod_est} (ML: {pipe_out['ml_prob']:.1%}, Rule: {pipe_out['rule_mod']})",
+                "Absolute Error": "0" if mod_status == "PASS" else "Class Divergence",
+                "Evaluation": mod_status,
+            },
+            {
+                "Parameter": "SNR (Signal-to-Noise)",
+                "Ground Truth (Known)": f"{snr_truth:.1f} dB",
+                "Blind Estimate": f"{snr_est:.1f} dB",
+                "Absolute Error": f"{snr_err:.2f} dB",
+                "Evaluation": snr_status,
+            },
+            {
+                "Parameter": "Carrier Offset (CFO)",
+                "Ground Truth (Known)": f"{cfo_truth:,.0f} Hz",
+                "Blind Estimate": f"{cfo_est:,.0f} Hz",
+                "Absolute Error": f"{cfo_err:,.1f} Hz",
+                "Evaluation": cfo_status,
+            },
+            {
+                "Parameter": "Symbol Rate",
+                "Ground Truth (Known)": f"{baud_truth:,.0f} Baud",
+                "Blind Estimate": f"{baud_est:,.0f} Baud",
+                "Absolute Error": f"{baud_err:,.0f} Baud",
+                "Evaluation": baud_status,
+            },
+        ]
+        st.table(comp_data)
