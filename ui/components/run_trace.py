@@ -120,10 +120,20 @@ def render_run_trace(
     agree = result.rule_ml_agreement
     penalty = result.rule_ml_penalty or 0.0
 
-    # Stage 8: Decoder Pipeline
-    dec_stat = decoder.status if decoder else "UNAVAILABLE"
-    sync_w = decoder.sync_word if decoder else "None"
-    crc_stat = decoder.crc_status if decoder else "NOT_RUN"
+    # Stage 8: Decoder Pipeline — use correct NormalizedDecoder field names
+    if decoder:
+        _dec_crc_pass = getattr(decoder, "crc_passed", False)
+        _dec_crc_checked = getattr(decoder, "crc_checked", False)
+        dec_stat = "OK" if _dec_crc_pass else ("FAILED" if _dec_crc_checked else "NOT_RUN")
+        sync_w = getattr(decoder, "sync_word", None) or "None"
+        crc_stat = ("PASS" if _dec_crc_pass else "FAIL") if _dec_crc_checked else "NOT_RUN"
+        dec_ber = getattr(decoder, "ber", None)
+        dec_viterbi = getattr(decoder, "viterbi_used", False)
+        dec_intl = getattr(decoder, "interleaver_type", "none") or "none"
+        dec_fec_str = "Viterbi K=7" if dec_viterbi else "None"
+    else:
+        dec_stat, sync_w, crc_stat = "UNAVAILABLE", "None", "NOT_RUN"
+        dec_ber, dec_fec_str, dec_intl = None, "none", "none"
 
     # Stage 9: Evidence Ledger
     ev_count = len(result.evidence) if result.evidence else 0
@@ -132,25 +142,35 @@ def render_run_trace(
     # Stage 10: Decision & Confidence Engine
     final_mod = result.top_hypothesis.modulation if result.top_hypothesis else "UNKNOWN"
 
+    # Pull per-stage statuses from pipeline provenance (written by runner.py)
+    _ss = prov.get("stage_status", {})
+    _is_replay = prov.get("is_replay", False)
+    _ingest_st  = _ss.get("Ingest & Forensics", "REPLAY" if _is_replay else "LIVE")
+    _feat_st    = _ss.get("Feature Extraction", "REPLAY" if _is_replay else "LIVE")
+    _clf_st     = _ss.get("Classifier", "REPLAY" if _is_replay else "REAL")
+    _dec_st_raw = _ss.get("Demodulator & Decoder", "CONFIRMED" if dec_stat == "OK" else "UNAVAILABLE")
+    _dec_eng_st = _ss.get("Decision Engine", "CONFIRMED" if not result.is_unknown else "ABSTAINED")
+
     stages = [
         {
             "num": "01",
             "name": "Ingest & Sample Validation",
             "team": "DSP Engine",
-            "status": "LIVE" if not prov.get("is_replay") else "REPLAY",
-            "summary": f"Sampling Rate: {fs_val/1e3:.1f} kHz ({fs_src}) | SHA-256 Verified",
+            "status": _ingest_st,
+            "summary": f"Sampling Rate: {fs_val/1e3:.1f} kHz ({fs_src}) | SHA-256: {prov.get('input_hash', 'Verified')[:16]}…",
             "data": {
                 "sample_rate_hz": fs_val,
                 "sample_rate_provenance": fs_src,
-                "input_file": prov.get("uploaded_file", "Grounded Golden Capture"),
-                "sha256": prov.get("sha256", "Verified Internal Digest"),
+                "capture_id": prov.get("capture_id", prov.get("uploaded_file", "Grounded Golden Capture")),
+                "sha256_digest": prov.get("input_hash", prov.get("sha256", "Verified Internal Digest")),
+                "execution_mode": _ingest_st,
             },
         },
         {
             "num": "02",
             "name": "Burst Detection & Energy Thresholding",
             "team": "DSP Engine",
-            "status": "LIVE" if not prov.get("is_replay") else "REPLAY",
+            "status": _ingest_st,
             "summary": f"Detected {bursts_ct} burst region(s) using dynamic CFAR energy thresholding",
             "data": {
                 "burst_count": bursts_ct,
@@ -162,20 +182,21 @@ def render_run_trace(
             "num": "03",
             "name": "Blind Parameter Estimation",
             "team": "DSP Engine",
-            "status": "LIVE" if not prov.get("is_replay") else "REPLAY",
+            "status": _feat_st,
             "summary": f"Baud: {baud_val} | SNR: {snr_val} | CFO: {cfo_val}",
             "data": {
-                "symbol_rate": baud_val,
-                "snr": snr_val,
-                "carrier_frequency_offset": cfo_val,
+                "symbol_rate_baud": baud_val,
+                "snr_db": snr_val,
+                "carrier_frequency_offset_hz": cfo_val,
                 "occupied_bandwidth": analysis.bandwidth.display_value if (analysis and analysis.bandwidth) else "N/A",
+                "estimation_mode": _feat_st,
             },
         },
         {
             "num": "04",
             "name": "Higher-Order Cumulants & Constellation Features",
             "team": "SpectralQ Engine",
-            "status": "LIVE" if not prov.get("is_replay") else "REPLAY",
+            "status": _feat_st,
             "summary": f"Clusters: {clusters_val} | EVM: {evm_val} | Multi-Restart Lloyd's k-means",
             "data": {
                 "cumulants": (
@@ -188,7 +209,7 @@ def render_run_trace(
                     )
                 ) if (analysis and analysis.features) else {},
                 "cluster_count": clusters_val,
-                "evm": evm_val,
+                "evm_percent": evm_val,
                 "phase_ambiguity_quality": getattr(analysis.features, "phase_ambiguity_quality", None) if analysis and analysis.features else None,
             },
         },
@@ -196,24 +217,27 @@ def render_run_trace(
             "num": "05",
             "name": "Explainable Rule-Based AMC",
             "team": "Evidence Engine",
-            "status": "REAL",
+            "status": _clf_st,
             "summary": f"Predicted: {rule_pred} via cumulant decision tree & physical invariants",
             "data": {
                 "rule_prediction": rule_pred,
+                "rule_ml_agreement": agree,
                 "invariant_checks": "C20 (1D vs 2D), C40 (QPSK sign), C42 (order), Silhouette (FSK)",
+                "execution_mode": _clf_st,
             },
         },
         {
             "num": "06",
             "name": "Machine Learning Automatic Modulation Classification",
             "team": "ML Classifier",
-            "status": "REAL",
+            "status": _clf_st,
             "summary": f"Predicted: {ml_pred} (ML Prob: {ml_prob}) via Calibrated Random Forest",
             "data": {
                 "model_version": "baseline_rf-2.0.0-calibrated",
                 "ml_prediction": ml_pred,
                 "ml_probability": result.ml_probability,
                 "calibrated_ml_probability": result.calibrated_ml_probability,
+                "execution_mode": _clf_st,
             },
         },
         {
@@ -221,40 +245,43 @@ def render_run_trace(
             "name": "N5 Hybrid Consensus & Agreement Fusion",
             "team": "AMC Engine",
             "status": "PASS" if agree else "CONFLICT",
-            "summary": f"{'CONSENSUS REACHED' if agree else 'DIVERGENCE DETECTED'} (Penalty: {penalty:.2f})",
+            "summary": f"{'CONSENSUS REACHED' if agree else 'DIVERGENCE DETECTED'} | Rule: {rule_pred} | ML: {ml_pred} | Penalty: {penalty:.3f}",
             "data": {
                 "agreement": agree,
                 "rule_prediction": rule_pred,
                 "ml_prediction": ml_pred,
                 "disagreement_penalty": penalty,
+                "cross_window_agreement": result.cross_window_agreement,
             },
         },
         {
             "num": "08",
             "name": "Demod Chain, Synchronization & FEC Decoder",
             "team": "FEC Decoder",
-            "status": "CONFIRMED" if dec_stat.lower() == "ok" else ("FAIL" if dec_stat.lower() == "failed" else "UNAVAILABLE"),
-            "summary": f"Sync: {sync_w} | CRC: {crc_stat} | BER: {decoder.reencode_ber if decoder and decoder.reencode_ber is not None else 'UNAVAILABLE'}",
+            "status": _dec_st_raw,
+            "summary": f"Sync: {sync_w} | CRC: {crc_stat} | BER: {dec_ber if dec_ber is not None else 'N/A'}",
             "data": {
                 "decoder_status": dec_stat,
                 "sync_word_detected": sync_w,
                 "crc_status": crc_stat,
-                "reencode_ber": decoder.reencode_ber if decoder else None,
-                "fec_used": decoder.fec_used if decoder else "none",
-                "interleaver_used": decoder.interleaver_used if decoder else "none",
+                "reencode_ber": dec_ber,
+                "fec_used": dec_fec_str,
+                "interleaver_used": dec_intl,
+                "execution_mode": _dec_st_raw,
             },
         },
         {
             "num": "09",
             "name": "Evidence Ledger Compilation & Cross-Checking",
             "team": "Evidence Engine",
-            "status": "REAL",
-            "summary": f"Compiled {ev_count} independent checks ({failed_ct} failed checks recorded)",
+            "status": _dec_eng_st,
+            "summary": f"Compiled {ev_count} independent checks | {failed_ct} failed | CWA: {result.cross_window_agreement:.2f}" if result.cross_window_agreement else f"Compiled {ev_count} independent checks | {failed_ct} failed",
             "data": {
                 "total_evidence_items": ev_count,
                 "failed_checks": result.failed_checks,
                 "unavailable_checks": result.unavailable_checks,
                 "cross_window_agreement": result.cross_window_agreement,
+                "ladder_level": ladder,
             },
         },
         {
@@ -262,17 +289,20 @@ def render_run_trace(
             "name": "Defensible Confidence & Abstention Engine",
             "team": "SpectralQ Engine",
             "status": "CONFIRMED" if not result.is_unknown else "ABSTAINED",
-            "summary": f"Final: {final_mod} | Confidence: {conf_pct:.1f}% | Ladder: {ladder}",
+            "summary": f"Final: {final_mod} | Confidence: {conf_pct:.1f}% | Ladder: {ladder} | {'ABSTAINED' if result.is_unknown else 'CONFIRMED'}",
             "data": {
                 "top_modulation": final_mod,
-                "final_confidence": result.final_confidence,
+                "final_confidence_pct": f"{conf_pct:.2f}%",
                 "ladder_level": ladder,
                 "is_unknown": result.is_unknown,
                 "unknown_reason": result.unknown_reason,
+                "ml_prediction": ml_pred,
+                "rule_prediction": rule_pred,
                 "confidence_engine_version": getattr(result, "confidence_version", "2.0.0-phase6-fitted"),
             },
         },
     ]
+
 
     badge_colors = {
         "LIVE": "badge-pass",

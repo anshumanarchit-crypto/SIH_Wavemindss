@@ -469,7 +469,7 @@ def _render_hero(tokens: Dict):
                     </div>
                     <div style="width:1px;background:#334155;"></div>
                     <div style="text-align:center;">
-                        <div style="font-size:1.75rem;font-weight:800;color:#a855f7;">4</div>
+                        <div style="font-size:1.75rem;font-weight:800;color:#a855f7;">{len(FORMAT_META)}</div>
                         <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.08em;">Formats</div>
                     </div>
                 </div>
@@ -1054,6 +1054,57 @@ def _render_post_analysis_nav() -> None:
         unsafe_allow_html=True,
     )
 
+    # ── Live Results Preview ───────────────────────────────────────────────
+    # Pull live data from session state (populated by set_active_case_artifacts)
+    norm_res = st.session_state.get("cached_result")
+    norm_dec = st.session_state.get("cached_decoder")
+    norm_ana = st.session_state.get("cached_analysis")
+
+    if norm_res or norm_dec:
+        st.markdown("##### 🔎 Live Pipeline Results Preview")
+        pr1, pr2, pr3, pr4, pr5 = st.columns(5)
+
+        top_mod = getattr(getattr(norm_res, "top_hypothesis", None), "modulation", "—") if norm_res else "—"
+        conf_val = getattr(norm_res, "final_confidence", None) if norm_res else None
+        ladder = getattr(norm_res, "ladder_level", "—") if norm_res else "—"
+
+        dec_crc_pass = getattr(norm_dec, "crc_passed", None) if norm_dec else None
+        dec_crc_checked = getattr(norm_dec, "crc_checked", False) if norm_dec else False
+        crc_label = ("PASS" if dec_crc_pass else "FAIL") if dec_crc_checked else "NOT_RUN"
+        crc_color = {"PASS": "#22c55e", "FAIL": "#ef4444", "NOT_RUN": "#6b7280"}.get(crc_label, "#6b7280")
+
+        sync_word = getattr(norm_dec, "sync_word", None) if norm_dec else None
+        sync_disp = f"0x{sync_word}" if sync_word and not sync_word.startswith("0x") else (sync_word or "NOT DETECTED")
+
+        bits_len = 0
+        if norm_dec:
+            rb = getattr(norm_dec, "raw_bits", None)
+            if rb:
+                bits_len = len(str(rb))
+
+        ber_val = getattr(norm_dec, "ber", None) if norm_dec else None
+        ber_disp = f"{ber_val:.4f}" if ber_val is not None else "N/A"
+
+        snr_est = None
+        if norm_ana:
+            estimates = getattr(norm_ana, "estimates", None)
+            if estimates:
+                snr_est = getattr(estimates, "snr_db", None) or getattr(estimates, "snr", {}).get("value") if isinstance(getattr(estimates, "snr", None), dict) else getattr(estimates, "snr_db", None)
+
+        with pr1:
+            st.metric("Modulation", top_mod, f"Ladder {ladder}")
+        with pr2:
+            conf_disp = f"{conf_val:.1%}" if conf_val is not None else "—"
+            st.metric("Confidence", conf_disp, "Pipeline Consensus")
+        with pr3:
+            st.metric("CRC Status", crc_label)
+        with pr4:
+            st.metric("Sync Word", sync_disp, f"Bits: {bits_len:,}")
+        with pr5:
+            st.metric("BER", ber_disp, "Post-FEC")
+
+        st.markdown("<hr style='margin: 0.75rem 0; border-color: rgba(255,255,255,0.07);'>", unsafe_allow_html=True)
+
     # 6 workspace buttons with descriptions
     workspace_nav = [
         ("🚀", "Mission Control",
@@ -1094,7 +1145,7 @@ def _render_post_analysis_nav() -> None:
 def _render_batch_section():
     with st.expander("📦 Batch Export — Full Benchmark Suite (ZIP)", expanded=False):
         st.caption(
-            "Generate ALL 17 scenarios in one ZIP archive. "
+            f"Generate ALL {len(SCENARIO_CATALOG)} scenarios in one ZIP archive. "
             "Each scenario produces a signal file + companion `.json` metadata."
         )
         bc1, bc2 = st.columns(2)

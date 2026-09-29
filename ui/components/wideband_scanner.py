@@ -314,8 +314,58 @@ def render_wideband_scanner() -> None:
                             output_dir=scratch_dir,
                         )
 
-                        # Execute SpectralQ pipeline
-                        pipe_out = run(capture_path=str(cap_file), mode="live")
+                        # Execute SpectralQ pipeline — pass real in-memory samples to
+                        # decoder so CRC/sync/BER are genuinely computed (not stubbed),
+                        # which allows the Evidence Ladder to reach L4/L5 correctly.
+                        from spectralq.features.iq_extractor import iq_to_analysis_contract
+                        from spectralq.decoder.service import run_arpit_decoder
+                        from spectralq.contracts.schemas import DecoderOutputContract, DecoderStatus, CrcStatus
+                        from core.contracts import SignalData as _SignalData
+
+                        _cap_id = f"DDC_EM{em.emission_id}_{int(em.center_freq_hz/1e3)}kHz"
+
+                        # Stage A: IQ feature extraction on the narrow-band channelized samples
+                        _analysis_contract = iq_to_analysis_contract(
+                            narrow_iq,
+                            fs_hz=narrow_fs,
+                            capture_id=_cap_id,
+                        )
+
+                        # Stage B: Real DSP decoder on in-memory complex samples (not file path)
+                        _sig_obj = _SignalData(
+                            samples=narrow_iq,
+                            sample_rate=narrow_fs,
+                            is_complex=True,
+                        )
+                        _dec_raw = run_arpit_decoder(
+                            capture_input=_sig_obj,
+                            capture_id=_cap_id,
+                            analysis=_analysis_contract,
+                            candidate_modulation=None,
+                        )
+
+                        # Build a proper DecoderOutputContract from the real decoder result
+                        _dec_contract = DecoderOutputContract(
+                            schema_version="1.0.0",
+                            capture_id=_cap_id,
+                            status=_dec_raw.status,
+                            interleaver_used=_dec_raw.interleaver_used or "none",
+                            fec_used=_dec_raw.fec_used or "none",
+                            decoded_bits=_dec_raw.decoded_bits or 0,
+                            crc_status=_dec_raw.crc_status,
+                            reencode_ber=_dec_raw.reencode_ber,
+                            sync_word=_dec_raw.sync_word,
+                            evm_percent=_dec_raw.evm_percent,
+                            failure_reason=_dec_raw.failure_reason,
+                        )
+
+                        # Stage C: Full 5-stage pipeline with LIVE analysis + LIVE decoder overrides
+                        pipe_out = run(
+                            capture_path=str(cap_file),
+                            mode="live",
+                            analysis_override=_analysis_contract,
+                            decoder_override=_dec_contract,
+                        )
 
                         from spectralq.visualization.artifacts import prepare_observatory_artifacts
                         norm_res = adapt_result(pipe_out.result) if pipe_out.result else None
@@ -337,6 +387,10 @@ def render_wideband_scanner() -> None:
                             "center_freq_hz": em.center_freq_hz,
                             "bandwidth_hz": em.bandwidth_hz,
                             "narrowband_fs": narrow_fs,
+                            "capture_id": _cap_id,
+                            "stage_status": pipe_out.stage_status,
+                            "input_hash": pipe_out.result.provenance.input_hash if pipe_out.result and pipe_out.result.provenance else "N/A",
+                            "is_replay": False,
                         }
 
                         # Store in session state and update active case artifacts
