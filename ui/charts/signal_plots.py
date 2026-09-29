@@ -320,11 +320,10 @@ def create_waterfall_plot(
         y=wf.time_steps_ms,
         colorscale="Turbo",
         colorbar=dict(
-            title="dBFS",
+            title=dict(text="dBFS", font=dict(size=10, color="#94a3b8")),
             len=0.9,
             thickness=14,
             tickfont=dict(size=9, color="#94a3b8"),
-            titlefont=dict(size=10, color="#94a3b8"),
         ),
     ))
 
