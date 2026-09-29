@@ -152,3 +152,95 @@ def test_12_pure_awgn_noise_only():
 
     assert out.status == DecoderStatus.FAILED
     assert out.crc_status == CrcStatus.NOT_RUN
+
+
+# -----------------------------------------------------------------------------
+# 5. Extended Capture Permutations: Bypasses, Blocked Stages, and Failure Modes
+# -----------------------------------------------------------------------------
+def test_16_bpsk_crc_fail_corrupted():
+    """16_BPSK_crc_fail_corrupted.wav: Sync found, FEC bypassed, CRC FAIL (red badge)."""
+    cap = CAPTURES_DIR / "16_BPSK_crc_fail_corrupted.wav"
+    out = run_arpit_decoder(capture_input=cap, capture_id=cap.stem)
+
+    assert out.status == DecoderStatus.FAILED
+    assert out.crc_status == CrcStatus.FAIL
+    assert out.fec_used == "none"
+    assert out.interleaver_used == "none"
+    assert out.reencode_ber is None  # Rule 11: no FEC re-encode ran
+
+
+def test_17_qpsk_viterbi_crc_fail():
+    """17_QPSK_viterbi_crc_fail.wav: Viterbi active, excessive errors cause CRC FAIL with positive BER."""
+    cap = CAPTURES_DIR / "17_QPSK_viterbi_crc_fail.wav"
+    out = run_arpit_decoder(capture_input=cap, capture_id=cap.stem)
+
+    assert out.status == DecoderStatus.FAILED
+    assert out.crc_status == CrcStatus.FAIL
+    assert out.fec_used == "conv_viterbi_k7_r12"
+    assert out.interleaver_used == "none"
+    assert out.reencode_ber is not None and out.reencode_ber > 0.0
+
+
+def test_18_bpsk_conv_interleaved():
+    """18_BPSK_conv_interleaved.cf32: G6 Golden - Demod ACTIVE, Conv De-intl ACTIVE, Viterbi ACTIVE, CRC PASS."""
+    cap = CAPTURES_DIR / "18_BPSK_conv_interleaved.cf32"
+    out = run_arpit_decoder(capture_input=cap, capture_id=cap.stem, sample_rate=800_000)
+
+    assert out.status == DecoderStatus.OK
+    assert out.crc_status == CrcStatus.PASS
+    assert out.fec_used == "conv_viterbi_k7"
+    assert out.interleaver_used == "convolutional"
+    assert out.reencode_ber == 0.0
+
+
+def test_19_qpsk_conv_near_threshold():
+    """19_QPSK_conv_near_threshold.cf32: G7 Golden - Demod ACTIVE, De-intl BYPASS, Viterbi ACTIVE, CRC PASS."""
+    cap = CAPTURES_DIR / "19_QPSK_conv_near_threshold.cf32"
+    out = run_arpit_decoder(capture_input=cap, capture_id=cap.stem, sample_rate=800_000)
+
+    assert out.status == DecoderStatus.OK
+    assert out.crc_status == CrcStatus.PASS
+    assert out.fec_used == "conv_viterbi_k7"
+    assert out.interleaver_used == "none"
+    assert out.reencode_ber == 0.0
+
+
+def test_20_4fsk_multitone_continuous():
+    """20_4FSK_multitone_15dB.wav: Continuous 4-FSK stream - Demod ACTIVE, CRC NOT_RUN."""
+    cap = CAPTURES_DIR / "20_4FSK_multitone_15dB.wav"
+    out = run_arpit_decoder(capture_input=cap, capture_id=cap.stem)
+
+    assert out.status == DecoderStatus.OK
+    assert out.crc_status == CrcStatus.NOT_RUN
+    assert len(str(out.decoded_bits)) > 0
+
+
+def test_22_bpsk_cfo_tracking():
+    """22_BPSK_cfo_tracking_5kHz.wav: CFO locked and tracked, uncoded burst, CRC PASS."""
+    cap = CAPTURES_DIR / "22_BPSK_cfo_tracking_5kHz.wav"
+    out = run_arpit_decoder(capture_input=cap, capture_id=cap.stem)
+
+    assert out.status == DecoderStatus.OK
+    assert out.crc_status == CrcStatus.PASS
+    assert out.fec_used == "none"
+
+
+def test_24_degraded_snr_unknown():
+    """24_Degraded_SNR_minus8dB_unknown.cf32: Degraded SNR below 0 dB - Demod FAILED / UNKNOWN."""
+    cap = CAPTURES_DIR / "24_Degraded_SNR_minus8dB_unknown.cf32"
+    out = run_arpit_decoder(capture_input=cap, capture_id=cap.stem, sample_rate=800_000)
+
+    assert out.status == DecoderStatus.FAILED
+    assert out.crc_status == CrcStatus.NOT_RUN
+
+
+def test_25_bpsk_uncoded_plain_frame():
+    """25_BPSK_uncoded_plain_frame.iq: Baseline plain packet - All FEC/Interleaver BYPASS, CRC PASS."""
+    cap = CAPTURES_DIR / "25_BPSK_uncoded_plain_frame.iq"
+    out = run_arpit_decoder(capture_input=cap, capture_id=cap.stem, sample_rate=100_000)
+
+    assert out.status == DecoderStatus.OK
+    assert out.crc_status == CrcStatus.PASS
+    assert out.fec_used == "none"
+    assert out.interleaver_used == "none"
+

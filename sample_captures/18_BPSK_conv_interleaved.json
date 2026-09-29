@@ -1,0 +1,14 @@
+{
+  "sample_rate": 800000.0,
+  "modulation": "BPSK",
+  "snr_db": 18.0,
+  "test_target": "CONV_INTERLEAVER_AND_VITERBI_PASS",
+  "expected_stages": {
+    "demodulator": "ACTIVE",
+    "deinterleaver": "CONVOLUTIONAL",
+    "inner_fec": "RATE 1/2 (K=7)",
+    "outer_fec": "BYPASS",
+    "frame_sync_and_crc": "PASS"
+  },
+  "reencode_ber": 0.0
+}

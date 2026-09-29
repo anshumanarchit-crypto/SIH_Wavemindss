@@ -1,0 +1,13 @@
+{
+  "sample_rate": 100000.0,
+  "modulation": "4-FSK",
+  "snr_db": 18.0,
+  "test_target": "MARY_FSK_DEMOD_AND_FRAMING",
+  "expected_stages": {
+    "demodulator": "ACTIVE",
+    "deinterleaver": "BYPASS",
+    "inner_fec": "BYPASS",
+    "outer_fec": "BYPASS",
+    "frame_sync_and_crc": "PASS"
+  }
+}

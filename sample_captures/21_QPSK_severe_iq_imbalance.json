@@ -1,0 +1,15 @@
+{
+  "sample_rate": 100000.0,
+  "modulation": "QPSK",
+  "snr_db": 22.0,
+  "gain_imbalance_db": 4.0,
+  "phase_imbalance_deg": 25.0,
+  "test_target": "GRAM_SCHMIDT_PREPROCESSING_RESILIENCE",
+  "expected_stages": {
+    "demodulator": "ACTIVE",
+    "deinterleaver": "BYPASS",
+    "inner_fec": "BYPASS",
+    "outer_fec": "BYPASS",
+    "frame_sync_and_crc": "PASS"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "sample_rate": 800000.0,
+  "modulation": "QPSK",
+  "snr_db": 6.0,
+  "test_target": "VITERBI_NEAR_THRESHOLD_PASS",
+  "expected_stages": {
+    "demodulator": "ACTIVE",
+    "deinterleaver": "BYPASS",
+    "inner_fec": "RATE 1/2 (K=7)",
+    "outer_fec": "BYPASS",
+    "frame_sync_and_crc": "PASS"
+  },
+  "reencode_ber": 0.0
+}

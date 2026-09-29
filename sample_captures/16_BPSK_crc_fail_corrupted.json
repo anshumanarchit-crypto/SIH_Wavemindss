@@ -1,0 +1,14 @@
+{
+  "sample_rate": 100000.0,
+  "modulation": "BPSK",
+  "snr_db": 22.0,
+  "test_target": "CRC_FAIL_STAGE_BLOCKED",
+  "expected_stages": {
+    "demodulator": "ACTIVE",
+    "deinterleaver": "BYPASS",
+    "inner_fec": "BYPASS",
+    "outer_fec": "BYPASS",
+    "frame_sync_and_crc": "FAIL"
+  },
+  "failure_reason": "Payload CRC checksum verification failed"
+}

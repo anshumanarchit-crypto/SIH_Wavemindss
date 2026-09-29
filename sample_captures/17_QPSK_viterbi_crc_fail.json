@@ -1,0 +1,13 @@
+{
+  "sample_rate": 100000.0,
+  "modulation": "QPSK",
+  "snr_db": 18.0,
+  "test_target": "VITERBI_ACTIVE_CRC_FAIL",
+  "expected_stages": {
+    "demodulator": "ACTIVE",
+    "deinterleaver": "BYPASS",
+    "inner_fec": "RATE 1/2 (K=7)",
+    "outer_fec": "BYPASS",
+    "frame_sync_and_crc": "FAIL"
+  }
+}

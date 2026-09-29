@@ -1,0 +1,15 @@
+{
+  "sample_rate": 800000.0,
+  "modulation": "UNKNOWN",
+  "snr_db": -8.0,
+  "test_target": "RULE_12_UNKNOWN_ABSTENTION_BANNER",
+  "expected_stages": {
+    "demodulator": "BYPASS",
+    "deinterleaver": "BYPASS",
+    "inner_fec": "BYPASS",
+    "outer_fec": "BYPASS",
+    "frame_sync_and_crc": "UNCHECKED"
+  },
+  "unknown_state": true,
+  "unknown_reason": "SNR below sensitivity threshold (-8.0 dB < 0.0 dB)"
+}

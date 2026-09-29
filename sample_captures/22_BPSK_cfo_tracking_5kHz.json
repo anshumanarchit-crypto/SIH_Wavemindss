@@ -1,0 +1,14 @@
+{
+  "sample_rate": 100000.0,
+  "modulation": "BPSK",
+  "cfo_hz": 5000.0,
+  "snr_db": 20.0,
+  "test_target": "CFO_TRACKING_AND_LOCK_PASS",
+  "expected_stages": {
+    "demodulator": "ACTIVE",
+    "deinterleaver": "BYPASS",
+    "inner_fec": "BYPASS",
+    "outer_fec": "BYPASS",
+    "frame_sync_and_crc": "PASS"
+  }
+}

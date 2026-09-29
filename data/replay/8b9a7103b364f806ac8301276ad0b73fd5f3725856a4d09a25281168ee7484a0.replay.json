@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0.0",
+  "input_hash": "8b9a7103b364f806ac8301276ad0b73fd5f3725856a4d09a25281168ee7484a0",
+  "capture_id": "emission_1_channelized",
+  "source_mode": "replay",
+  "cached_at_utc": "2026-09-29T06:09:47.399422+00:00",
+  "generation_parameters": {},
+  "payload_checksum": "b0ea92cd017ef96e1083326dcfbbb489949bed6eb18a7963bc4b8ee5d4cfb73b",
+  "analysis": {
+    "schema_version": "1.0.0",
+    "capture_id": "emission_1_channelized",
+    "source_mode": "replay",
+    "fs_hz": 62500.0,
+    "fs_source": "inferred",
+    "bursts": [
+      {
+        "start_ms": 0.0,
+        "end_ms": 8.0,
+        "power": -0.0245149229909339
+      }
+    ],
+    "estimates": {
+      "baud": {
+        "value": 7812.5,
+        "ci_lo": 7031.25,
+        "ci_hi": 8593.75,
+        "method": "iq_symbol_rate_inferred"
+      },
+      "cfo": {
+        "value": -1.4622207880020142,
+        "ci_lo": -626.462220788002,
+        "ci_hi": 623.537779211998,
+        "method": "iq_phase_difference"
+      },
+      "bandwidth": {
+        "value": 9765.625,
+        "ci_lo": 7812.5,
+        "ci_hi": 11718.75,
+        "method": "iq_baud_estimate"
+      },
+      "snr": {
+        "value": 26.044016898625458,
+        "ci_lo": 24.044016898625458,
+        "ci_hi": 28.044016898625458,
+        "method": "m2m4_moment"
+      }
+    },
+    "features": {
+      "cumulants": {
+        "C20": 0.9977777106490918,
+        "C21": 1.000000111403362,
+        "C40": 203.67871279355938,
+        "C42": 203.77688577482508,
+        "C60": 43814.49620199386,
+        "C63": 45067.7525107175,
+        "C80": 9712682.639132978
+      },
+      "cluster": {
+        "count": 2,
+        "silhouette": 0.9974983930587769,
+        "intra_var": 0.04383515939116478,
+        "inter_dist": 16.02195167541504
+      },
+      "evm": 0.35153394690870327,
+      "phase_ambiguity_quality": 0.9979987144470215,
+      "cyclic": null
+    },
+    "sub_windows": null,
+    "notes": null,
+    "capability_available": null
+  }
+}

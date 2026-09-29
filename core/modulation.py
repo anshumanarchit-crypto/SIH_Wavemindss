@@ -161,7 +161,7 @@ class HybridModulationClassifier:
 
         if c20_mag < 0.35:
             # Discrete 16-QAM (1 sps)
-            if 0.50 <= c40_mag <= 0.74 and 0.50 <= c42_mag <= 0.85 and sigma_aa >= 0.15:
+            if 0.50 <= c40_mag <= 0.74 and 0.50 <= c42_mag <= 0.85 and sigma_aa >= 0.28:
                 return (
                     ModulationType.QAM16,
                     0.94,

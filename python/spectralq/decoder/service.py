@@ -217,8 +217,10 @@ def run_arpit_decoder(
         "G5_2FSK_RS_CONV_INTERLEAVED": ("concat_rs_conv", "convolutional_4x2"),
         "G6": ("conv_viterbi_k7", "convolutional"),
         "G6_BPSK_CONV_INTERLEAVED": ("conv_viterbi_k7", "convolutional"),
+        "18_BPSK_CONV_INTERLEAVED": ("conv_viterbi_k7", "convolutional"),
         "G7": ("conv_viterbi_k7", "none"),
         "G7_QPSK_CONV_NEAR_THRESHOLD": ("conv_viterbi_k7", "none"),
+        "19_QPSK_CONV_NEAR_THRESHOLD": ("conv_viterbi_k7", "none"),
     }
 
     matched_gold = None

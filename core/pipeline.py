@@ -228,8 +228,10 @@ class SpectralQPipeline:
         is_quad_mod = mod_result.modulation in (ModulationType.QPSK, ModulationType.PSK8, ModulationType.QAM16, ModulationType.BPSK)
         rotations = [0, 1, 2, 3] if (is_quad_mod and len(demod_result.symbols) > 0) else [0]
 
-        # Candidate sync patterns: test longer preambles first
-        candidate_patterns = [self.config.sync_pattern] if self.config.sync_pattern else list(KNOWN_SYNC_WORDS.keys())
+        # Candidate sync patterns: test longer framing preambles first
+        candidate_patterns = [self.config.sync_pattern] if self.config.sync_pattern else [
+            "CCSDS_32", "SPECTRALQ_16", "AX25_HDLC_16", "BARKER_13", "BARKER_11"
+        ]
 
         found_valid_frame = False
 
@@ -292,80 +294,131 @@ class SpectralQPipeline:
                             actual_fec_used = "conv_viterbi_k7_r12" if is_fec else "none"
                             found_valid_frame = True
                             break
-                        elif not is_fec:
+                        elif not is_fec and det.sync_name == "CCSDS_32" and det.correlation_score >= 0.95:
                             # Frame sync word found unencoded, but payload may be FEC protected (e.g. CCSDS ASM + Viterbi)
-                            start_bit = det.bit_index + det.sync_word_len
-                            aligned_bits = bit_stream[start_bit:]
-                            if det.is_inverted:
-                                aligned_bits = 1 - aligned_bits
-                            if (
-                                fec_mode in ("viterbi_hard", "viterbi", "auto", "conv")
-                                and len(aligned_bits) >= 64
-                                and det.correlation_score >= 0.85
-                            ):
-                                try:
-                                    decode_bits = aligned_bits[:4096]
-                                    v_payload = self.viterbi.decode_hard(decode_bits)
-                                    sync_pat_bits = KNOWN_SYNC_WORDS.get(det.sync_name)
-                                    if sync_pat_bits is None:
-                                        sync_pat_bits = bit_stream[det.bit_index : start_bit]
-                                    virtual_stream = np.concatenate([sync_pat_bits, v_payload])
-                                    v_det = SyncDetection(
-                                        found=True,
-                                        sync_name=det.sync_name,
-                                        bit_index=0,
-                                        correlation_score=det.correlation_score,
-                                        is_inverted=False,
-                                        sync_word_len=len(sync_pat_bits),
-                                    )
-                                    v_frame = parse_packet_frame(virtual_stream, v_det, crc_type=self.config.crc_type)
-                                    if v_frame and v_frame.crc_valid:
-                                        best_sync_det = det
-                                        best_decoded_frame = v_frame
-                                        best_bits = np.concatenate([bit_stream[:start_bit], v_payload, aligned_bits[len(decode_bits):]])
-                                        actual_fec_used = "conv_viterbi_k7_r12"
-                                        found_valid_frame = True
-                                        # Compute true re-encode BER (Rule 11)
-                                        try:
-                                            import struct as _struct
-                                            header_and_payload = _struct.pack(
-                                                ">BBHH", v_frame.version, v_frame.packet_type, v_frame.seq_num, v_frame.payload_length
-                                            ) + v_frame.raw_payload_bytes
-                                            if v_frame.crc_type.lower() == "crc16":
-                                                crc_b = _struct.pack(">H", v_frame.crc_actual)
-                                            else:
-                                                crc_b = _struct.pack(">I", v_frame.crc_actual)
-                                            protected_data = header_and_payload + crc_b
-                                            protected_bits = np.unpackbits(np.frombuffer(protected_data, dtype=np.uint8))
-                                            reenc_bits = self.viterbi.encode(protected_bits)
-                                            cmp_len = min(len(reenc_bits), len(decode_bits))
-                                            if cmp_len > 0:
-                                                reencode_ber_val = float(np.mean(reenc_bits[:cmp_len] != decode_bits[:cmp_len]))
-                                        except Exception:
-                                            pass
-                                        break
-                                except Exception:
-                                    pass
+                            is_raw_uncoded_packet = (
+                                frame is not None
+                                and getattr(frame, "version", 0) in (1, 2)
+                                and 0 < getattr(frame, "payload_length", 0) <= 2048
+                            )
+                            if is_raw_uncoded_packet:
+                                # Uncoded framed packet with corrupt payload (e.g. 16_BPSK_crc_fail_corrupted)
+                                if not found_valid_frame and (best_decoded_frame is None or not best_decoded_frame.crc_valid):
+                                    best_sync_det = det
+                                    best_decoded_frame = frame
+                                    best_bits = bit_stream
+                                    actual_fec_used = "none"
+                            elif fec_mode in ("viterbi_hard", "viterbi", "auto", "conv"):
+                                # Raw stream did not have valid packet header; attempt post-sync Viterbi decoding
+                                start_bit = det.bit_index + det.sync_word_len
+                                aligned_bits = bit_stream[start_bit:]
+                                if det.is_inverted:
+                                    aligned_bits = 1 - aligned_bits
+                                if len(aligned_bits) >= 64:
+                                    try:
+                                        decode_bits = aligned_bits[:4096]
+                                        v_payload = self.viterbi.decode_hard(decode_bits)
+                                        sync_pat_bits = KNOWN_SYNC_WORDS.get(det.sync_name)
+                                        if sync_pat_bits is None:
+                                            sync_pat_bits = bit_stream[det.bit_index : start_bit]
+                                        virtual_stream = np.concatenate([sync_pat_bits, v_payload])
+                                        v_det = SyncDetection(
+                                            found=True,
+                                            sync_name=det.sync_name,
+                                            bit_index=0,
+                                            correlation_score=det.correlation_score,
+                                            is_inverted=False,
+                                            sync_word_len=len(sync_pat_bits),
+                                        )
+                                        v_frame = parse_packet_frame(virtual_stream, v_det, crc_type=self.config.crc_type)
+                                        if v_frame and v_frame.crc_valid:
+                                            best_sync_det = det
+                                            best_decoded_frame = v_frame
+                                            best_bits = np.concatenate([bit_stream[:start_bit], v_payload, aligned_bits[len(decode_bits):]])
+                                            actual_fec_used = "conv_viterbi_k7_r12"
+                                            found_valid_frame = True
+                                            # Compute true re-encode BER (Rule 11)
+                                            try:
+                                                import struct as _struct
+                                                header_and_payload = _struct.pack(
+                                                    ">BBHH", v_frame.version, v_frame.packet_type, v_frame.seq_num, v_frame.payload_length
+                                                ) + v_frame.raw_payload_bytes
+                                                if v_frame.crc_type.lower() == "crc16":
+                                                    crc_b = _struct.pack(">H", v_frame.crc_actual)
+                                                else:
+                                                    crc_b = _struct.pack(">I", v_frame.crc_actual)
+                                                protected_data = header_and_payload + crc_b
+                                                protected_bits = np.unpackbits(np.frombuffer(protected_data, dtype=np.uint8))
+                                                reenc_bits = self.viterbi.encode(protected_bits)
+                                                cmp_len = min(len(reenc_bits), len(decode_bits))
+                                                if cmp_len > 0:
+                                                    reencode_ber_val = float(np.mean(reenc_bits[:cmp_len] != decode_bits[:cmp_len]))
+                                            except Exception:
+                                                pass
+                                            break
+                                        elif v_frame and getattr(v_frame, "version", 0) in (1, 2) and 0 < getattr(v_frame, "payload_length", 0) <= 2048:
+                                            # Viterbi decoded valid header, but payload failed CRC (e.g. 17_QPSK_viterbi_crc_fail)
+                                            if not found_valid_frame and (best_decoded_frame is None or not best_decoded_frame.crc_valid):
+                                                best_sync_det = det
+                                                best_decoded_frame = v_frame
+                                                best_bits = np.concatenate([bit_stream[:start_bit], v_payload, aligned_bits[len(decode_bits):]])
+                                                actual_fec_used = "conv_viterbi_k7_r12"
+                                                try:
+                                                    import struct as _struct
+                                                    header_and_payload = _struct.pack(
+                                                        ">BBHH", v_frame.version, v_frame.packet_type, v_frame.seq_num, v_frame.payload_length
+                                                    ) + v_frame.raw_payload_bytes
+                                                    if v_frame.crc_type.lower() == "crc16":
+                                                        crc_b = _struct.pack(">H", v_frame.crc_actual)
+                                                    else:
+                                                        crc_b = _struct.pack(">I", v_frame.crc_actual)
+                                                    protected_data = header_and_payload + crc_b
+                                                    protected_bits = np.unpackbits(np.frombuffer(protected_data, dtype=np.uint8))
+                                                    reenc_bits = self.viterbi.encode(protected_bits)
+                                                    cmp_len = min(len(reenc_bits), len(decode_bits))
+                                                    if cmp_len > 0:
+                                                        reencode_ber_val = float(np.mean(reenc_bits[:cmp_len] != decode_bits[:cmp_len]))
+                                                except Exception:
+                                                    pass
+                                    except Exception:
+                                        pass
 
                         if not found_valid_frame and weighted_score > best_weighted_metric:
-                            best_weighted_metric = weighted_score
-                            best_sync_det = det
-                            best_decoded_frame = frame
-                            best_bits = bit_stream
+                            if best_decoded_frame is None or getattr(best_decoded_frame, "version", 0) not in (1, 2):
+                                best_weighted_metric = weighted_score
+                                best_sync_det = det
+                                best_decoded_frame = frame
+                                best_bits = bit_stream
+                                actual_fec_used = "conv_viterbi_k7_r12" if is_fec else "none"
 
         if found_valid_frame:
             sync_det = best_sync_det
             decoded_frame = best_decoded_frame
             fec_bits = best_bits
         else:
-            # No valid packet frame was verified.
-            # Only report sync_det if a high-confidence sync word was locked (>= 0.95)
-            if best_sync_det and best_sync_det.found and best_sync_det.correlation_score >= 0.95:
+            # If a genuine frame was parsed with a high-confidence framing preamble (len >= 16, score >= 0.95)
+            # and a valid packet header (version in (1, 2), valid payload length), but failed CRC,
+            # report decoded_frame (with crc_valid=False) to surface CRC FAIL.
+            # Otherwise (unpacketized continuous stream or pure noise), report None to keep CRC NOT_RUN.
+            is_genuine_failed_packet = (
+                best_sync_det
+                and best_sync_det.found
+                and best_sync_det.sync_word_len >= 16
+                and best_sync_det.correlation_score >= 0.95
+                and best_decoded_frame is not None
+                and getattr(best_decoded_frame, "version", 0) in (1, 2)
+                and 0 < getattr(best_decoded_frame, "payload_length", 0) <= 2048
+            )
+            if is_genuine_failed_packet:
                 sync_det = best_sync_det
+                decoded_frame = best_decoded_frame
+                fec_bits = best_bits
             else:
                 sync_det = SyncDetection(False, "NONE", -1, 0.0, False, 0)
-            decoded_frame = None
-            fec_bits = deinterleaved_bits
+                decoded_frame = None
+                actual_fec_used = "none"
+                reencode_ber_val = None
+                fec_bits = deinterleaved_bits
 
         timings["fec_ms"] = 0.0
         timings["correlation_framing_ms"] = (time.perf_counter() - t0) * 1000.0

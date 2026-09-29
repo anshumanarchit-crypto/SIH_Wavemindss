@@ -1,0 +1,14 @@
+{
+  "sample_rate": 100000.0,
+  "modulation": "QPSK",
+  "snr_db": 8.0,
+  "test_target": "MODULATION_HYPOTHESIS_COMPETITOR_RANKING",
+  "expected_stages": {
+    "demodulator": "ACTIVE",
+    "deinterleaver": "BYPASS",
+    "inner_fec": "BYPASS",
+    "outer_fec": "BYPASS",
+    "frame_sync_and_crc": "PASS"
+  },
+  "notes": "Shows competitor table in Modulation & Hypotheses tab with alternate probabilities (QPSK vs 16-QAM)"
+}
