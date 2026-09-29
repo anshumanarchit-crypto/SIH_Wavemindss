@@ -102,19 +102,49 @@ def render_wideband_scanner() -> None:
 
     # 4. Summary Metrics
     st.markdown("---")
-    m1, m2, m3, m4 = st.columns(4)
-    with m1:
-        st.metric("Total Span", f"{scan_res.fs_hz / 1e6:.2f} MHz")
-    with m2:
-        st.metric("Noise Floor", f"{scan_res.noise_floor_db:.1f} dBFS")
-    with m3:
-        st.metric("Detection Gate", f"{scan_res.detection_threshold_db:.1f} dBFS")
-    with m4:
-        st.metric("Detected Emissions", f"{len(scan_res.emissions)}")
+    
+    st.markdown(
+        f"""
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="flex: 1; background: rgba(10,14,26,0.6); backdrop-filter: blur(8px); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); border-left: 4px solid #38bdf8; padding: 1rem;">
+                <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">📈 Total Span</div>
+                <div style="color: #f8fafc; font-size: 1.5rem; font-family: monospace; font-weight: 600;">{scan_res.fs_hz / 1e6:.2f} MHz</div>
+            </div>
+            <div style="flex: 1; background: rgba(10,14,26,0.6); backdrop-filter: blur(8px); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); border-left: 4px solid #818cf8; padding: 1rem;">
+                <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">🌊 Noise Floor</div>
+                <div style="color: #f8fafc; font-size: 1.5rem; font-family: monospace; font-weight: 600;">{scan_res.noise_floor_db:.1f} dBFS</div>
+            </div>
+            <div style="flex: 1; background: rgba(10,14,26,0.6); backdrop-filter: blur(8px); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); border-left: 4px solid #ef4444; padding: 1rem;">
+                <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">🚪 Detection Gate</div>
+                <div style="color: #f8fafc; font-size: 1.5rem; font-family: monospace; font-weight: 600;">{scan_res.detection_threshold_db:.1f} dBFS</div>
+            </div>
+            <div style="flex: 1; background: rgba(10,14,26,0.6); backdrop-filter: blur(8px); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); border-left: 4px solid #10b981; padding: 1rem;">
+                <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">🎯 Detected Emissions</div>
+                <div style="color: #f8fafc; font-size: 1.5rem; font-family: monospace; font-weight: 600;">{len(scan_res.emissions)}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     # 5. Wideband Spectrum Plotly Chart
     st.markdown("### 📊 Wideband Spectrum Occupancy Map")
+    
     fig = go.Figure()
+
+    # Noise Floor shading below
+    fig.add_trace(
+        go.Scatter(
+            x=scan_res.freqs / 1e3,
+            y=np.full_like(scan_res.freqs, scan_res.noise_floor_db),
+            mode="lines",
+            line=dict(width=0),
+            fill="tozeroy",
+            fillcolor="rgba(16,185,129,0.04)",
+            hoverinfo="skip",
+            showlegend=False
+        )
+    )
 
     # PSD Curve
     fig.add_trace(
@@ -123,7 +153,9 @@ def render_wideband_scanner() -> None:
             y=scan_res.psd_db,
             mode="lines",
             name="Power Spectral Density",
-            line=dict(color=tokens["primary"], width=1.5),
+            line=dict(color="#00f2fe", width=1.5),
+            fill="tozeroy",
+            fillcolor="rgba(0,242,254,0.08)",
             hovertemplate="Freq: %{x:.1f} kHz<br>Power: %{y:.1f} dBFS<extra></extra>",
         )
     )
@@ -132,9 +164,11 @@ def render_wideband_scanner() -> None:
     fig.add_hline(
         y=scan_res.detection_threshold_db,
         line_dash="dash",
-        line_color=tokens.get("fail_color", "#f85149"),
+        line_color="#ef4444",
+        line_width=1.5,
         annotation_text="Detection Gate",
         annotation_position="bottom right",
+        annotation_font_color="#ef4444"
     )
 
     # Shaded bounding boxes for detected emissions
@@ -145,41 +179,103 @@ def render_wideband_scanner() -> None:
             x0=em.freq_start_hz / 1e3,
             x1=em.freq_stop_hz / 1e3,
             fillcolor=color,
-            opacity=0.2,
-            line_width=1,
-            line_color=color,
+            opacity=0.12,
+            line_width=0,
             annotation_text=f"E#{em.emission_id} ({em.bandwidth_hz/1e3:.1f}k)",
             annotation_position="top left",
+            annotation_font=dict(color=color, size=10),
+            annotation_bgcolor="rgba(0,0,0,0.7)",
+            annotation_bordercolor=color,
+            annotation_borderwidth=1
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=[em.freq_start_hz / 1e3, em.freq_stop_hz / 1e3],
+                y=[np.max(scan_res.psd_db) * 0.98, np.max(scan_res.psd_db) * 0.98],
+                mode="lines",
+                line=dict(color=color, width=1.5),
+                showlegend=False,
+                hoverinfo="skip"
+            )
         )
 
     fig.update_layout(
-        title="Wideband Power Spectral Density & Emission Clusters",
+        title=dict(text="Wideband Power Spectral Density & Emission Clusters", font=dict(color="#94a3b8")),
         xaxis_title="Baseband Frequency (kHz)",
         yaxis_title="Power Spectral Density (dBFS/Hz)",
-        template=tokens["plotly_template"],
+        xaxis=dict(
+            title_font=dict(color="#64748b"),
+            tickfont=dict(color="#64748b"),
+            gridcolor="rgba(56,189,248,0.08)",
+            zerolinecolor="rgba(56,189,248,0.2)"
+        ),
+        yaxis=dict(
+            title_font=dict(color="#64748b"),
+            tickfont=dict(color="#64748b"),
+            gridcolor="rgba(56,189,248,0.08)",
+            zerolinecolor="rgba(56,189,248,0.2)"
+        ),
+        paper_bgcolor="rgba(10,14,26,1)",
+        plot_bgcolor="rgba(10,14,26,1)",
+        legend=dict(
+            bgcolor="rgba(10,14,26,0.8)",
+            bordercolor="rgba(56,189,248,0.2)",
+            borderwidth=1,
+            font=dict(color="#94a3b8")
+        ),
         margin=dict(l=40, r=40, t=50, b=40),
-        height=380,
+        height=420,
     )
     st.plotly_chart(fig, use_container_width=True)
 
     # 6. Detected Emissions Occupancy Table
-    st.markdown("### 📋 Detected Emissions Occupancy Table")
+    st.markdown(
+        """
+        <div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 4px; height: 24px; background: linear-gradient(to bottom, #38bdf8, #818cf8); border-radius: 2px;"></div>
+            <div>
+                <div style="font-size: 1.25rem; font-weight: 700; color: #f8fafc; letter-spacing: -0.01em;">Detected Emissions Occupancy Table</div>
+                <div style="font-size: 0.85rem; color: #94a3b8;">Channelize and analyze isolated signals from the wideband capture</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
     if not scan_res.emissions:
         st.info("No emissions detected above the threshold margin. Try reducing the detection margin slider above.")
         return
 
-    for em in scan_res.emissions:
+    row_colors = ["#22c55e", "#06b6d4", "#eab308", "#a855f7"]
+    
+    for i, em in enumerate(scan_res.emissions):
+        row_color = row_colors[i % len(row_colors)]
         with st.container():
             st.markdown(
                 f"""
-                <div class="sq-card" style="margin-bottom: 0.8rem;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <span class="sq-badge badge-pass" style="font-size:0.95rem;">Emission #{em.emission_id}</span>
-                            &nbsp; Center: <b>{em.center_freq_hz / 1e3:.1f} kHz</b> &nbsp;|&nbsp;
-                            Span: <b>{em.bandwidth_hz / 1e3:.1f} kHz</b> &nbsp;|&nbsp;
-                            Peak: <b>{em.peak_power_db:.1f} dBFS</b> &nbsp;|&nbsp;
-                            SNR: <b>{em.snr_db:.1f} dB</b>
+                <div style="margin-bottom: 0.8rem; padding: 1rem; background: rgba(10,14,26,0.6); backdrop-filter: blur(8px); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); border-left: 3px solid {row_color}; display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                        <div style="background: {row_color}20; color: {row_color}; border: 1px solid {row_color}40; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                            Emission #{em.emission_id}
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.85rem;">
+                                <span style="color: #94a3b8; margin-right: 0.25rem;">Center:</span>
+                                <span style="color: #f8fafc; font-weight: 600; font-family: monospace;">{em.center_freq_hz / 1e3:.1f} kHz</span>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.85rem;">
+                                <span style="color: #94a3b8; margin-right: 0.25rem;">Span:</span>
+                                <span style="color: #f8fafc; font-weight: 600; font-family: monospace;">{em.bandwidth_hz / 1e3:.1f} kHz</span>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.85rem;">
+                                <span style="color: #94a3b8; margin-right: 0.25rem;">Peak:</span>
+                                <span style="color: #f8fafc; font-weight: 600; font-family: monospace;">{em.peak_power_db:.1f} dBFS</span>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.85rem;">
+                                <span style="color: #94a3b8; margin-right: 0.25rem;">SNR:</span>
+                                <span style="color: #f8fafc; font-weight: 600; font-family: monospace;">{em.snr_db:.1f} dB</span>
+                            </div>
                         </div>
                     </div>
                 </div>
