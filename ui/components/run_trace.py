@@ -68,8 +68,15 @@ def render_run_trace(
     cfo_val = analysis.cfo.display_value if (analysis and analysis.cfo) else "N/A"
 
     # Stage 4: Feature Extraction
-    evm_val = f"{analysis.features.evm*100:.1f}%" if (analysis and analysis.features and analysis.features.evm) else "N/A"
-    clusters_val = analysis.features.cluster.count if (analysis and analysis.features and analysis.features.cluster) else "N/A"
+    evm_val = "N/A"
+    clusters_val = "N/A"
+    if analysis and analysis.features:
+        if getattr(analysis.features, "evm", None) is not None:
+            evm_val = f"{analysis.features.evm * 100:.1f}%"
+        if hasattr(analysis.features, "cluster_count"):
+            clusters_val = str(analysis.features.cluster_count)
+        elif hasattr(analysis.features, "cluster") and hasattr(analysis.features.cluster, "count"):
+            clusters_val = str(analysis.features.cluster.count)
 
     # Stage 5: Rule AMC
     rule_pred = result.rule_prediction or "N/A"
@@ -140,7 +147,15 @@ def render_run_trace(
             "status": "LIVE" if not prov.get("is_replay") else "REPLAY",
             "summary": f"Clusters: {clusters_val} | EVM: {evm_val} | Multi-Restart Lloyd's k-means",
             "data": {
-                "cumulants": analysis.features.cumulants.to_dict() if (analysis and analysis.features and hasattr(analysis.features.cumulants, "to_dict")) else {},
+                "cumulants": (
+                    analysis.features.cumulants
+                    if isinstance(getattr(analysis.features, "cumulants", None), dict)
+                    else (
+                        analysis.features.cumulants.to_dict()
+                        if hasattr(getattr(analysis.features, "cumulants", None), "to_dict")
+                        else (getattr(analysis.features, "cumulants", None) or {})
+                    )
+                ) if (analysis and analysis.features) else {},
                 "cluster_count": clusters_val,
                 "evm": evm_val,
                 "phase_ambiguity_quality": getattr(analysis.features, "phase_ambiguity_quality", None) if analysis and analysis.features else None,

@@ -132,7 +132,7 @@ def render_wideband_scanner() -> None:
     fig.add_hline(
         y=scan_res.detection_threshold_db,
         line_dash="dash",
-        line_color=tokens["error"],
+        line_color=tokens.get("fail_color", "#f85149"),
         annotation_text="Detection Gate",
         annotation_position="bottom right",
     )
