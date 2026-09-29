@@ -8,6 +8,7 @@ Orchestrates:
 
 from __future__ import annotations
 import logging
+from pathlib import Path
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, Union
@@ -220,6 +221,9 @@ class SpectralQPipeline:
         best_decoded_frame = None
         best_bits = deinterleaved_bits
         best_weighted_metric = -1.0
+        actual_fec_used = "none"
+        actual_interleaver_used = self.config.deinterleave_scheme if self.config.deinterleave_scheme != "none" else "none"
+        reencode_ber_val = None
 
         is_quad_mod = mod_result.modulation in (ModulationType.QPSK, ModulationType.PSK8, ModulationType.QAM16, ModulationType.BPSK)
         rotations = [0, 1, 2, 3] if (is_quad_mod and len(demod_result.symbols) > 0) else [0]
@@ -285,17 +289,83 @@ class SpectralQPipeline:
                             best_sync_det = det
                             best_decoded_frame = frame
                             best_bits = bit_stream
+                            actual_fec_used = "conv_viterbi_k7_r12" if is_fec else "none"
                             found_valid_frame = True
                             break
-                        elif weighted_score > best_weighted_metric:
+                        elif not is_fec:
+                            # Frame sync word found unencoded, but payload may be FEC protected (e.g. CCSDS ASM + Viterbi)
+                            start_bit = det.bit_index + det.sync_word_len
+                            aligned_bits = bit_stream[start_bit:]
+                            if det.is_inverted:
+                                aligned_bits = 1 - aligned_bits
+                            if (
+                                fec_mode in ("viterbi_hard", "viterbi", "auto", "conv")
+                                and len(aligned_bits) >= 64
+                                and det.correlation_score >= 0.85
+                            ):
+                                try:
+                                    decode_bits = aligned_bits[:4096]
+                                    v_payload = self.viterbi.decode_hard(decode_bits)
+                                    sync_pat_bits = KNOWN_SYNC_WORDS.get(det.sync_name)
+                                    if sync_pat_bits is None:
+                                        sync_pat_bits = bit_stream[det.bit_index : start_bit]
+                                    virtual_stream = np.concatenate([sync_pat_bits, v_payload])
+                                    v_det = SyncDetection(
+                                        found=True,
+                                        sync_name=det.sync_name,
+                                        bit_index=0,
+                                        correlation_score=det.correlation_score,
+                                        is_inverted=False,
+                                        sync_word_len=len(sync_pat_bits),
+                                    )
+                                    v_frame = parse_packet_frame(virtual_stream, v_det, crc_type=self.config.crc_type)
+                                    if v_frame and v_frame.crc_valid:
+                                        best_sync_det = det
+                                        best_decoded_frame = v_frame
+                                        best_bits = np.concatenate([bit_stream[:start_bit], v_payload, aligned_bits[len(decode_bits):]])
+                                        actual_fec_used = "conv_viterbi_k7_r12"
+                                        found_valid_frame = True
+                                        # Compute true re-encode BER (Rule 11)
+                                        try:
+                                            import struct as _struct
+                                            header_and_payload = _struct.pack(
+                                                ">BBHH", v_frame.version, v_frame.packet_type, v_frame.seq_num, v_frame.payload_length
+                                            ) + v_frame.raw_payload_bytes
+                                            if v_frame.crc_type.lower() == "crc16":
+                                                crc_b = _struct.pack(">H", v_frame.crc_actual)
+                                            else:
+                                                crc_b = _struct.pack(">I", v_frame.crc_actual)
+                                            protected_data = header_and_payload + crc_b
+                                            protected_bits = np.unpackbits(np.frombuffer(protected_data, dtype=np.uint8))
+                                            reenc_bits = self.viterbi.encode(protected_bits)
+                                            cmp_len = min(len(reenc_bits), len(decode_bits))
+                                            if cmp_len > 0:
+                                                reencode_ber_val = float(np.mean(reenc_bits[:cmp_len] != decode_bits[:cmp_len]))
+                                        except Exception:
+                                            pass
+                                        break
+                                except Exception:
+                                    pass
+
+                        if not found_valid_frame and weighted_score > best_weighted_metric:
                             best_weighted_metric = weighted_score
                             best_sync_det = det
                             best_decoded_frame = frame
                             best_bits = bit_stream
 
-        sync_det = best_sync_det
-        decoded_frame = best_decoded_frame
-        fec_bits = best_bits
+        if found_valid_frame:
+            sync_det = best_sync_det
+            decoded_frame = best_decoded_frame
+            fec_bits = best_bits
+        else:
+            # No valid packet frame was verified.
+            # Only report sync_det if a high-confidence sync word was locked (>= 0.95)
+            if best_sync_det and best_sync_det.found and best_sync_det.correlation_score >= 0.95:
+                sync_det = best_sync_det
+            else:
+                sync_det = SyncDetection(False, "NONE", -1, 0.0, False, 0)
+            decoded_frame = None
+            fec_bits = deinterleaved_bits
 
         timings["fec_ms"] = 0.0
         timings["correlation_framing_ms"] = (time.perf_counter() - t0) * 1000.0
@@ -323,6 +393,9 @@ class SpectralQPipeline:
             stage_timings_ms=timings,
             total_time_ms=total_ms,
             status_summary=status,
+            fec_used=actual_fec_used,
+            interleaver_used=actual_interleaver_used,
+            reencode_ber=reencode_ber_val,
         )
 
     def process_file(

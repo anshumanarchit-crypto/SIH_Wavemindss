@@ -488,6 +488,9 @@ class PipelineResult:
     stage_timings_ms: Dict[str, float] = field(default_factory=dict)
     total_time_ms: float = 0.0
     status_summary: str = "SUCCESS"
+    fec_used: str = "none"
+    interleaver_used: str = "none"
+    reencode_ber: Optional[float] = None
     status: ResultStatus = ResultStatus.CONFIRMED
     confidence: Optional[float] = None
     warnings: List[Dict[str, Any]] = field(default_factory=list)

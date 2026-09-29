@@ -3,9 +3,9 @@
   "input_hash": "e3b1164af3eeb149b20a626e81f0853cd99c9a656580fefcb2dc53ba5044377d",
   "capture_id": "03_2FSK_satellite_18dB",
   "source_mode": "replay",
-  "cached_at_utc": "2026-09-28T20:58:13.232777+00:00",
+  "cached_at_utc": "2026-09-29T04:18:53.622257+00:00",
   "generation_parameters": {},
-  "payload_checksum": "cbf67b91e1d7de703718dd49ee3aa12920164cb564732c9131c2c07723f788bf",
+  "payload_checksum": "4e2a469c5bce6f37b4cfdaf0ac670cd2debdccbd943c3b97ed4c000ab9b0b72f",
   "analysis": {
     "schema_version": "1.0.0",
     "capture_id": "03_2FSK_satellite_18dB",
@@ -57,12 +57,12 @@
       },
       "cluster": {
         "count": 8,
-        "silhouette": 0.6528275012969971,
-        "intra_var": 0.3024887144565582,
-        "inter_dist": 1.2914981842041016
+        "silhouette": 0.6401164531707764,
+        "intra_var": 0.257856547832489,
+        "inter_dist": 1.3595751523971558
       },
-      "evm": 0.30355226452429696,
-      "phase_ambiguity_quality": 0.7222620010375977,
+      "evm": 0.22120406133732382,
+      "phase_ambiguity_quality": 0.7120931625366211,
       "cyclic": null
     },
     "sub_windows": [
@@ -76,11 +76,11 @@
         "C63": 2.560704163715755,
         "C80": 0.0784334380064953,
         "cluster_count": 8.0,
-        "silhouette": 0.6718504428863525,
-        "intra_var": 0.297231525182724,
-        "inter_dist": 1.3576421737670898,
-        "evm": 0.30355226452429696,
-        "phase_ambiguity_quality": 0.7222620010375977,
+        "silhouette": 0.6518267393112183,
+        "intra_var": 0.28575021028518677,
+        "inter_dist": 1.3834922313690186,
+        "evm": 0.22120406133732382,
+        "phase_ambiguity_quality": 0.7120931625366211,
         "snr": 11.959921813461033,
         "baud": 12500.0
       },
@@ -97,8 +97,8 @@
         "silhouette": 0.22,
         "intra_var": 0.45,
         "inter_dist": 0.8,
-        "evm": 0.30355226452429696,
-        "phase_ambiguity_quality": 0.7222620010375977,
+        "evm": 0.22120406133732382,
+        "phase_ambiguity_quality": 0.7120931625366211,
         "snr": 11.959921813461033,
         "baud": 12500.0
       },
@@ -115,8 +115,8 @@
         "silhouette": 0.22,
         "intra_var": 0.45,
         "inter_dist": 0.8,
-        "evm": 0.30355226452429696,
-        "phase_ambiguity_quality": 0.7222620010375977,
+        "evm": 0.22120406133732382,
+        "phase_ambiguity_quality": 0.7120931625366211,
         "snr": 11.959921813461033,
         "baud": 12500.0
       },
@@ -130,11 +130,11 @@
         "C63": 2.419974831890986,
         "C80": 0.07021559014913781,
         "cluster_count": 8.0,
-        "silhouette": 0.7091688513755798,
-        "intra_var": 0.28992727398872375,
-        "inter_dist": 1.3411463499069214,
-        "evm": 0.30355226452429696,
-        "phase_ambiguity_quality": 0.7222620010375977,
+        "silhouette": 0.7488024830818176,
+        "intra_var": 0.22440452873706818,
+        "inter_dist": 1.4275195598602295,
+        "evm": 0.22120406133732382,
+        "phase_ambiguity_quality": 0.7120931625366211,
         "snr": 11.959921813461033,
         "baud": 12500.0
       }

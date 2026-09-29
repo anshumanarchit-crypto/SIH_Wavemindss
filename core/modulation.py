@@ -184,8 +184,8 @@ class HybridModulationClassifier:
                     f"Theoretical QPSK cumulant signature: |C20|={c20_mag:.2f} (~0), |C40|={c40_mag:.2f}, |C42|={c42_mag:.2f}"
                 )
 
-            # 8PSK: theoretical |C20| ~ 0.0, |C40| < 0.30, |C42| >= 0.25, low sigma_af
-            if c40_mag < 0.30 and c42_mag >= 0.25 and sigma_aa < 0.25 and sigma_af < 0.06:
+            # 8PSK: theoretical |C20| ~ 0.0, |C40| < 0.30, |C42| >= 0.25, low sigma_aa
+            if c40_mag < 0.30 and c42_mag >= 0.25 and sigma_aa < 0.25 and sigma_af < 0.15:
                 return (
                     ModulationType.PSK8,
                     0.91,

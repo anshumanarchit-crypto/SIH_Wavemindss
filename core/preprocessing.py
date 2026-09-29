@@ -74,6 +74,14 @@ def correct_iq_imbalance(samples: np.ndarray) -> Tuple[np.ndarray, dict]:
     sin_phi = np.clip(sin_phi, -0.999, 0.999)
     phase_error_deg = float(np.arcsin(sin_phi) * 180.0 / np.pi)
 
+    # If imbalance is negligible, do not apply Gram-Schmidt to avoid injecting finite-sample shearing noise
+    if abs(gain_imbalance_db) < 1.0 and abs(phase_error_deg) < 10.0:
+        return samples, {
+            "gain_imbalance_db": float(gain_imbalance_db),
+            "phase_error_deg": phase_error_deg,
+            "iq_correlation": float(p_iq / np.sqrt(p_i * p_q)),
+        }
+
     # 3. Gram-Schmidt Orthogonalization
     i_norm = i_zm / np.sqrt(p_i)
     q_temp = q_zm - (p_iq / p_i) * i_zm

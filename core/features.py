@@ -239,8 +239,9 @@ def estimate_symbol_rate(
     max_sps: float = 64.0,
 ) -> Tuple[float, float]:
     """
-    Estimate Symbol (Baud) Rate using wave-difference non-linearity: |s[n] - s[n-1]|^2.
-    Isolates cyclostationary symbol clock lines and rejects burst boxcar DC leakage.
+    Estimate Symbol (Baud) Rate using cyclostationary non-linearities:
+    Oerder-Meyr squared envelope |s[n]|^2 combined with transition difference |s[n] - s[n-1]|^2.
+    Isolates cyclostationary symbol clock lines and rejects high-frequency noise & DC leakage.
 
     Returns:
         (estimated_baud_rate_hz, estimated_samples_per_symbol)
@@ -249,13 +250,17 @@ def estimate_symbol_rate(
     if n < 64 or sample_rate <= 0:
         return 1000.0, 8.0
 
-    # 1. Wave-difference non-linearity: transitions produce periodic clock spikes
+    # 1. Non-linearities for symbol clock recovery:
+    # Oerder-Meyr squared magnitude (robust for PSK/QAM)
+    sq_s = np.abs(samples) ** 2
+    sq_zm = sq_s - np.mean(sq_s)
+
+    # Wave-difference (transitions produce clock spikes)
     diff_s = np.abs(np.diff(samples)) ** 2
     diff_zm = diff_s - np.mean(diff_s)
 
     # 2. High-resolution FFT
-    n_fft = max(8192, 1 << int(np.ceil(np.log2(min(len(diff_zm) * 4, 32768)))))
-    fft_y = np.abs(np.fft.rfft(diff_zm, n=n_fft))
+    n_fft = max(8192, 1 << int(np.ceil(np.log2(min(len(samples) * 4, 32768)))))
     freqs = np.fft.rfftfreq(n_fft, d=1.0 / sample_rate)
 
     min_freq = sample_rate / max_sps
@@ -265,10 +270,18 @@ def estimate_symbol_rate(
     if not np.any(mask):
         return sample_rate / 8.0, 8.0
 
-    masked_freqs = freqs[mask]
-    masked_spec = fft_y[mask]
+    fft_sq = np.abs(np.fft.rfft(sq_zm, n=n_fft))
+    fft_diff = np.abs(np.fft.rfft(diff_zm, n=n_fft))
 
-    peak_idx = np.argmax(masked_spec)
+    # Normalize spectra within the search band
+    spec_sq_masked = fft_sq[mask] / (np.max(fft_sq[mask]) + 1e-12)
+    spec_diff_masked = fft_diff[mask] / (np.max(fft_diff[mask]) + 1e-12)
+
+    # Combined detector weights Oerder-Meyr higher for robust PSK/QAM clock extraction
+    combined_spec = 0.7 * spec_sq_masked + 0.3 * spec_diff_masked
+
+    masked_freqs = freqs[mask]
+    peak_idx = int(np.argmax(combined_spec))
     est_baud = float(masked_freqs[peak_idx])
 
     if est_baud <= 0:
