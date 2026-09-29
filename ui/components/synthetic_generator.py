@@ -2,15 +2,8 @@
 Synthetic Signal Generator Component for SpectralQ Dashboard.
 
 Provides a rich UI to generate synthetic RF signal captures (.wav, .iq, .cf32, .json)
-covering ALL possible pipeline test scenarios:
-  - All stages PASS (clean uncoded, Viterbi, RS, LDPC, concatenated)
-  - CRC FAIL (corrupted payload with valid header)
-  - Viterbi ACTIVE + CRC FAIL (burst noise exceeds correction)
-  - FEC/Interleaver BYPASS combinations
-  - Continuous unpacketized streams (FSK, 8-PSK)
-  - Degraded SNR (UNKNOWN abstention, Rule 12)
-  - Hardware impairments (IQ imbalance, CFO, phase noise)
-  - Ambiguous/multimodal boundary cases
+covering ALL possible pipeline stage permutations — clean passes, CRC failures,
+FEC/interleaver bypass combinations, continuous streams, degraded SNR, and hardware impairments.
 
 Strict invariant: DSP generation runs in core layer (core.fec, core.correlation).
 This module is UI-only; zero DSP computation in the UI layer.
@@ -22,8 +15,6 @@ import json
 import struct
 import time
 import zipfile
-from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -34,17 +25,17 @@ from ui.styles.theme import get_theme_tokens
 
 
 # ---------------------------------------------------------------------------
-# Test Case Registry — Defines every permutation the generator can produce
+# Scenario Catalog
 # ---------------------------------------------------------------------------
 SCENARIO_CATALOG = {
-    # ── Clean Framed Bursts (All Stages PASS) ─────────────────────────────
     "BPSK — Clean Framed Burst (All BYPASS, CRC PASS)": {
         "mod": "BPSK", "snr_db": 20.0, "sps": 8, "cfo_hz": 0.0,
         "fec": "none", "interleaver": "none", "corrupt_bits": 0,
         "stream_type": "framed", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
         "description": "High-SNR clean BPSK burst. All FEC and Interleaver stages BYPASS. Frame Sync & CRC PASS.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "BYPASS", "outer_fec": "BYPASS", "crc": "PASS"},
-        "tags": ["clean", "uncoded", "pass"]
+        "tags": ["clean", "uncoded", "pass"],
+        "icon": "✅",
     },
     "QPSK — Uncoded Golden Reference (All BYPASS, CRC PASS)": {
         "mod": "QPSK", "snr_db": 35.0, "sps": 8, "cfo_hz": 0.0,
@@ -52,7 +43,8 @@ SCENARIO_CATALOG = {
         "stream_type": "framed", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
         "description": "Golden reference uncoded QPSK. Mirrors G1 Sinchana reference. CRC PASS with zero BER.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "BYPASS", "outer_fec": "BYPASS", "crc": "PASS"},
-        "tags": ["golden", "g1", "uncoded", "pass"]
+        "tags": ["golden", "g1", "uncoded", "pass"],
+        "icon": "✅",
     },
     "16-QAM — High Density Burst (All BYPASS, CRC PASS)": {
         "mod": "16-QAM", "snr_db": 22.0, "sps": 8, "cfo_hz": 0.0,
@@ -60,16 +52,17 @@ SCENARIO_CATALOG = {
         "stream_type": "framed", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
         "description": "16-QAM multi-level constellation burst. All bypassed, clean decode.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "BYPASS", "outer_fec": "BYPASS", "crc": "PASS"},
-        "tags": ["16qam", "uncoded", "pass"]
+        "tags": ["16qam", "uncoded", "pass"],
+        "icon": "✅",
     },
-    # ── Inner FEC Active (Viterbi) ─────────────────────────────────────────
     "BPSK — Viterbi Rate 1/2 K=7 (FEC ACTIVE, CRC PASS)": {
         "mod": "BPSK", "snr_db": 18.0, "sps": 8, "cfo_hz": 0.0,
         "fec": "conv_viterbi", "interleaver": "none", "corrupt_bits": 0,
         "stream_type": "framed", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
         "description": "BPSK with CCSDS ASM preamble + Rate 1/2 Viterbi K=7. Inner FEC ACTIVE. CRC PASS with re-encode BER=0.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "RATE 1/2 (K=7)", "outer_fec": "BYPASS", "crc": "PASS"},
-        "tags": ["viterbi", "fec", "pass"]
+        "tags": ["viterbi", "fec", "pass"],
+        "icon": "🔐",
     },
     "QPSK — Viterbi Near SNR Threshold (FEC ACTIVE, CRC PASS)": {
         "mod": "QPSK", "snr_db": 14.0, "sps": 8, "cfo_hz": 0.0,
@@ -77,25 +70,26 @@ SCENARIO_CATALOG = {
         "stream_type": "framed", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
         "description": "QPSK Viterbi at marginal SNR (14 dB). Inner FEC active, De-Intl bypass. CRC PASS.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "RATE 1/2 (K=7)", "outer_fec": "BYPASS", "crc": "PASS"},
-        "tags": ["viterbi", "threshold", "pass"]
+        "tags": ["viterbi", "threshold", "pass"],
+        "icon": "🔐",
     },
-    # ── FEC + Interleaver (Both ACTIVE) ───────────────────────────────────
     "BPSK — Conv De-Interleaver + Viterbi (Both ACTIVE, CRC PASS)": {
         "mod": "BPSK", "snr_db": 22.0, "sps": 8, "cfo_hz": 0.0,
         "fec": "conv_viterbi", "interleaver": "convolutional", "corrupt_bits": 0,
         "stream_type": "framed", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
         "description": "BPSK with convolutional de-interleaver + Viterbi FEC. Both active. Mirrors G6 golden.",
         "expected": {"demod": "ACTIVE", "deintl": "CONVOLUTIONAL", "inner_fec": "RATE 1/2 (K=7)", "outer_fec": "BYPASS", "crc": "PASS"},
-        "tags": ["g6", "interleaver", "viterbi", "pass"]
+        "tags": ["g6", "interleaver", "viterbi", "pass"],
+        "icon": "🔐",
     },
-    # ── CRC FAIL Scenarios (Stage 5 Blocked) ──────────────────────────────
     "BPSK — Corrupted Payload (FEC BYPASS, CRC FAIL)": {
         "mod": "BPSK", "snr_db": 22.0, "sps": 8, "cfo_hz": 0.0,
         "fec": "none", "interleaver": "none", "corrupt_bits": 2,
         "stream_type": "framed", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
         "description": "Valid CCSDS header, intentionally corrupted payload bytes. Sync FOUND but CRC FAIL (red badge). FEC stays BYPASS.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "BYPASS", "outer_fec": "BYPASS", "crc": "FAIL"},
-        "tags": ["crc_fail", "corrupted", "blocked"]
+        "tags": ["crc_fail", "corrupted", "blocked"],
+        "icon": "❌",
     },
     "QPSK — Viterbi Active + CRC FAIL (Burst Noise Overwhelms FEC)": {
         "mod": "QPSK", "snr_db": 18.0, "sps": 8, "cfo_hz": 0.0,
@@ -103,16 +97,17 @@ SCENARIO_CATALOG = {
         "stream_type": "framed", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
         "description": "Viterbi active but burst channel errors (6 coded bit flips) overwhelm correction capability. CRC FAIL with positive BER.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "RATE 1/2 (K=7)", "outer_fec": "BYPASS", "crc": "FAIL"},
-        "tags": ["crc_fail", "viterbi", "burst_noise"]
+        "tags": ["crc_fail", "viterbi", "burst_noise"],
+        "icon": "❌",
     },
-    # ── Continuous Unpacketized Streams (CRC NOT_RUN) ─────────────────────
     "2-FSK — Satellite Continuous Stream (CRC NOT_RUN)": {
         "mod": "2-FSK", "snr_db": 18.0, "sps": 8, "cfo_hz": 0.0,
         "fec": "none", "interleaver": "none", "corrupt_bits": 0,
         "stream_type": "continuous", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
         "description": "Continuous 2-FSK satellite-style stream. No framing protocol. Rule 9: sync found ≠ CRC check ≠ CRC pass. Stage 5 UNCHECKED.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "BYPASS", "outer_fec": "BYPASS", "crc": "NOT_RUN"},
-        "tags": ["continuous", "fsk", "not_run"]
+        "tags": ["continuous", "fsk", "not_run"],
+        "icon": "📡",
     },
     "4-FSK — M-ary Multitone Continuous (CRC NOT_RUN)": {
         "mod": "4-FSK", "snr_db": 15.0, "sps": 10, "cfo_hz": 0.0,
@@ -120,24 +115,26 @@ SCENARIO_CATALOG = {
         "stream_type": "continuous", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
         "description": "4-tone M-ary FSK continuous broadcast. Demod active, all FEC bypass. Stage 5 UNCHECKED.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "BYPASS", "outer_fec": "BYPASS", "crc": "NOT_RUN"},
-        "tags": ["continuous", "4fsk", "mfsk"]
+        "tags": ["continuous", "4fsk", "mfsk"],
+        "icon": "📡",
     },
     "8-PSK — Carrier Locked Continuous Stream (CRC NOT_RUN)": {
         "mod": "8-PSK", "snr_db": 18.0, "sps": 8, "cfo_hz": 0.0,
         "fec": "none", "interleaver": "none", "corrupt_bits": 0,
         "stream_type": "continuous", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
-        "description": "8-PSK carrier-locked continuous data stream. 12,000+ bits demodulated. CRC stage UNCHECKED (not falsely failed).",
+        "description": "8-PSK carrier-locked continuous data stream. CRC stage UNCHECKED (not falsely failed).",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "BYPASS", "outer_fec": "BYPASS", "crc": "NOT_RUN"},
-        "tags": ["continuous", "8psk", "not_run"]
+        "tags": ["continuous", "8psk", "not_run"],
+        "icon": "📡",
     },
-    # ── Degraded / Failed Demodulator (Rule 12: UNKNOWN) ──────────────────
     "Pure AWGN Noise — Demodulator FAILED (Rule 12 UNKNOWN)": {
         "mod": "NOISE", "snr_db": -12.0, "sps": 8, "cfo_hz": 0.0,
         "fec": "none", "interleaver": "none", "corrupt_bits": 0,
         "stream_type": "noise", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
-        "description": "Pure Gaussian noise. SNR below 0 dB sensitivity floor. Rule 12: Abstain — UNKNOWN banner displayed. CRC NOT_RUN.",
+        "description": "Pure Gaussian noise. SNR below 0 dB sensitivity floor. Rule 12: Abstain — UNKNOWN banner displayed.",
         "expected": {"demod": "UNKNOWN", "deintl": "BYPASS", "inner_fec": "BYPASS", "outer_fec": "BYPASS", "crc": "NOT_RUN"},
-        "tags": ["noise", "unknown", "rule12"]
+        "tags": ["noise", "unknown", "rule12"],
+        "icon": "🚫",
     },
     "Degraded SNR -8 dB — Demodulator BLOCKED (UNKNOWN)": {
         "mod": "QPSK", "snr_db": -8.0, "sps": 8, "cfo_hz": 0.0,
@@ -145,16 +142,17 @@ SCENARIO_CATALOG = {
         "stream_type": "degraded", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
         "description": "Severely degraded QPSK below SNR floor. Demodulator cannot recover symbols. Rule 12 UNKNOWN abstention triggered.",
         "expected": {"demod": "UNKNOWN", "deintl": "BYPASS", "inner_fec": "BYPASS", "outer_fec": "BYPASS", "crc": "NOT_RUN"},
-        "tags": ["degraded", "snr", "unknown"]
+        "tags": ["degraded", "snr", "unknown"],
+        "icon": "🚫",
     },
-    # ── Hardware Impairments ───────────────────────────────────────────────
     "BPSK — CFO +5 kHz Offset (Carrier Tracking Required)": {
         "mod": "BPSK", "snr_db": 20.0, "sps": 8, "cfo_hz": 5000.0,
         "fec": "none", "interleaver": "none", "corrupt_bits": 0,
         "stream_type": "framed", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
-        "description": "BPSK burst with intentional +5 kHz CFO. Tests Costas PLL carrier recovery and frequency offset compensation.",
+        "description": "BPSK burst with intentional +5 kHz CFO. Tests Costas PLL carrier recovery.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "BYPASS", "outer_fec": "BYPASS", "crc": "PASS"},
-        "tags": ["cfo", "carrier_recovery", "pass"]
+        "tags": ["cfo", "carrier_recovery", "pass"],
+        "icon": "⚙️",
     },
     "QPSK — Severe IQ Imbalance (4 dB Gain + 25° Phase Error)": {
         "mod": "QPSK", "snr_db": 18.0, "sps": 8, "cfo_hz": 0.0,
@@ -162,15 +160,17 @@ SCENARIO_CATALOG = {
         "stream_type": "continuous", "iq_imbalance_db": 4.0, "phase_error_deg": 25.0,
         "description": "QPSK with severe hardware I/Q imbalance (4 dB gain + 25° phase skew). Exercises Gram-Schmidt IQ correction.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "BYPASS", "outer_fec": "BYPASS", "crc": "NOT_RUN"},
-        "tags": ["iq_imbalance", "hardware", "gram_schmidt"]
+        "tags": ["iq_imbalance", "hardware", "gram_schmidt"],
+        "icon": "⚙️",
     },
     "QPSK — Ambiguous 8 dB SNR (Hypothesis Competition)": {
         "mod": "QPSK", "snr_db": 8.0, "sps": 8, "cfo_hz": 1500.0,
         "fec": "none", "interleaver": "none", "corrupt_bits": 0,
         "stream_type": "continuous", "iq_imbalance_db": 0.0, "phase_error_deg": 5.0,
-        "description": "Low SNR QPSK with phase jitter. Boundary between QPSK and 8-PSK classification. Tests Modulation & Hypotheses tab competitor ranking.",
+        "description": "Low SNR QPSK with phase jitter. Boundary between QPSK and 8-PSK classification. Tests hypothesis ranking.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "BYPASS", "outer_fec": "BYPASS", "crc": "NOT_RUN"},
-        "tags": ["ambiguous", "hypothesis", "multimodal"]
+        "tags": ["ambiguous", "hypothesis", "multimodal"],
+        "icon": "⚙️",
     },
     "QPSK — Low SNR 5 dB Stress Test (Decoder Boundary)": {
         "mod": "QPSK", "snr_db": 5.0, "sps": 8, "cfo_hz": 0.0,
@@ -178,56 +178,69 @@ SCENARIO_CATALOG = {
         "stream_type": "continuous", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
         "description": "QPSK at 5 dB — near sensitivity limit. Stress tests low-SNR decoder resilience.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "BYPASS", "outer_fec": "BYPASS", "crc": "NOT_RUN"},
-        "tags": ["low_snr", "stress", "boundary"]
+        "tags": ["low_snr", "stress", "boundary"],
+        "icon": "⚙️",
     },
 }
 
-# Output format descriptions
-FORMAT_INFO = {
-    ".wav": "Stereo IEEE float32 WAV (Ch0=I, Ch1=Q) — Compatible with all SDR software",
-    ".cf32": "Raw binary complex64 (float32 I/Q pairs) — GNU Radio, SigDigger, SDR#",
-    ".iq": "Raw interleaved complex64 float32 — HDSDR, SDRSharp, SoapySDR",
-    ".json": "Ground truth metadata + decoder contract (no raw samples) — schema-verified",
+FILTER_CONFIG = {
+    "All Scenarios": {"tags": [], "color": "#58a6ff", "icon": "🔭"},
+    "CRC Pass": {"tags": ["pass"], "color": "#22c55e", "icon": "✅"},
+    "CRC Fail": {"tags": ["crc_fail", "corrupted", "blocked", "burst_noise"], "color": "#ef4444", "icon": "❌"},
+    "Continuous": {"tags": ["continuous", "fsk", "not_run", "mfsk"], "color": "#a855f7", "icon": "📡"},
+    "UNKNOWN / Noise": {"tags": ["noise", "unknown", "rule12", "degraded", "snr"], "color": "#f97316", "icon": "🚫"},
+    "FEC Active": {"tags": ["viterbi", "fec", "interleaver", "g6", "g1", "golden"], "color": "#06b6d4", "icon": "🔐"},
+    "Hardware": {"tags": ["cfo", "iq_imbalance", "hardware", "gram_schmidt", "ambiguous", "hypothesis"], "color": "#eab308", "icon": "⚙️"},
+    "Stress / Boundary": {"tags": ["stress", "low_snr", "boundary", "threshold"], "color": "#f43f5e", "icon": "🎯"},
+}
+
+FORMAT_META = {
+    ".wav": {"icon": "🎵", "desc": "Stereo float32 WAV (Ch0=I, Ch1=Q)", "sub": "GNU Radio · SDR# · Universal"},
+    ".cf32": {"icon": "🔢", "desc": "Raw complex64 binary (GNU Radio native)", "sub": "GNU Radio · SigDigger · SDR#"},
+    ".iq": {"icon": "📶", "desc": "Interleaved float32 complex IQ binary", "sub": "HDSDR · SDRSharp · SoapySDR"},
+    ".json": {"icon": "📄", "desc": "Ground truth metadata only (no samples)", "sub": "Schema-verified contract JSON"},
+}
+
+STAGE_COLORS = {
+    "ACTIVE": "#22c55e", "BYPASS": "#374151", "CONVOLUTIONAL": "#3b82f6",
+    "RATE 1/2 (K=7)": "#22c55e", "RS(255,223)": "#a855f7",
+    "PASS": "#22c55e", "FAIL": "#ef4444", "NOT_RUN": "#6b7280",
+    "UNKNOWN": "#ef4444", "LDPC": "#a855f7",
 }
 
 
 # ---------------------------------------------------------------------------
-# Signal Generation Engine (UI delegates to core DSP modules)
+# DSP core (all heavy lifting stays in core.*)
 # ---------------------------------------------------------------------------
-def _generate_synthetic_capture(scenario: Dict[str, Any], num_symbols: int, fs_hz: float = 100_000.0) -> Tuple[np.ndarray, Dict]:
-    """
-    Generates complex baseband samples for the given scenario.
-    All DSP is done via core modules — zero DSP in this UI file.
-    Returns (complex_samples, metadata_dict).
-    """
+def _generate_synthetic_capture(scenario: Dict[str, Any], num_symbols: int, fs_hz: float = 100_000.0):
     from core.fec import ConvolutionalCodec, CRC
     from core.correlation import KNOWN_SYNC_WORDS
     from core.preprocessing import apply_rrc_filter
 
-    rng = np.random.default_rng(seed=int(time.time() * 1000) % (2**32))
+    rng = np.random.default_rng(seed=int(time.time() * 1000) % (2 ** 32))
     sps = scenario["sps"]
     snr_db = scenario["snr_db"]
     mod = scenario["mod"]
     stream_type = scenario["stream_type"]
 
-    def _awgn(sig: np.ndarray, snr_db: float) -> np.ndarray:
+    def _awgn(sig, snr_db):
         pwr = np.mean(np.abs(sig) ** 2) + 1e-12
         n_pwr = pwr / (10.0 ** (snr_db / 10.0))
-        noise = np.sqrt(n_pwr / 2.0) * (rng.standard_normal(len(sig)) + 1j * rng.standard_normal(len(sig)))
-        return (sig + noise).astype(np.complex64)
+        n = np.sqrt(n_pwr / 2.0) * (rng.standard_normal(len(sig)) + 1j * rng.standard_normal(len(sig)))
+        return (sig + n).astype(np.complex64)
 
-    def _rrc_shape(syms: np.ndarray) -> np.ndarray:
+    def _rrc(syms):
         up = np.zeros(len(syms) * sps, dtype=np.complex64)
         up[::sps] = syms
         return apply_rrc_filter(up, sps=sps, beta=0.35, span=8)
 
-    def _add_cfo(sig: np.ndarray, cfo_hz: float, fs: float) -> np.ndarray:
+    def _cfo(sig, cfo_hz, fs):
         if abs(cfo_hz) < 1.0:
             return sig
-        t = np.arange(len(sig), dtype=np.float64) / fs
+        t = np.arange(len(sig)) / fs
         return (sig * np.exp(1j * 2.0 * np.pi * cfo_hz * t)).astype(np.complex64)
 
-    def _add_iq_imbalance(sig: np.ndarray, gain_db: float, phase_deg: float) -> np.ndarray:
+    def _iq_imbal(sig, gain_db, phase_deg):
         if gain_db == 0.0 and phase_deg == 0.0:
             return sig
         alpha = 10.0 ** (gain_db / 20.0)
@@ -236,618 +249,736 @@ def _generate_synthetic_capture(scenario: Dict[str, Any], num_symbols: int, fs_h
         q = np.real(sig) * alpha * np.sin(phi) + np.imag(sig) * np.cos(phi)
         return (i + 1j * q).astype(np.complex64)
 
-    def _make_packet(payload: bytes, fec: str, corrupt_bits: int):
-        """Build a CCSDS-framed packet, optionally Viterbi-encoded and optionally corrupted."""
+    def _packet(payload, fec, corrupt_bits):
         sync = KNOWN_SYNC_WORDS["CCSDS_32"]
-        header = struct.pack(">BBHH", 1, 42, 1001, len(payload))
-        crc_val = CRC.crc16(header + payload)
+        hdr = struct.pack(">BBHH", 1, 42, 1001, len(payload))
+        crc_val = CRC.crc16(hdr + payload)
         crc_bytes = struct.pack(">H", crc_val)
-        full_packet = header + payload + crc_bytes
-        packet_bits = np.unpackbits(np.frombuffer(full_packet, dtype=np.uint8))
-
+        full = hdr + payload + crc_bytes
+        bits = np.unpackbits(np.frombuffer(full, dtype=np.uint8))
         if corrupt_bits > 0 and fec == "none":
-            # Corrupt payload bytes (after header) for CRC FAIL
-            payload_start_bit = 48  # 6-byte header × 8
-            for i in range(min(corrupt_bits, len(packet_bits) - payload_start_bit - 16)):
-                packet_bits[payload_start_bit + i * 7] ^= 1
-
+            for i in range(min(corrupt_bits, len(bits) - 64)):
+                bits[48 + i * 7] ^= 1
         if fec == "conv_viterbi":
             codec = ConvolutionalCodec()
-            encoded = codec.encode(packet_bits)
+            enc = codec.encode(bits)
             if corrupt_bits > 0:
-                # Corrupt bits in coded domain
-                for i in range(min(corrupt_bits, len(encoded) - 120)):
-                    encoded[120 + i] ^= 1
-            return np.concatenate([sync, encoded])
-        else:
-            return np.concatenate([sync, packet_bits])
+                for i in range(min(corrupt_bits, len(enc) - 120)):
+                    enc[120 + i] ^= 1
+            return np.concatenate([sync, enc])
+        return np.concatenate([sync, bits])
 
-    # --- Build bit stream ---
     payload_text = b"SPECTRALQ_SYNTHETIC_CAPTURE_TEST_PAYLOAD_WAVEMINDS_SIH26147"
 
     if stream_type == "noise" or mod == "NOISE":
-        # Pure AWGN — no signal structure
-        noise_samples = (rng.standard_normal(num_symbols * sps) + 1j * rng.standard_normal(num_symbols * sps)).astype(np.complex64)
-        noise_samples *= 0.1  # Very low power → SNR << 0 dB by design
-        samples = noise_samples
+        samples = (rng.standard_normal(num_symbols * sps) + 1j * rng.standard_normal(num_symbols * sps)).astype(np.complex64) * 0.1
         bits_info = 0
-
     elif stream_type == "degraded":
-        # Signal below sensitivity floor
-        if mod == "QPSK":
-            rand_bits = rng.integers(0, 2, num_symbols * 2).astype(np.uint8)
-            b0, b1 = rand_bits[0::2], rand_bits[1::2]
-            syms = ((2.0 * b0 - 1.0) + 1j * (2.0 * b1 - 1.0)).astype(np.complex64) / np.sqrt(2.0)
-        else:
-            rand_bits = rng.integers(0, 2, num_symbols).astype(np.uint8)
-            syms = (2.0 * rand_bits - 1.0).astype(np.complex64)
-        shaped = _rrc_shape(syms)
-        samples = _awgn(shaped, snr_db)  # Very negative dB → overwhelmed by noise
+        bits = rng.integers(0, 2, num_symbols * 2).astype(np.uint8)
+        syms = ((2.0 * bits[0::2] - 1.0) + 1j * (2.0 * bits[1::2] - 1.0)).astype(np.complex64) / np.sqrt(2.0)
+        samples = _awgn(_rrc(syms), snr_db)
         bits_info = num_symbols
-
     elif stream_type == "continuous":
-        # Continuous unpacketized stream (no framing protocol)
-        if mod in ("2-FSK",):
-            rand_bits = rng.integers(0, 2, num_symbols).astype(np.uint8)
-            mark_f = fs_hz * 0.05
-            space_f = -fs_hz * 0.05
-            t_sym = np.arange(sps) / fs_hz
-            fsk_chunks = []
-            curr_phase = 0.0
-            for b in rand_bits:
-                f = mark_f if b == 1 else space_f
-                chunk = np.exp(1j * (curr_phase + 2.0 * np.pi * f * t_sym)).astype(np.complex64)
-                curr_phase = np.angle(chunk[-1])
-                fsk_chunks.append(chunk)
-            shaped = np.concatenate(fsk_chunks)
-            samples = _awgn(shaped, snr_db)
-        elif mod in ("4-FSK",):
-            rand_bits = rng.integers(0, 2, num_symbols * 2).astype(np.uint8)
-            tones = {(0, 0): -0.15, (0, 1): -0.05, (1, 0): +0.05, (1, 1): +0.15}
-            t_sym = np.arange(sps) / fs_hz
-            fsk_chunks = []
-            curr_phase = 0.0
-            for i in range(len(rand_bits) // 2):
-                b0, b1 = rand_bits[2 * i], rand_bits[2 * i + 1]
-                f = tones[(b0, b1)] * fs_hz
-                chunk = np.exp(1j * (curr_phase + 2.0 * np.pi * f * t_sym)).astype(np.complex64)
-                curr_phase = np.angle(chunk[-1])
-                fsk_chunks.append(chunk)
-            shaped = np.concatenate(fsk_chunks)
-            samples = _awgn(shaped, snr_db)
+        if mod == "2-FSK":
+            bits = rng.integers(0, 2, num_symbols).astype(np.uint8)
+            t_s = np.arange(sps) / fs_hz
+            chunks, ph = [], 0.0
+            for b in bits:
+                f = (0.05 if b else -0.05) * fs_hz
+                chunk = np.exp(1j * (ph + 2.0 * np.pi * f * t_s)).astype(np.complex64)
+                ph = np.angle(chunk[-1])
+                chunks.append(chunk)
+            samples = _awgn(np.concatenate(chunks), snr_db)
+        elif mod == "4-FSK":
+            bits = rng.integers(0, 2, num_symbols * 2).astype(np.uint8)
+            tones = {(0, 0): -0.15, (0, 1): -0.05, (1, 0): 0.05, (1, 1): 0.15}
+            t_s = np.arange(sps) / fs_hz
+            chunks, ph = [], 0.0
+            for i in range(len(bits) // 2):
+                f = tones[(bits[2*i], bits[2*i+1])] * fs_hz
+                chunk = np.exp(1j * (ph + 2.0 * np.pi * f * t_s)).astype(np.complex64)
+                ph = np.angle(chunk[-1])
+                chunks.append(chunk)
+            samples = _awgn(np.concatenate(chunks), snr_db)
         elif mod == "8-PSK":
-            rand_bits = rng.integers(0, 2, num_symbols * 3).astype(np.uint8)
-            phases = np.array([0, 1, 2, 3, 4, 5, 6, 7]) * (np.pi / 4)
-            idx = (rand_bits[0::3] * 4 + rand_bits[1::3] * 2 + rand_bits[2::3]).astype(int)
-            idx = np.clip(idx, 0, 7)
-            syms = np.exp(1j * phases[idx]).astype(np.complex64)
-            shaped = _rrc_shape(syms)
-            samples = _awgn(shaped, snr_db)
-        elif mod == "QPSK":
-            rand_bits = rng.integers(0, 2, num_symbols * 2).astype(np.uint8)
-            b0, b1 = rand_bits[0::2], rand_bits[1::2]
-            syms = ((2.0 * b0 - 1.0) + 1j * (2.0 * b1 - 1.0)).astype(np.complex64) / np.sqrt(2.0)
-            shaped = _rrc_shape(syms)
-            samples = _awgn(shaped, snr_db)
+            bits = rng.integers(0, 2, num_symbols * 3).astype(np.uint8)
+            ph_lut = np.arange(8) * (np.pi / 4)
+            idx = np.clip(bits[0::3] * 4 + bits[1::3] * 2 + bits[2::3], 0, 7).astype(int)
+            syms = np.exp(1j * ph_lut[idx]).astype(np.complex64)
+            samples = _awgn(_rrc(syms), snr_db)
         else:
-            rand_bits = rng.integers(0, 2, num_symbols).astype(np.uint8)
-            syms = (2.0 * rand_bits - 1.0).astype(np.complex64)
-            shaped = _rrc_shape(syms)
-            samples = _awgn(shaped, snr_db)
-
+            bits = rng.integers(0, 2, num_symbols * 2).astype(np.uint8)
+            syms = ((2.0 * bits[0::2] - 1.0) + 1j * (2.0 * bits[1::2] - 1.0)).astype(np.complex64) / np.sqrt(2.0)
+            samples = _awgn(_rrc(syms), snr_db)
         bits_info = num_symbols
-
-        # Apply IQ imbalance
-        samples = _add_iq_imbalance(samples, scenario["iq_imbalance_db"], scenario["phase_error_deg"])
-        samples = _add_cfo(samples, scenario["cfo_hz"], fs_hz)
-
+        samples = _iq_imbal(samples, scenario["iq_imbalance_db"], scenario["phase_error_deg"])
+        samples = _cfo(samples, scenario["cfo_hz"], fs_hz)
     else:
-        # Framed burst (has structured CCSDS packet)
-        tx_bits = _make_packet(payload_text, scenario["fec"], scenario["corrupt_bits"])
-
-        # Handle interleaver (pre-modulation bit shuffling simulation)
+        tx_bits = _packet(payload_text, scenario["fec"], scenario["corrupt_bits"])
         if scenario["interleaver"] == "convolutional":
-            # Simple diagonal interleave shuffle
-            shuffle_depth = 12
-            padded = np.pad(tx_bits, (0, (shuffle_depth - len(tx_bits) % shuffle_depth) % shuffle_depth), constant_values=0)
-            interleaved = padded.reshape(-1, shuffle_depth).T.flatten()[:len(tx_bits)]
-            tx_bits = interleaved.astype(np.uint8)
-
-        # Lead-in random bits
-        lead_in = rng.integers(0, 2, 64).astype(np.uint8)
-        lead_out = rng.integers(0, 2, 64).astype(np.uint8)
-        all_bits = np.concatenate([lead_in, tx_bits, lead_out])
-
-        # Modulate
+            depth = 12
+            padded = np.pad(tx_bits, (0, (depth - len(tx_bits) % depth) % depth))
+            tx_bits = padded.reshape(-1, depth).T.flatten()[:len(tx_bits)].astype(np.uint8)
+        lead = rng.integers(0, 2, 64).astype(np.uint8)
+        all_bits = np.concatenate([lead, tx_bits, lead])
         if mod == "BPSK":
             syms = (2.0 * all_bits - 1.0).astype(np.complex64)
         elif mod == "QPSK":
-            if len(all_bits) % 2 != 0:
-                all_bits = np.append(all_bits, 0)
-            b0, b1 = all_bits[0::2], all_bits[1::2]
-            syms = ((2.0 * b0 - 1.0) + 1j * (2.0 * b1 - 1.0)).astype(np.complex64) / np.sqrt(2.0)
+            if len(all_bits) % 2: all_bits = np.append(all_bits, 0)
+            syms = ((2.0 * all_bits[0::2] - 1.0) + 1j * (2.0 * all_bits[1::2] - 1.0)).astype(np.complex64) / np.sqrt(2.0)
         elif mod == "16-QAM":
-            if len(all_bits) % 4 != 0:
-                all_bits = np.pad(all_bits, (0, 4 - len(all_bits) % 4), constant_values=0)
-            gray = [0, 1, 3, 2, 6, 7, 5, 4]
+            if len(all_bits) % 4: all_bits = np.pad(all_bits, (0, 4 - len(all_bits) % 4))
             levels = np.array([-3, -1, 1, 3], dtype=np.float32) / np.sqrt(10.0)
-            i_idx = all_bits[0::4] * 2 + all_bits[1::4]
-            q_idx = all_bits[2::4] * 2 + all_bits[3::4]
-            syms = (levels[i_idx] + 1j * levels[q_idx]).astype(np.complex64)
+            syms = (levels[all_bits[0::4] * 2 + all_bits[1::4]] + 1j * levels[all_bits[2::4] * 2 + all_bits[3::4]]).astype(np.complex64)
         else:
             syms = (2.0 * all_bits - 1.0).astype(np.complex64)
-
-        shaped = _rrc_shape(syms)
+        shaped = _rrc(syms)
         samples = _awgn(shaped, snr_db)
+        samples = _iq_imbal(samples, scenario["iq_imbalance_db"], scenario["phase_error_deg"])
+        samples = _cfo(samples, scenario["cfo_hz"], fs_hz)
         bits_info = len(tx_bits)
 
-    # Apply CFO and IQ imbalance for framed case
-    if stream_type == "framed":
-        samples = _add_iq_imbalance(samples, scenario["iq_imbalance_db"], scenario["phase_error_deg"])
-        samples = _add_cfo(samples, scenario["cfo_hz"], fs_hz)
-
-    metadata = {
+    meta = {
         "schema_version": "1.0.0",
         "generator": "SpectralQ Synthetic Signal Generator v2.0",
-        "capture_id": f"SYNTH_{mod.replace('-', '').replace(' ', '_')}_{stream_type.upper()}",
-        "modulation": mod,
-        "sample_rate": float(fs_hz),
-        "snr_db": float(snr_db),
-        "sps": sps,
-        "cfo_hz": float(scenario["cfo_hz"]),
+        "capture_id": f"SYNTH_{mod.replace('-','').replace(' ','_')}_{stream_type.upper()}",
+        "modulation": mod, "sample_rate": float(fs_hz), "snr_db": float(snr_db),
+        "sps": sps, "cfo_hz": float(scenario["cfo_hz"]),
         "iq_imbalance_db": float(scenario["iq_imbalance_db"]),
         "phase_error_deg": float(scenario["phase_error_deg"]),
-        "fec": scenario["fec"],
-        "interleaver": scenario["interleaver"],
-        "corrupt_bits": scenario["corrupt_bits"],
-        "stream_type": stream_type,
-        "num_samples": int(len(samples)),
-        "payload_bits": int(bits_info),
+        "fec": scenario["fec"], "interleaver": scenario["interleaver"],
+        "corrupt_bits": scenario["corrupt_bits"], "stream_type": stream_type,
+        "num_samples": int(len(samples)), "payload_bits": int(bits_info),
         "expected_pipeline_stages": scenario["expected"],
-        "description": scenario["description"],
-        "tags": scenario["tags"],
+        "description": scenario["description"], "tags": scenario["tags"],
     }
+    return samples.astype(np.complex64), meta
 
-    return samples.astype(np.complex64), metadata
 
-
-def _samples_to_wav(samples: np.ndarray, fs_hz: float) -> bytes:
-    """Convert complex samples to stereo float32 WAV bytes."""
-    i_chan = np.real(samples).astype(np.float32)
-    q_chan = np.imag(samples).astype(np.float32)
-    stereo = np.column_stack([i_chan, q_chan])
+def _to_wav(samples, fs_hz):
     buf = io.BytesIO()
+    stereo = np.column_stack([np.real(samples).astype(np.float32), np.imag(samples).astype(np.float32)])
     wavfile.write(buf, int(fs_hz), stereo)
     return buf.getvalue()
 
 
-def _samples_to_cf32(samples: np.ndarray) -> bytes:
-    """Convert complex samples to raw binary complex64 (CF32)."""
+def _to_raw(samples):
     return samples.astype(np.complex64).tobytes()
 
 
-def _samples_to_iq(samples: np.ndarray) -> bytes:
-    """Convert complex samples to interleaved float32 IQ binary."""
-    return samples.astype(np.complex64).tobytes()
-
-
-def _badge(label: str, color: str) -> str:
+# ---------------------------------------------------------------------------
+# Styled subcomponents
+# ---------------------------------------------------------------------------
+def _stage_pill(label: str, value: str) -> str:
+    color = STAGE_COLORS.get(value, "#6b7280")
+    bg = color + "22"
+    short = {"RATE 1/2 (K=7)": "R½ K=7", "CONVOLUTIONAL": "CONV", "NOT_RUN": "SKIP", "RS(255,223)": "RS"}.get(value, value)
     return (
-        f'<span style="background:{color}; color:#fff; font-weight:700; font-size:0.7rem; '
-        f'padding:2px 8px; border-radius:4px; letter-spacing:0.05em;">{label}</span>'
+        f'<span style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;">'
+        f'<span style="font-size:0.58rem;color:#6b7280;text-transform:uppercase;letter-spacing:.08em;">{label}</span>'
+        f'<span style="background:{bg};color:{color};border:1px solid {color}44;font-weight:700;'
+        f'font-size:0.68rem;padding:2px 10px;border-radius:999px;letter-spacing:.06em;">{short}</span>'
+        f'</span>'
     )
 
 
-def _expected_stage_badges(expected: Dict[str, str]) -> str:
-    badge_cfg = {
-        "demod": {"ACTIVE": ("#22c55e", "ACTIVE"), "UNKNOWN": ("#ef4444", "UNKNOWN")},
-        "deintl": {"BYPASS": ("#6b7280", "BYPASS"), "CONVOLUTIONAL": ("#3b82f6", "CONV"), "BLOCK": ("#3b82f6", "BLOCK"), "DIAGONAL": ("#3b82f6", "DIAGONAL"), "PSEUDORANDOM": ("#3b82f6", "PSEUDO")},
-        "inner_fec": {"BYPASS": ("#6b7280", "BYPASS"), "RATE 1/2 (K=7)": ("#22c55e", "RATE 1/2")},
-        "outer_fec": {"BYPASS": ("#6b7280", "BYPASS"), "RS(255,223)": ("#a855f7", "RS"), "LDPC": ("#a855f7", "LDPC")},
-        "crc": {"PASS": ("#22c55e", "PASS"), "FAIL": ("#ef4444", "FAIL"), "NOT_RUN": ("#6b7280", "UNCHECKED")},
-    }
-    stage_names = {"demod": "S1 DEMOD", "deintl": "S2 DE-INTL", "inner_fec": "S3 INNER FEC", "outer_fec": "S4 OUTER FEC", "crc": "S5 FRAME & CRC"}
+def _arrow() -> str:
+    return '<span style="color:#374151;font-size:1.1rem;align-self:flex-end;padding-bottom:4px;">→</span>'
+
+
+def _stage_pipeline_html(expected: Dict[str, str]) -> str:
+    stage_defs = [
+        ("S1", "DEMOD", expected.get("demod", "ACTIVE")),
+        ("S2", "DE-INTL", expected.get("deintl", "BYPASS")),
+        ("S3", "INNER FEC", expected.get("inner_fec", "BYPASS")),
+        ("S4", "OUTER FEC", expected.get("outer_fec", "BYPASS")),
+        ("S5", "FRAME+CRC", expected.get("crc", "NOT_RUN")),
+    ]
     parts = []
-    for key, name in stage_names.items():
-        val = expected.get(key, "BYPASS")
-        cfg = badge_cfg.get(key, {})
-        color, short = cfg.get(val, ("#6b7280", val))
-        parts.append(f'<span style="font-size:0.65rem;color:#9ca3af;">{name}</span> {_badge(short, color)}')
-    return " &nbsp; ".join(parts)
-
-
-# ---------------------------------------------------------------------------
-# Main Renderer
-# ---------------------------------------------------------------------------
-def render_synthetic_signal_generator() -> None:
-    """Renders the Synthetic Signal Generator workspace."""
-    st.markdown("## 🧬 Synthetic Signal Generator")
-    st.caption(
-        "Generate benchmark RF captures (.wav / .iq / .cf32 / .json) covering "
-        "**all possible pipeline stage permutations** — clean passes, CRC failures, "
-        "FEC/interleaver bypass combinations, continuous streams, degraded SNR, and hardware impairments."
+    for i, (num, name, val) in enumerate(stage_defs):
+        parts.append(_stage_pill(f"{num} {name}", val))
+        if i < len(stage_defs) - 1:
+            parts.append(_arrow())
+    return (
+        f'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0.75rem 0;">'
+        + " ".join(parts) +
+        f'</div>'
     )
 
-    tokens = get_theme_tokens()
 
-    # ── Section 1: Scenario Browser ────────────────────────────────────────
-    st.markdown("### 📋 Scenario Catalog")
-    st.caption("Each scenario is designed to trigger specific pipeline stage badges in the Decoder & Bitstream tab.")
+def _crc_outcome_color(crc_val: str) -> str:
+    return {"PASS": "#22c55e", "FAIL": "#ef4444", "NOT_RUN": "#6b7280"}.get(crc_val, "#6b7280")
 
-    tag_filter_options = ["all", "pass", "crc_fail", "continuous", "noise/unknown", "hardware", "fec", "stress"]
-    selected_tag = st.radio(
-        "Filter by Test Category:",
-        tag_filter_options,
-        horizontal=True,
-        key="synth_tag_filter",
-    )
 
-    tag_map = {
-        "all": [],
-        "pass": ["pass"],
-        "crc_fail": ["crc_fail", "corrupted", "blocked", "burst_noise"],
-        "continuous": ["continuous", "fsk", "not_run", "mfsk"],
-        "noise/unknown": ["noise", "unknown", "rule12", "degraded", "snr"],
-        "hardware": ["cfo", "iq_imbalance", "hardware", "gram_schmidt", "ambiguous", "hypothesis"],
-        "fec": ["viterbi", "fec", "interleaver", "g6", "g1", "golden"],
-        "stress": ["stress", "low_snr", "boundary", "threshold"],
-    }
+def _render_hero(tokens: Dict):
+    crc_counts = {"PASS": 0, "FAIL": 0, "NOT_RUN": 0}
+    for s in SCENARIO_CATALOG.values():
+        c = s["expected"].get("crc", "NOT_RUN")
+        crc_counts[c] = crc_counts.get(c, 0) + 1
 
-    active_tags = tag_map.get(selected_tag, [])
-    filtered = {
-        k: v for k, v in SCENARIO_CATALOG.items()
-        if not active_tags or any(t in v["tags"] for t in active_tags)
-    }
-
-    # Scenario selection
-    scenario_names = list(filtered.keys())
-    if not scenario_names:
-        st.warning("No scenarios match the selected filter.")
-        return
-
-    selected_scenario_name = st.selectbox(
-        "Select Test Scenario:",
-        scenario_names,
-        key="synth_scenario_select",
-    )
-    scenario = filtered[selected_scenario_name]
-
-    # Scenario detail card
-    expected = scenario["expected"]
     st.markdown(
         f"""
-        <div style="background:{'#1a1a2e' if tokens.get('bg_card','').startswith('#') else '#f8fafc'};
-                    border:1px solid #374151; border-radius:8px; padding:1rem; margin:0.5rem 0;">
-            <div style="font-size:0.75rem; font-weight:700; color:#9ca3af; text-transform:uppercase; margin-bottom:0.5rem;">
-                Scenario Description
-            </div>
-            <p style="margin:0 0 0.75rem 0; font-size:0.9rem;">{scenario['description']}</p>
-            <div style="display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center;">
-                {_expected_stage_badges(expected)}
+        <div style="
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f2a1e 100%);
+            border: 1px solid #1e40af44;
+            border-radius: 16px;
+            padding: 2rem 2.5rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        ">
+            <div style="position:absolute;top:-20px;right:-20px;width:200px;height:200px;
+                background:radial-gradient(circle, #3b82f622, transparent 70%);border-radius:50%;"></div>
+            <div style="position:relative;z-index:1;">
+                <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
+                    <span style="font-size:2rem;">🧬</span>
+                    <h2 style="margin:0;font-size:1.75rem;font-weight:800;
+                        background:linear-gradient(90deg,#60a5fa,#34d399);
+                        -webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+                        Synthetic Signal Generator
+                    </h2>
+                </div>
+                <p style="color:#94a3b8;margin:0 0 1.5rem 0;font-size:0.95rem;max-width:700px;line-height:1.6;">
+                    Generate benchmark RF captures in <code style="background:#1e3a5f;color:#60a5fa;padding:1px 6px;border-radius:4px;">.wav</code>
+                    <code style="background:#1e3a5f;color:#60a5fa;padding:1px 6px;border-radius:4px;">.iq</code>
+                    <code style="background:#1e3a5f;color:#60a5fa;padding:1px 6px;border-radius:4px;">.cf32</code>
+                    <code style="background:#1e3a5f;color:#60a5fa;padding:1px 6px;border-radius:4px;">.json</code>
+                    covering every pipeline stage permutation — clean frames, CRC failures, FEC chains,
+                    continuous streams, degraded SNR, and hardware impairments.
+                </p>
+                <div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
+                    <div style="text-align:center;">
+                        <div style="font-size:1.75rem;font-weight:800;color:#60a5fa;">{len(SCENARIO_CATALOG)}</div>
+                        <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.08em;">Scenarios</div>
+                    </div>
+                    <div style="width:1px;background:#334155;"></div>
+                    <div style="text-align:center;">
+                        <div style="font-size:1.75rem;font-weight:800;color:#22c55e;">{crc_counts['PASS']}</div>
+                        <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.08em;">CRC Pass</div>
+                    </div>
+                    <div style="width:1px;background:#334155;"></div>
+                    <div style="text-align:center;">
+                        <div style="font-size:1.75rem;font-weight:800;color:#ef4444;">{crc_counts['FAIL']}</div>
+                        <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.08em;">CRC Fail</div>
+                    </div>
+                    <div style="width:1px;background:#334155;"></div>
+                    <div style="text-align:center;">
+                        <div style="font-size:1.75rem;font-weight:800;color:#6b7280;">{crc_counts['NOT_RUN']}</div>
+                        <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.08em;">Unchecked</div>
+                    </div>
+                    <div style="width:1px;background:#334155;"></div>
+                    <div style="text-align:center;">
+                        <div style="font-size:1.75rem;font-weight:800;color:#a855f7;">4</div>
+                        <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.08em;">Formats</div>
+                    </div>
+                </div>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    st.markdown("---")
 
-    # ── Section 2: Generation Controls ────────────────────────────────────
-    st.markdown("### ⚙️ Generation Parameters")
+def _render_filter_bar() -> str:
+    st.markdown("#### 🔍 Filter Scenarios")
+    selected = st.session_state.get("synth_active_filter", "All Scenarios")
+    cols = st.columns(len(FILTER_CONFIG))
+    for col, (label, cfg) in zip(cols, FILTER_CONFIG.items()):
+        is_sel = label == selected
+        count = len([s for s in SCENARIO_CATALOG.values() if not cfg["tags"] or any(t in s["tags"] for t in cfg["tags"])])
+        btn_style = "primary" if is_sel else "secondary"
+        with col:
+            if st.button(
+                f"{cfg['icon']} {label}\n({count})",
+                key=f"filter_btn_{label}",
+                type=btn_style,
+                use_container_width=True,
+            ):
+                st.session_state["synth_active_filter"] = label
+                st.rerun()
+    return selected
 
-    gcol1, gcol2, gcol3 = st.columns(3)
-    with gcol1:
-        fs_hz = st.number_input(
-            "Sample Rate (Hz):",
-            min_value=10_000.0,
-            max_value=10_000_000.0,
-            value=100_000.0,
-            step=10_000.0,
-            format="%.0f",
-            key="synth_fs_hz",
+
+def _render_scenario_grid(filtered: Dict, selected_name: str) -> Optional[str]:
+    """Renders scenario cards in a 3-column grid. Returns clicked scenario name or current."""
+    crc_color_map = {"PASS": "#22c55e22", "FAIL": "#ef444422", "NOT_RUN": "#6b728022"}
+    crc_border_map = {"PASS": "#22c55e55", "FAIL": "#ef444455", "NOT_RUN": "#6b728055"}
+
+    names = list(filtered.keys())
+    if not names:
+        st.info("No scenarios match the selected filter.")
+        return selected_name
+
+    n_cols = 3
+    for row_start in range(0, len(names), n_cols):
+        row_names = names[row_start: row_start + n_cols]
+        cols = st.columns(n_cols)
+        for col, name in zip(cols, row_names):
+            sc = filtered[name]
+            crc = sc["expected"].get("crc", "NOT_RUN")
+            is_sel = name == selected_name
+            border_color = "#3b82f6" if is_sel else crc_border_map.get(crc, "#334155")
+            bg_color = "#1e3a5f33" if is_sel else crc_color_map.get(crc, "#11182744")
+
+            tag_html = " ".join([
+                f'<span style="background:#1e293b;color:#64748b;font-size:0.6rem;'
+                f'padding:1px 6px;border-radius:4px;letter-spacing:.05em;">{t}</span>'
+                for t in sc["tags"][:3]
+            ])
+            crc_col = STAGE_COLORS.get(crc, "#6b7280")
+
+            with col:
+                st.markdown(
+                    f"""
+                    <div style="
+                        background:{bg_color};
+                        border:{'2px' if is_sel else '1px'} solid {border_color};
+                        border-radius:12px;
+                        padding:1rem;
+                        margin-bottom:0.5rem;
+                        min-height:120px;
+                        cursor:pointer;
+                        transition:border .2s;
+                    ">
+                        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.4rem;">
+                            <span style="font-size:1.4rem;">{sc['icon']}</span>
+                            <span style="background:{crc_col}22;color:{crc_col};border:1px solid {crc_col}44;
+                                font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:999px;
+                                letter-spacing:.08em;">{crc}</span>
+                        </div>
+                        <div style="font-size:0.8rem;font-weight:600;color:#e2e8f0;margin-bottom:0.3rem;
+                            line-height:1.3;">{name[:52]}{'…' if len(name)>52 else ''}</div>
+                        <div style="font-size:0.68rem;color:#64748b;line-height:1.4;margin-bottom:0.5rem;">
+                            {sc['mod']} · {sc['stream_type']} · {sc['snr_db']:+.0f} dB SNR
+                        </div>
+                        <div style="display:flex;flex-wrap:wrap;gap:3px;">{tag_html}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                if st.button("Select", key=f"sc_btn_{name[:30]}", use_container_width=True):
+                    return name
+
+    return selected_name
+
+
+def _render_scenario_detail(scenario: Dict, name: str, tokens: Dict):
+    crc = scenario["expected"].get("crc", "NOT_RUN")
+    crc_col = STAGE_COLORS.get(crc, "#6b7280")
+    bg = {"PASS": "#052e16", "FAIL": "#1c0b0b", "NOT_RUN": "#111827"}.get(crc, "#111827")
+
+    st.markdown(
+        f"""
+        <div style="
+            background:linear-gradient(135deg, {bg} 0%, #0f172a 100%);
+            border:1px solid {crc_col}44;
+            border-left:4px solid {crc_col};
+            border-radius:12px;
+            padding:1.25rem 1.5rem;
+            margin-bottom:1rem;
+        ">
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
+                <span style="font-size:1.75rem;">{scenario['icon']}</span>
+                <div>
+                    <div style="font-size:1rem;font-weight:700;color:#f1f5f9;">{name}</div>
+                    <div style="font-size:0.78rem;color:#94a3b8;margin-top:2px;">{scenario['description']}</div>
+                </div>
+            </div>
+            <div style="margin-top:0.75rem;">
+                <div style="font-size:0.68rem;color:#64748b;text-transform:uppercase;letter-spacing:.1em;margin-bottom:0.4rem;">
+                    Expected Pipeline Stage Outcomes
+                </div>
+                {_stage_pipeline_html(scenario['expected'])}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_format_selector():
+    st.markdown("#### 📁 Output Format")
+    cols = st.columns(4)
+    selected_fmt = st.session_state.get("synth_format", ".wav")
+    for col, (fmt, info) in zip(cols, FORMAT_META.items()):
+        is_sel = fmt == selected_fmt
+        border = "#3b82f6" if is_sel else "#1e293b"
+        bg = "#1e3a5f33" if is_sel else "#0f172a"
+        with col:
+            st.markdown(
+                f"""
+                <div style="background:{bg};border:{'2px' if is_sel else '1px'} solid {border};
+                    border-radius:10px;padding:0.8rem;text-align:center;cursor:pointer;">
+                    <div style="font-size:1.5rem;">{info['icon']}</div>
+                    <div style="font-weight:700;color:#e2e8f0;font-size:0.85rem;">{fmt}</div>
+                    <div style="font-size:0.65rem;color:#64748b;margin-top:2px;line-height:1.3;">{info['desc']}</div>
+                    <div style="font-size:0.58rem;color:#475569;margin-top:3px;">{info['sub']}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button(f"{'✓ ' if is_sel else ''}{fmt}", key=f"fmt_btn_{fmt}", use_container_width=True):
+                st.session_state["synth_format"] = fmt
+                st.rerun()
+    return selected_fmt
+
+
+def _render_param_controls(scenario: Dict) -> Tuple[float, float, int, float]:
+    st.markdown("#### ⚙️ Generation Parameters")
+    pc1, pc2, pc3 = st.columns(3)
+    with pc1:
+        snr_val = st.slider(
+            "SNR Override (dB)", -15.0, 40.0,
+            float(scenario["snr_db"]), 0.5,
+            key="synth_snr",
+            help="Override the scenario default SNR. Drag toward 0 dB for boundary stress testing.",
+        )
+        fs_val = st.number_input(
+            "Sample Rate (Hz)", 10_000.0, 10_000_000.0,
+            100_000.0, 10_000.0, format="%.0f", key="synth_fs",
+        )
+    with pc2:
+        cfo_val = st.slider(
+            "CFO Override (Hz)", -20_000.0, 20_000.0,
+            float(scenario["cfo_hz"]), 500.0, key="synth_cfo",
         )
         num_syms = st.select_slider(
-            "Symbol Count:",
-            options=[256, 512, 1024, 2048, 4096, 8192],
-            value=2048,
-            key="synth_num_syms",
+            "Symbol Count", [256, 512, 1024, 2048, 4096, 8192], 2048, key="synth_syms",
         )
-
-    with gcol2:
-        snr_override = st.slider(
-            "SNR Override (dB):",
-            min_value=-15.0,
-            max_value=40.0,
-            value=float(scenario["snr_db"]),
-            step=0.5,
-            key="synth_snr_override",
-            help="Override the scenario's default SNR. Useful for stress-testing at boundary conditions.",
+    with pc3:
+        include_json = st.checkbox("Include .json metadata", True, key="synth_incl_json")
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.info(
+            f"📐 **Est. file size:** "
+            f"{int(num_syms * scenario['sps'] * 8 / 1024)} KB\n\n"
+            f"⏱️ **Duration:** {num_syms * scenario['sps'] / fs_val * 1000:.1f} ms"
         )
-        cfo_override = st.slider(
-            "CFO Override (Hz):",
-            min_value=-20_000.0,
-            max_value=20_000.0,
-            value=float(scenario["cfo_hz"]),
-            step=500.0,
-            key="synth_cfo_override",
+    return snr_val, cfo_val, num_syms, fs_val
+
+
+def _render_download_section(samples, meta, fs_val, selected_fmt, selected_name, include_json):
+    safe = selected_name[:40].replace(" ", "_").replace("/", "-").replace("(", "").replace(")", "").replace(",", "")
+    crc = meta["expected_pipeline_stages"].get("crc", "NOT_RUN")
+    crc_col = STAGE_COLORS.get(crc, "#6b7280")
+
+    # Metrics row
+    mc1, mc2, mc3, mc4, mc5 = st.columns(5)
+    pwr = 10.0 * np.log10(np.mean(np.abs(samples) ** 2) + 1e-12)
+    with mc1: st.metric("Samples", f"{len(samples):,}")
+    with mc2: st.metric("Duration", f"{len(samples)/fs_val*1000:.1f} ms")
+    with mc3: st.metric("Power", f"{pwr:.1f} dBFS")
+    with mc4: st.metric("SNR", f"{meta['snr_db']:+.1f} dB")
+    with mc5: st.metric("Sample Rate", f"{fs_val/1e3:.0f} kHz")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Download cards
+    if selected_fmt == ".wav":
+        raw_bytes = _to_wav(samples, fs_val)
+        mime = "audio/wav"
+    elif selected_fmt in (".cf32", ".iq"):
+        raw_bytes = _to_raw(samples)
+        mime = "application/octet-stream"
+    else:
+        raw_bytes = json.dumps(meta, indent=2).encode()
+        mime = "application/json"
+
+    dl1, dl2, dl3 = st.columns([2, 2, 1])
+    with dl1:
+        st.download_button(
+            label=f"⬇️ Download {selected_fmt.upper()}  ({len(raw_bytes)/1024:.1f} KB)",
+            data=raw_bytes,
+            file_name=f"{safe}{selected_fmt}",
+            mime=mime,
+            key="dl_primary",
+            use_container_width=True,
+            type="primary",
         )
+    with dl2:
+        if include_json:
+            st.download_button(
+                label="⬇️ Download .json Metadata",
+                data=json.dumps(meta, indent=2).encode(),
+                file_name=f"{safe}.json",
+                mime="application/json",
+                key="dl_json",
+                use_container_width=True,
+            )
+    with dl3:
+        # Quick switch to Decoder & Bitstream
+        if st.button("🔓 View in Decoder", use_container_width=True, key="dl_view_btn"):
+            _quick_analyze(samples, fs_val, meta, selected_name, safe)
 
-    with gcol3:
-        out_format = st.selectbox(
-            "Output Format:",
-            list(FORMAT_INFO.keys()),
-            index=0,
-            key="synth_out_format",
-        )
-        st.caption(FORMAT_INFO[out_format])
 
-        include_json = st.checkbox(
-            "Always include .json metadata",
-            value=True,
-            key="synth_include_json",
-        )
+def _quick_analyze(samples, fs_val, meta, scenario_name, safe_name):
+    with st.spinner("Running SpectralQ pipeline on synthetic signal…"):
+        try:
+            from python.spectralq.decoder.service import run_arpit_decoder
+            from ui.adapters import adapt_decoder
+            from core.contracts import SignalData
+            from core.pipeline import SpectralQPipeline
+            from spectralq.visualization.artifacts import prepare_observatory_artifacts
+            from ui.state.session_state import set_active_case_artifacts
 
-    st.markdown("---")
+            sig = SignalData(samples=samples, sample_rate=fs_val, is_complex=True)
+            dec_out = run_arpit_decoder(capture_input=sig, capture_id=safe_name)
+            dec_dict = {
+                "schema_version": "1.0.0", "capture_id": safe_name,
+                "status": dec_out.status.value,
+                "interleaver_used": dec_out.interleaver_used,
+                "fec_used": dec_out.fec_used,
+                "decoded_bits": dec_out.decoded_bits,
+                "crc_status": dec_out.crc_status.value,
+                "reencode_ber": dec_out.reencode_ber,
+                "sync_word": dec_out.sync_word,
+                "evm_percent": dec_out.evm_percent,
+                "failure_reason": dec_out.failure_reason,
+            }
+            norm_dec = adapt_decoder(dec_dict)
+            obs = prepare_observatory_artifacts(
+                iq_samples=samples, fs_hz=fs_val,
+                source_mode="SYNTHETIC", sps=meta.get("sps", 8),
+            )
+            set_active_case_artifacts(
+                result=None, analysis=None, decoder=norm_dec,
+                provenance={"source": "Synthetic Generator", "scenario": scenario_name},
+                is_replay=False, artifacts=obs,
+            )
+            st.session_state["current_case_name"] = f"[SYNTH] {safe_name}"
+            st.session_state["active_workspace"] = "Decoder & Bitstream"
+            st.success("Pipeline complete! Switching to Decoder & Bitstream…")
+            st.rerun()
+        except Exception as exc:
+            st.error(f"Pipeline error: {exc}")
+            with st.expander("🛠️ Diagnostics"):
+                st.code(str(exc))
 
-    # ── Section 3: Batch Generator ─────────────────────────────────────────
-    with st.expander("📦 Batch Mode — Generate All Scenarios at Once", expanded=False):
+
+def _render_batch_section():
+    with st.expander("📦 Batch Export — Full Benchmark Suite (ZIP)", expanded=False):
         st.caption(
-            "Generate the complete benchmark suite of all scenarios in one ZIP archive. "
-            "Produces one file per scenario in your chosen format, with companion .json metadata."
+            "Generate ALL 17 scenarios in one ZIP archive. "
+            "Each scenario produces a signal file + companion `.json` metadata."
         )
-        batch_format = st.selectbox(
-            "Batch Output Format:",
-            list(FORMAT_INFO.keys()),
-            index=0,
-            key="synth_batch_format",
-        )
-        batch_snr_mode = st.radio(
-            "SNR for Batch:",
-            ["Use scenario defaults (recommended)", "Override all to single SNR"],
-            key="synth_batch_snr_mode",
-            horizontal=True,
-        )
-        batch_snr_val = 15.0
-        if "Override" in batch_snr_mode:
-            batch_snr_val = st.slider("Override SNR:", -10.0, 35.0, 15.0, 0.5, key="synth_batch_snr_val")
+        bc1, bc2 = st.columns(2)
+        with bc1:
+            batch_fmt = st.selectbox(
+                "Batch Format:", list(FORMAT_META.keys()),
+                format_func=lambda f: f"{FORMAT_META[f]['icon']} {f} — {FORMAT_META[f]['desc']}",
+                key="batch_fmt",
+            )
+        with bc2:
+            batch_snr_mode = st.radio(
+                "SNR Mode:", ["Use scenario defaults", "Override all"],
+                horizontal=True, key="batch_snr_mode",
+            )
+            if "Override" in batch_snr_mode:
+                batch_snr_val = st.slider("Override SNR:", -10.0, 35.0, 15.0, 0.5, key="batch_snr_val")
+            else:
+                batch_snr_val = None
 
-        if st.button("📦 Generate Full Benchmark ZIP (All Scenarios)", type="secondary", use_container_width=True, key="synth_batch_btn"):
-            batch_progress = st.progress(0, text="Starting batch generation...")
+        if st.button(
+            f"📦 Generate All {len(SCENARIO_CATALOG)} Scenarios → ZIP",
+            type="primary", use_container_width=True, key="batch_gen_btn"
+        ):
+            prog = st.progress(0, text="Initialising batch generation…")
             zip_buf = io.BytesIO()
-            n_total = len(SCENARIO_CATALOG)
-
-            with zipfile.ZipFile(zip_buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+            n = len(SCENARIO_CATALOG)
+            with zipfile.ZipFile(zip_buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
                 for idx, (sname, sscen) in enumerate(SCENARIO_CATALOG.items()):
-                    batch_progress.progress((idx + 1) / n_total, text=f"Generating {idx+1}/{n_total}: {sname[:50]}...")
+                    prog.progress((idx + 1) / n, text=f"Generating {idx+1}/{n}: {sname[:55]}…")
                     try:
-                        s_copy = dict(sscen)
-                        if "Override" in batch_snr_mode:
-                            s_copy["snr_db"] = batch_snr_val
-
-                        samples, meta = _generate_synthetic_capture(s_copy, num_symbols=1024, fs_hz=100_000.0)
-                        safe_name = sname[:50].replace(" ", "_").replace("/", "-").replace("(", "").replace(")", "").replace(",", "").replace("=", "").replace("+", "p")
-
-                        if batch_format == ".wav":
-                            file_bytes = _samples_to_wav(samples, 100_000.0)
-                        elif batch_format == ".cf32":
-                            file_bytes = _samples_to_cf32(samples)
+                        sc = dict(sscen)
+                        if batch_snr_val is not None:
+                            sc["snr_db"] = batch_snr_val
+                        samples, meta = _generate_synthetic_capture(sc, num_symbols=1024, fs_hz=100_000.0)
+                        fn = sname[:55].replace(" ", "_").replace("/", "-").replace("(","").replace(")","").replace(",","").replace("=","").replace("+","p")
+                        if batch_fmt == ".wav":
+                            zf.writestr(f"{fn}.wav", _to_wav(samples, 100_000.0))
+                        elif batch_fmt in (".cf32", ".iq"):
+                            zf.writestr(f"{fn}{batch_fmt}", _to_raw(samples))
                         else:
-                            file_bytes = _samples_to_iq(samples)
-
-                        zf.writestr(f"{safe_name}{batch_format}", file_bytes)
-                        zf.writestr(f"{safe_name}.json", json.dumps(meta, indent=2))
+                            zf.writestr(f"{fn}.json", json.dumps(meta, indent=2))
+                        zf.writestr(f"{fn}.json", json.dumps(meta, indent=2))
                     except Exception as exc:
-                        zf.writestr(f"BATCH_ERROR_{idx}.txt", f"Failed to generate '{sname}': {exc}")
-
-            batch_progress.progress(1.0, text=f"Done! Generated {n_total} scenarios.")
+                        zf.writestr(f"ERROR_{idx}.txt", f"Failed: {sname}\n{exc}")
+            prog.progress(1.0, text=f"✅ Done! {n} scenarios generated.")
             zip_buf.seek(0)
             st.download_button(
-                label=f"⬇️ Download Full Benchmark ZIP ({n_total} signals)",
+                label=f"⬇️ Download Benchmark ZIP ({n} files)",
                 data=zip_buf.getvalue(),
-                file_name=f"spectralq_benchmark_suite_{batch_format.strip('.')}.zip",
+                file_name=f"spectralq_benchmark_{batch_fmt.strip('.')}.zip",
                 mime="application/zip",
-                key="synth_batch_download",
+                key="batch_dl_btn",
                 use_container_width=True,
+                type="primary",
             )
+
+
+def _render_signal_preview(samples, meta, fs_val, scenario):
+    st.markdown("#### 📊 Signal Preview")
+    try:
+        from spectralq.visualization.artifacts import prepare_observatory_artifacts
+        from ui.charts import create_constellation_plot, create_spectrum_plot, create_waveform_plot
+
+        obs = prepare_observatory_artifacts(
+            iq_samples=samples, fs_hz=fs_val,
+            source_mode="SYNTHETIC", sps=scenario["sps"],
+        )
+        st.session_state["synth_obs"] = obs
+    except Exception:
+        pass
+
+    obs = st.session_state.get("synth_obs")
+    if obs:
+        tab1, tab2, tab3 = st.tabs(["🎯 Constellation", "📊 Spectrum (PSD)", "📈 Waveform"])
+        with tab1:
+            try:
+                from ui.charts import create_constellation_plot
+                fig = create_constellation_plot(obs)
+                if fig: st.plotly_chart(fig, use_container_width=True)
+            except Exception as e:
+                st.caption(f"Preview unavailable: {e}")
+        with tab2:
+            try:
+                from ui.charts import create_spectrum_plot
+                fig = create_spectrum_plot(obs)
+                if fig: st.plotly_chart(fig, use_container_width=True)
+            except Exception as e:
+                st.caption(f"Preview unavailable: {e}")
+        with tab3:
+            try:
+                from ui.charts import create_waveform_plot
+                fig = create_waveform_plot(obs)
+                if fig: st.plotly_chart(fig, use_container_width=True)
+            except Exception as e:
+                st.caption(f"Preview unavailable: {e}")
+
+    with st.expander("🗃️ Ground Truth Metadata (JSON Contract)", expanded=False):
+        st.json(meta)
+
+
+# ---------------------------------------------------------------------------
+# Main entry point
+# ---------------------------------------------------------------------------
+def render_synthetic_signal_generator() -> None:
+    tokens = get_theme_tokens()
+
+    # Hero
+    _render_hero(tokens)
 
     st.markdown("---")
 
-    # ── Section 4: Single Scenario Generation ─────────────────────────────
-    st.markdown("### ⚡ Generate & Download")
+    # === SECTION 1: Scenario Selection ===
+    st.markdown("### 📋 Select Test Scenario")
 
-    if st.button("🧬 Generate Signal", type="primary", use_container_width=True, key="synth_generate_btn"):
-        with st.spinner(f"Synthesizing '{selected_scenario_name}'..."):
-            try:
-                s_copy = dict(scenario)
-                s_copy["snr_db"] = snr_override
-                s_copy["cfo_hz"] = cfo_override
+    # Filter bar
+    selected_filter = st.session_state.get("synth_active_filter", "All Scenarios")
+    _render_filter_bar()
+    selected_filter = st.session_state.get("synth_active_filter", "All Scenarios")
 
-                samples, metadata = _generate_synthetic_capture(s_copy, num_symbols=num_syms, fs_hz=fs_hz)
-                st.session_state["synth_last_samples"] = samples
-                st.session_state["synth_last_metadata"] = metadata
-                st.session_state["synth_last_fs"] = fs_hz
-                st.session_state["synth_last_format"] = out_format
-                st.session_state["synth_last_name"] = selected_scenario_name
-                st.success(f"✅ Generated {len(samples):,} complex samples in {(len(samples) / fs_hz * 1000):.1f} ms of RF signal!")
-            except Exception as exc:
-                st.error(f"Generation failed: {exc}")
-                return
+    # Filter scenarios
+    filter_tags = FILTER_CONFIG.get(selected_filter, {}).get("tags", [])
+    filtered = {
+        k: v for k, v in SCENARIO_CATALOG.items()
+        if not filter_tags or any(t in v["tags"] for t in filter_tags)
+    }
 
-    # Show download buttons if we have a generated signal
+    # Ensure selected scenario is valid
+    current_sel = st.session_state.get("synth_selected_scenario")
+    if current_sel not in filtered:
+        current_sel = next(iter(filtered), None)
+    if current_sel is None:
+        st.warning("No scenarios match this filter.")
+        return
+    st.session_state["synth_selected_scenario"] = current_sel
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    new_sel = _render_scenario_grid(filtered, current_sel)
+    if new_sel != current_sel:
+        st.session_state["synth_selected_scenario"] = new_sel
+        # Clear previous generation when switching scenarios
+        st.session_state.pop("synth_last_samples", None)
+        st.session_state.pop("synth_obs", None)
+        st.rerun()
+
+    scenario = SCENARIO_CATALOG[st.session_state["synth_selected_scenario"]]
+    selected_name = st.session_state["synth_selected_scenario"]
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    _render_scenario_detail(scenario, selected_name, tokens)
+
+    st.markdown("---")
+
+    # === SECTION 2: Format + Parameters ===
+    col_fmt, col_params = st.columns([1, 2])
+    with col_fmt:
+        selected_fmt = _render_format_selector()
+
+    with col_params:
+        snr_val, cfo_val, num_syms, fs_val = _render_param_controls(scenario)
+
+    st.markdown("---")
+
+    # === SECTION 3: Generate button ===
+    gen_col, _, batch_col = st.columns([2, 0.5, 1])
+    with gen_col:
+        if st.button(
+            "🧬 Generate Signal",
+            type="primary",
+            use_container_width=True,
+            key="synth_gen_btn",
+        ):
+            with st.spinner(f"Synthesizing '{selected_name[:60]}'…"):
+                try:
+                    s_copy = dict(scenario)
+                    s_copy["snr_db"] = snr_val
+                    s_copy["cfo_hz"] = cfo_val
+                    samples, meta = _generate_synthetic_capture(s_copy, num_symbols=num_syms, fs_hz=fs_val)
+                    st.session_state["synth_last_samples"] = samples
+                    st.session_state["synth_last_meta"] = meta
+                    st.session_state["synth_last_fs"] = fs_val
+                    st.session_state["synth_last_fmt"] = selected_fmt
+                    st.session_state["synth_last_name"] = selected_name
+                    st.session_state.pop("synth_obs", None)
+                    st.success(f"✅ Generated **{len(samples):,}** complex samples · **{len(samples)/fs_val*1000:.1f} ms** of RF signal")
+                except Exception as exc:
+                    st.error(f"Generation failed: {exc}")
+
+    with batch_col:
+        _render_batch_section()
+
+    # === SECTION 4: Results (if generated) ===
     last_samples = st.session_state.get("synth_last_samples")
-    last_meta = st.session_state.get("synth_last_metadata")
-    last_fs = st.session_state.get("synth_last_fs", fs_hz)
-    last_fmt = st.session_state.get("synth_last_format", ".wav")
-    last_name = st.session_state.get("synth_last_name", "signal")
+    last_meta = st.session_state.get("synth_last_meta")
+    last_fs = st.session_state.get("synth_last_fs", fs_val)
+    last_fmt = st.session_state.get("synth_last_fmt", selected_fmt)
+    last_name = st.session_state.get("synth_last_name", selected_name)
+    include_json = st.session_state.get("synth_incl_json", True)
 
     if last_samples is not None and last_meta is not None:
-        safe_fname = last_name[:40].replace(" ", "_").replace("/", "-").replace("(", "").replace(")", "")
-
-        dcol1, dcol2 = st.columns(2)
-
-        with dcol1:
-            # Primary format file
-            if last_fmt == ".wav":
-                raw_bytes = _samples_to_wav(last_samples, last_fs)
-                mime = "audio/wav"
-            elif last_fmt == ".cf32":
-                raw_bytes = _samples_to_cf32(last_samples)
-                mime = "application/octet-stream"
-            elif last_fmt == ".iq":
-                raw_bytes = _samples_to_iq(last_samples)
-                mime = "application/octet-stream"
-            else:
-                raw_bytes = json.dumps(last_meta, indent=2).encode()
-                mime = "application/json"
-
-            st.download_button(
-                label=f"⬇️ Download {last_fmt.upper()} Signal ({len(raw_bytes)/1024:.1f} KB)",
-                data=raw_bytes,
-                file_name=f"{safe_fname}{last_fmt}",
-                mime=mime,
-                key="synth_dl_primary",
-                use_container_width=True,
-            )
-
-        with dcol2:
-            if include_json:
-                json_bytes = json.dumps(last_meta, indent=2).encode()
-                st.download_button(
-                    label=f"⬇️ Download .json Metadata",
-                    data=json_bytes,
-                    file_name=f"{safe_fname}.json",
-                    mime="application/json",
-                    key="synth_dl_json",
-                    use_container_width=True,
-                )
-
-        # Signal preview metrics
         st.markdown("---")
-        st.markdown("#### 📊 Generated Signal Preview")
+        st.markdown("### ⬇️ Download & Analyze")
+        _render_download_section(last_samples, last_meta, last_fs, last_fmt, last_name, include_json)
 
-        pm1, pm2, pm3, pm4, pm5 = st.columns(5)
-        with pm1:
-            st.metric("Samples", f"{len(last_samples):,}")
-        with pm2:
-            st.metric("Duration", f"{len(last_samples) / last_fs * 1000:.1f} ms")
-        with pm3:
-            pwr_dbfs = 10.0 * np.log10(np.mean(np.abs(last_samples) ** 2) + 1e-12)
-            st.metric("Signal Power", f"{pwr_dbfs:.1f} dBFS")
-        with pm4:
-            st.metric("SNR Used", f"{snr_override:.1f} dB")
-        with pm5:
-            st.metric("Sample Rate", f"{last_fs/1e3:.0f} kHz")
-
-        # Constellation preview
-        try:
-            from ui.charts import create_constellation_plot
-            from spectralq.visualization.artifacts import prepare_observatory_artifacts
-
-            with st.spinner("Rendering constellation..."):
-                obs = prepare_observatory_artifacts(
-                    iq_samples=last_samples,
-                    fs_hz=last_fs,
-                    source_mode="SYNTHETIC",
-                    sps=scenario["sps"],
-                )
-                st.session_state["synth_obs"] = obs
-        except Exception:
-            pass
-
-        obs = st.session_state.get("synth_obs")
-        if obs:
-            viz_tabs = st.tabs(["🎯 Constellation", "📊 Spectrum (PSD)", "📈 Waveform"])
-            with viz_tabs[0]:
-                try:
-                    from ui.charts import create_constellation_plot
-                    fig = create_constellation_plot(obs)
-                    if fig:
-                        st.plotly_chart(fig, use_container_width=True)
-                except Exception as e:
-                    st.info(f"Constellation unavailable: {e}")
-            with viz_tabs[1]:
-                try:
-                    from ui.charts import create_spectrum_plot
-                    fig = create_spectrum_plot(obs)
-                    if fig:
-                        st.plotly_chart(fig, use_container_width=True)
-                except Exception as e:
-                    st.info(f"Spectrum unavailable: {e}")
-            with viz_tabs[2]:
-                try:
-                    from ui.charts import create_waveform_plot
-                    fig = create_waveform_plot(obs)
-                    if fig:
-                        st.plotly_chart(fig, use_container_width=True)
-                except Exception as e:
-                    st.info(f"Waveform unavailable: {e}")
-
-        # Metadata preview
-        with st.expander("🗃️ Ground Truth Metadata (JSON)", expanded=False):
-            st.json(last_meta)
-
-        # Quick analyze button — load into the main pipeline
         st.markdown("---")
-        st.markdown("#### 🚀 Analyze This Synthetic Signal")
-        st.caption("Run the full SpectralQ pipeline on the generated signal and navigate to Decoder & Bitstream to inspect all stage badges.")
-        if st.button("🚀 Analyze in SpectralQ Pipeline", type="primary", use_container_width=True, key="synth_analyze_btn"):
-            with st.spinner("Running pipeline on synthetic signal..."):
-                try:
-                    from python.spectralq.decoder.service import run_arpit_decoder
-                    from ui.adapters import adapt_decoder
-                    from core.contracts import SignalData, PipelineConfig
-                    from core.pipeline import SpectralQPipeline
+        _render_signal_preview(last_samples, last_meta, last_fs, scenario)
 
-                    sig = SignalData(
-                        samples=last_samples,
-                        sample_rate=last_fs,
-                        is_complex=True,
-                    )
-                    pipe = SpectralQPipeline()
-                    pipe_res = pipe.process_signal(sig)
-
-                    dec_out = run_arpit_decoder(
-                        capture_input=sig,
-                        capture_id=safe_fname,
-                    )
-
-                    dec_dict = {
-                        "schema_version": "1.0.0",
-                        "capture_id": safe_fname,
-                        "status": dec_out.status.value,
-                        "interleaver_used": dec_out.interleaver_used,
-                        "fec_used": dec_out.fec_used,
-                        "decoded_bits": dec_out.decoded_bits,
-                        "crc_status": dec_out.crc_status.value,
-                        "reencode_ber": dec_out.reencode_ber,
-                        "sync_word": dec_out.sync_word,
-                        "evm_percent": dec_out.evm_percent,
-                        "failure_reason": dec_out.failure_reason,
-                    }
-                    norm_dec = adapt_decoder(dec_dict)
-
-                    from spectralq.visualization.artifacts import prepare_observatory_artifacts
-                    obs_artifacts = prepare_observatory_artifacts(
-                        iq_samples=last_samples,
-                        fs_hz=last_fs,
-                        source_mode="SYNTHETIC",
-                        sps=scenario["sps"],
-                    )
-
-                    from ui.state.session_state import set_active_case_artifacts
-                    set_active_case_artifacts(
-                        result=None,
-                        analysis=None,
-                        decoder=norm_dec,
-                        provenance={"source": "Synthetic Generator", "scenario": selected_scenario_name},
-                        is_replay=False,
-                        artifacts=obs_artifacts,
-                    )
-                    st.session_state["current_case_name"] = f"[SYNTH] {safe_fname}"
-                    st.session_state["active_workspace"] = "Decoder & Bitstream"
-                    st.success("Pipeline complete! Switching to Decoder & Bitstream workspace...")
-                    st.rerun()
-                except Exception as exc:
-                    st.error(f"Pipeline error: {exc}")
-                    with st.expander("🛠️ Diagnostics"):
-                        st.code(str(exc))
+    else:
+        st.markdown(
+            """
+            <div style="
+                border: 1px dashed #334155;
+                border-radius: 12px;
+                padding: 3rem;
+                text-align: center;
+                margin-top: 1rem;
+                color: #475569;
+            ">
+                <div style="font-size:2.5rem;margin-bottom:0.75rem;">🧬</div>
+                <div style="font-size:1rem;font-weight:600;color:#64748b;">Select a scenario above and click <b>Generate Signal</b></div>
+                <div style="font-size:0.82rem;margin-top:0.4rem;">The generated file will appear here for download and live pipeline analysis.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
