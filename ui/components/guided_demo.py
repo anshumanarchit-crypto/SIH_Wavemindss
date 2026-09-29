@@ -12,6 +12,7 @@ from ui.loaders.case_discovery import DiscoveredCase
 from ui.loaders.artifact_loader import load_case_artifacts, load_case_observatory
 from ui.state.session_state import set_active_case_artifacts, set_workspace
 from ui.styles.theme import get_theme_tokens
+from ui.components.icons import get_icon_svg
 
 
 DEMO_SCENARIOS = [
@@ -23,7 +24,7 @@ DEMO_SCENARIOS = [
         "narrative": (
             "Demonstrates SpectralQ processing genuine, off-air satellite RF signals. "
             "The system detects QPSK transmission at 72k Baud, recovers synchronization, "
-            "applies viterbi rate-1/2 decoding and Reed-Solomon(255,223) FEC, reaching Ladder L4/L5."
+            "applies convolutional rate-1/2 decoding and Reed-Solomon(255,223) FEC, reaching Ladder L4/L5."
         ),
         "why_it_matters": "Proves end-to-end operational capability on real-world RF signals without synthetic artifacts.",
         "key_metrics": "Modulation: QPSK | Ladder: L4 | Confidence: >90% | Inner/Outer FEC: Active",
@@ -112,27 +113,29 @@ def render_guided_demo_banner(cases: List[DiscoveredCase]) -> None:
     step_idx = st.session_state.get("guided_demo_step", 0)
     total_steps = len(DEMO_SCENARIOS)
 
-    # Wrap around or clamp
     step_idx = max(0, min(step_idx, total_steps - 1))
     scen = DEMO_SCENARIOS[step_idx]
 
     st.markdown(
         f"""
-        <div style="background-color:{tokens['ladder_bg']}; border: 2px solid {tokens['primary']}; border-radius: 8px; padding: 0.9rem 1.1rem; margin-bottom: 1.0rem;">
+        <div style="background:linear-gradient(135deg, {tokens['card_bg']} 0%, {'#151D27' if tokens['plotly_template'] == 'plotly_dark' else '#F0F4F8'} 100%);
+            border: 1px solid {tokens['primary']}; border-left: 4px solid {tokens['primary']};
+            border-radius: 10px; padding: 1.0rem 1.3rem; margin-bottom: 1.15rem; box-shadow:{tokens['glow_primary']};">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style="font-weight:700; color:{tokens['primary']}; font-size:1.05rem;">
-                    🎯 GUIDED EVALUATION TOUR — Step {scen['step_num']} of {total_steps}: {scen['title']}
+                <div style="font-weight:800; color:{tokens['primary']}; font-size:1.0rem; display:flex; align-items:center; gap:0.5rem;">
+                    {get_icon_svg("target", size=18, color=tokens['primary'])}
+                    GUIDED EVALUATION TOUR · Step {scen['step_num']} of {total_steps}: {scen['title']}
                 </div>
                 <div>
-                    <span class="sq-badge badge-ladder">JUDGES MODE ACTIVE</span>
+                    <span class="sq-badge badge-ladder">JUDGES DEMO ACTIVE</span>
                 </div>
             </div>
-            <div style="margin-top:0.4rem; font-size:0.86rem; color:{tokens['text']}; line-height:1.4;">
+            <div style="margin-top:0.4rem; font-size:0.84rem; color:{tokens['text']}; line-height:1.45;">
                 {scen['narrative']}
             </div>
-            <div style="margin-top:0.35rem; font-size:0.82rem; color:{tokens['text_muted']};">
-                💡 <b>Why This Matters:</b> {scen['why_it_matters']}<br>
-                🔍 <b>Key Highlights:</b> <code>{scen['key_metrics']}</code>
+            <div style="margin-top:0.4rem; font-size:0.78rem; color:{tokens['text_muted']};">
+                <b>Why This Matters:</b> {scen['why_it_matters']}<br>
+                <b>Key Highlights:</b> <code>{scen['key_metrics']}</code>
             </div>
         </div>
         """,
@@ -142,19 +145,19 @@ def render_guided_demo_banner(cases: List[DiscoveredCase]) -> None:
     # Controller buttons
     c_btn1, c_btn2, c_btn3, c_btn4 = st.columns([1, 1, 1, 3])
     with c_btn1:
-        if st.button("◀️ Previous Step", disabled=(step_idx == 0), use_container_width=True):
+        if st.button("Previous Step", disabled=(step_idx == 0), use_container_width=True):
             st.session_state["guided_demo_step"] = step_idx - 1
             _navigate_scenario(cases, DEMO_SCENARIOS[step_idx - 1])
             st.rerun()
 
     with c_btn2:
-        if st.button("Next Step ▶️", disabled=(step_idx == total_steps - 1), type="primary", use_container_width=True):
+        if st.button("Next Step →", disabled=(step_idx == total_steps - 1), type="primary", use_container_width=True):
             st.session_state["guided_demo_step"] = step_idx + 1
             _navigate_scenario(cases, DEMO_SCENARIOS[step_idx + 1])
             st.rerun()
 
     with c_btn3:
-        if st.button("❌ Exit Tour", use_container_width=True):
+        if st.button("Exit Tour", use_container_width=True):
             st.session_state["guided_demo_active"] = False
             st.rerun()
 
@@ -166,7 +169,6 @@ def _navigate_scenario(cases: List[DiscoveredCase], scenario: Dict[str, Any]) ->
 
     case_match = scenario["case_match"]
     if case_match:
-        # Find matching case
         for c in cases:
             if case_match.lower() in c.name.lower() or case_match.lower() in c.case_id.lower():
                 norm_res, norm_ana, norm_dec, prov = load_case_artifacts(c)

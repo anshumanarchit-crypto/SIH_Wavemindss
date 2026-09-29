@@ -10,6 +10,7 @@ import streamlit as st
 from ui.adapters.result_adapter import NormalizedResult
 from ui.adapters.analysis_adapter import NormalizedAnalysis
 from ui.adapters.decoder_adapter import NormalizedDecoder
+from ui.components.icons import get_icon_svg
 
 
 def render_pipeline_stepper(
@@ -160,22 +161,22 @@ def render_pipeline_stepper(
         status = info["status"]
 
         if status == "PASS":
-            icon = "✓"
+            icon = get_icon_svg("check", size=12, color="#35E39A")
             badge = '<span class="sq-badge badge-pass">PASS</span>'
         elif status == "WARNING":
-            icon = "⚠"
+            icon = get_icon_svg("alert_triangle", size=12, color="#FFB84D")
             badge = '<span class="sq-badge badge-unavail">WARN</span>'
         elif status == "FAIL":
-            icon = "✕"
+            icon = get_icon_svg("x", size=12, color="#FF6278")
             badge = '<span class="sq-badge badge-fail">FAIL</span>'
         elif status == "UNSUPPORTED":
-            icon = "⊘"
+            icon = get_icon_svg("circle_x", size=12, color="#707C90")
             badge = '<span class="sq-badge badge-unavail">UNSUPP</span>'
         elif status == "UNKNOWN":
-            icon = "❓"
+            icon = get_icon_svg("help_circle", size=12, color="#FFB84D")
             badge = '<span class="sq-badge badge-unknown">UNKN</span>'
         else:
-            icon = "○"
+            icon = get_icon_svg("clock", size=12, color="#707C90")
             badge = '<span class="sq-badge badge-notrun">WAIT</span>'
 
         with col:
@@ -183,7 +184,7 @@ def render_pipeline_stepper(
                 f"""
                 <div class="sq-step">
                     <div class="sq-step-name">{stg['name']}</div>
-                    <div class="sq-step-status">{icon} {stg['owner'].split()[0]}</div>
+                    <div class="sq-step-status" style="display:inline-flex; align-items:center; gap:4px;">{icon} <span>{stg['owner'].split()[0]}</span></div>
                     <div style="font-size: 0.68rem; color: #8b949e; margin: 0.2rem 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                         {info['summary']}
                     </div>

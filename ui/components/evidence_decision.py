@@ -1,7 +1,10 @@
 """
 Workspace 5: Evidence & Decision (Audit Trail & Confidence Engine).
-Visualizes the L1-L5 Evidence Ladder, aggregated check counts, the complete interactive
-evidence ledger table with multi-criteria filtering, and the 'Explain Decision' drawer.
+Operational evidence command center providing:
+- Evidence Verification Ladder (L1-L5 Progression Spine)
+- Verification Check Aggregates & Penalty Breakdown
+- Interactive Filterable Evidence Ledger Audit Trail
+- Mathematical Confidence Aggregation Breakdown
 """
 
 from typing import Optional, List, Dict, Any
@@ -9,13 +12,14 @@ import streamlit as st
 
 from ui.adapters import NormalizedResult, NormalizedAnalysis, NormalizedDecoder
 from ui.styles.theme import get_theme_tokens, TOOLTIPS
+from ui.components.icons import get_icon_svg
 
 
 LADDER_LEVELS = [
     ("L1", "Signal Detection", "Active burst detected, center frequency, bandwidth, and SNR estimated above floor."),
     ("L2", "Modulation Identification", "Statistical features and ML classifier agree on modulation candidate without severe penalty."),
     ("L3", "Blind Demodulation", "Carrier frequency offset corrected, symbol timing synchronized, constellation locked."),
-    ("L4", "Coding & FEC Lock", "Interleaver structure resolved, convolutional/viterbi and Reed-Solomon inner/outer FEC locked."),
+    ("L4", "Coding & FEC Lock", "Interleaver structure resolved, convolutional and Reed-Solomon inner/outer FEC locked."),
     ("L5", "Frame & CRC Verified", "Preamble/sync word aligned, frame boundaries established, CRC polynomial passes with zero parity errors."),
 ]
 
@@ -25,45 +29,74 @@ def render_evidence_decision(
     analysis: Optional[NormalizedAnalysis],
     decoder: Optional[NormalizedDecoder],
 ) -> None:
-    """Renders the Evidence & Decision workspace."""
-    st.markdown("## ⚖️ Evidence & Decision Engine")
-    st.caption("Stage 10: Hierarchical Verification Ladder, Evidence Ledger (Archit), and Confidence Provenance.")
+    """Renders the defense-grade Evidence & Decision workspace."""
+    tokens = get_theme_tokens()
+
+    # Workspace Header
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; border-bottom:1px solid {tokens['card_border']}; padding-bottom:0.5rem;">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+                {get_icon_svg("evidence_decision", size=20, color=tokens['primary'])}
+                <span style="font-size:1.15rem; font-weight:800; letter-spacing:0.04em; color:{tokens['text']};">
+                    EVIDENCE LEDGER &amp; DECISION VERIFICATION
+                </span>
+            </div>
+            <div>
+                <span class="sq-badge badge-ladder">
+                    {get_icon_svg('layers', size=11)} LADDER {result.ladder_level if result else 'N/A'}
+                </span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     if not result:
-        st.info("No result telemetry loaded. Please select or load a capture.")
+        st.info("No signal telemetry contract loaded. Please select a capture case.")
         return
-
-    tokens = get_theme_tokens()
 
     # 1. Prominent UNKNOWN Diagnosis (if Abstained)
     if result.is_unknown:
         st.markdown(
             f"""
             <div class="sq-unknown-banner">
-                <div class="sq-unknown-title">
-                    🛑 PIPELINE ABSTENTION / UNKNOWN STATE DIAGNOSIS
-                </div>
-                <div class="sq-unknown-desc">
-                    <b>Primary Reason:</b> {result.unknown_reason or "Low confidence or ambiguous signal parameters."}<br><br>
-                    <b>Why did SpectralQ abstain?</b> Rather than forcing an ungrounded or speculative classification, 
-                    the decision engine triggered abstention because evidence was insufficient to guarantee operational reliability.<br>
-                    <b>Failed Checks:</b> {', '.join(result.failed_checks) if result.failed_checks else 'None explicit; low SNR or consensus penalty'}<br>
-                    <b>Resolution:</b> Collect higher SNR samples or wider capture bandwidth to resolve ambiguity.
+                <div style="display:flex; align-items:flex-start; gap:0.75rem;">
+                    {get_icon_svg("shield_alert", size=20, color=tokens['fail_color'])}
+                    <div>
+                        <div style="font-size:0.95rem; font-weight:800; color:{tokens['fail_color']};">
+                            PIPELINE ABSTENTION / UNKNOWN STATE AUDIT
+                        </div>
+                        <div style="color:{tokens['text']}; font-size:0.82rem; margin-top:0.3rem; line-height:1.45;">
+                            <b>Primary Reason:</b> {result.unknown_reason or "Low confidence or ambiguous signal parameters."}<br>
+                            <b>Epistemic Guarantee:</b> Rather than forcing an ungrounded or speculative classification, 
+                            the decision engine enforced abstention because evidence was insufficient to guarantee operational reliability.<br>
+                            <b>Failed Verification Checks:</b> {', '.join(result.failed_checks) if result.failed_checks else 'None explicit; low SNR or consensus divergence'}
+                        </div>
+                    </div>
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    # 2. Evidence Ladder Visualization (L1 - L5)
-    st.markdown("### 🪜 Hierarchical Evidence Ladder")
-    st.caption(TOOLTIPS["LADDER"])
+    # 2. Evidence Ladder Progression Spine (L1 - L5)
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.6rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                {get_icon_svg("layers", size=16, color=tokens['primary'])}
+                <span style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:{tokens['text']};">
+                    Hierarchical Verification Ladder
+                </span>
+            </div>
+            <span style="font-size:0.7rem; color:{tokens['text_muted']};">Progressive Evidence Grounding Hierarchy</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     current_ladder = result.ladder_level
-
-    # Override: if the decoder confirms CRC pass (or zero-BER + sync word),
-    # the pipeline should have already emitted L5. Guard against any stale
-    # result contract by promoting the UI ladder directly.
     if decoder is not None:
         _crc_ok = getattr(decoder, "crc_passed", False)
         _ber_val = getattr(decoder, "reencode_ber", None)
@@ -73,8 +106,6 @@ def render_evidence_decision(
             current_ladder = "L5"
 
     ladder_cols = st.columns(5)
-
-    # Ladder rank map
     ranks = {"L1": 1, "L2": 2, "L3": 3, "L4": 4, "L5": 5}
     curr_rank = ranks.get(current_ladder, 1)
 
@@ -85,26 +116,38 @@ def render_evidence_decision(
 
         with ladder_cols[idx]:
             border_color = tokens["primary"] if is_current else (tokens["pass_color"] if is_achieved else tokens["card_border"])
-            bg_color = tokens["ladder_bg"] if is_current else (tokens["card_bg"])
-            badge_html = f"<span class='sq-badge badge-pass'>ACHIEVED</span>" if is_achieved else "<span class='sq-badge badge-notrun'>PENDING</span>"
-            if is_current:
-                badge_html = f"<span class='sq-badge badge-ladder'>CURRENT LEVEL</span>"
+            badge_html = f"<span class='sq-badge badge-ladder'>CURRENT</span>" if is_current else (
+                f"<span class='sq-badge badge-pass'>ACHIEVED</span>" if is_achieved else f"<span class='sq-badge badge-notrun'>PENDING</span>"
+            )
 
             st.markdown(
                 f"""
-                <div class="sq-card" style="border: 2px solid {border_color}; background-color:{bg_color}; min-height: 140px;">
-                    <div class="sq-card-title">{lvl}: {name}</div>
-                    <div style="margin: 0.35rem 0;">{badge_html}</div>
-                    <div style="font-size:0.75rem; color:{tokens['text_muted']}; line-height:1.3;">{desc}</div>
+                <div class="sq-card" style="border: 1px solid {border_color}; min-height: 140px; display:flex; flex-direction:column; justify-content:space-between;">
+                    <div>
+                        <div class="sq-card-title">{lvl}: {name}</div>
+                        <div style="font-size:0.72rem; color:{tokens['text_muted']}; line-height:1.3; margin-top:0.3rem;">{desc}</div>
+                    </div>
+                    <div style="margin-top:0.4rem;">{badge_html}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
-    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
 
     # 3. Evidence Check Summary Metrics
-    st.markdown("### 📊 Verification Check Aggregates")
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.6rem;">
+            {get_icon_svg("spectrum", size=16, color=tokens['primary'])}
+            <span style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:{tokens['text']};">
+                Verification Check Aggregates
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     all_evidence = result.evidence
     passed = [e for e in all_evidence if e.status == "PASS"]
     failed = [e for e in all_evidence if e.status == "FAIL"]
@@ -112,20 +155,70 @@ def render_evidence_decision(
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.metric("Total Evidence Checks", len(all_evidence), "Comprehensive Audit")
+        st.markdown(
+            f"""
+            <div class="sq-card">
+                <div class="sq-card-title">Total Evidence Checks</div>
+                <div class="sq-card-value">{len(all_evidence)}</div>
+                <div class="sq-card-sub">Comprehensive Audit Suite</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
     with c2:
-        st.metric("Passed Checks", len(passed), f"{(len(passed)/len(all_evidence)*100.0) if all_evidence else 0:.1f}%")
+        pass_pct = (len(passed) / len(all_evidence) * 100.0) if all_evidence else 0.0
+        st.markdown(
+            f"""
+            <div class="sq-card">
+                <div class="sq-card-title">Passed Checks</div>
+                <div class="sq-card-value" style="color:{tokens['pass_color']};">{len(passed)}</div>
+                <div class="sq-card-sub">{pass_pct:.1f}% Verification Rate</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
     with c3:
-        failed_pen_str = f"-{result.rule_ml_penalty:.2f} penalty" if (failed and result.rule_ml_penalty is not None) else ("Zero Penalties" if not failed else "Penalties Applied")
-        st.metric("Failed Checks", len(failed), failed_pen_str)
+        failed_col = tokens["fail_color"] if failed else tokens["text_muted"]
+        failed_pen_str = f"-{result.rule_ml_penalty:.2f} penalty" if (failed and result.rule_ml_penalty is not None) else "Zero penalties applied"
+        st.markdown(
+            f"""
+            <div class="sq-card">
+                <div class="sq-card-title">Failed Checks</div>
+                <div class="sq-card-value" style="color:{failed_col};">{len(failed)}</div>
+                <div class="sq-card-sub">{failed_pen_str}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
     with c4:
-        st.metric("Unavailable Checks", len(unavail), f"{len(unavail)} checks skipped")
+        st.markdown(
+            f"""
+            <div class="sq-card">
+                <div class="sq-card-title">Unavailable Checks</div>
+                <div class="sq-card-value" style="color:{tokens['text_muted']};">{len(unavail)}</div>
+                <div class="sq-card-sub">Safely Skipped / Bypassed</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
 
     # 4. Interactive Evidence Ledger Table
-    st.markdown("### 📜 Evidence Ledger Audit Trail")
-    st.caption("Inspect individual telemetry checks across physical DSP, ML AMC, and blind FEC decoding layers.")
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.6rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                {get_icon_svg("file", size=16, color=tokens['primary'])}
+                <span style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:{tokens['text']};">
+                    Evidence Ledger Audit Trail
+                </span>
+            </div>
+            <span style="font-size:0.7rem; color:{tokens['text_muted']};">Granular Check Verification Registry</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     f_col1, f_col2, f_col3 = st.columns([1, 1, 2])
     with f_col1:
@@ -144,9 +237,8 @@ def render_evidence_decision(
             key="ev_source_filter",
         )
     with f_col3:
-        search_query = st.text_input("Search Check or Explanation:", placeholder="e.g. snr, viterbi, consensus", key="ev_search_input")
+        search_query = st.text_input("Search Check or Explanation:", placeholder="e.g. snr, consensus, crc", key="ev_search_input")
 
-    # Filter checks
     filtered_evidence = all_evidence
     if status_filter != "ALL":
         filtered_evidence = [e for e in filtered_evidence if e.status == status_filter]
@@ -169,7 +261,7 @@ def render_evidence_decision(
     st.dataframe(table_data, use_container_width=True, height=280)
 
     # 5. "Explain Decision" Interactive Drawer
-    with st.expander("💡 Deep Dive: Mathematical Confidence Aggregation Breakdown", expanded=False):
+    with st.expander("💡 Mathematical Confidence Aggregation Breakdown", expanded=False):
         st.markdown("#### Confidence Aggregation Formula")
         st.latex(r"C_{\text{final}} = P_{\text{ML}} \cdot (1 - \text{Penalty}_{\text{Consensus}}) \cdot \prod_{i} (1 - P_{\text{check}, i})")
         raw_prob_txt = f"{result.ml_probability:.4f}" if result.ml_probability is not None else "N/A"

@@ -1,7 +1,9 @@
 """
 Workspace 4: Decoder & Bitstream (Blind Demodulation & Bitstream Intelligence).
-Visualizes the multi-stage decoding pipeline (Demod -> De-interleaver -> viterbi -> RS -> Frame Sync)
-and provides deep Bitstream Explorer tabs (Bits, Hex, Bytes, Frame Structure, Payload, Statistics).
+Operational decoding workbench providing:
+- Multi-stage decoding pipeline (Demod -> De-interleaver -> Inner Conv FEC -> Outer RS -> Frame Sync & CRC)
+- Critical error metrics (BER, EVM, Sync Word, Recovered Bit Count)
+- Interactive Bitstream Explorer (Bits, Hex, Bytes & Entropy, Frame Structure, Payload, Statistics)
 """
 
 import math
@@ -10,6 +12,7 @@ import streamlit as st
 
 from ui.adapters import NormalizedDecoder, NormalizedResult, NormalizedAnalysis
 from ui.styles.theme import get_theme_tokens, TOOLTIPS
+from ui.components.icons import get_icon_svg
 
 
 def _calculate_entropy(data_bytes: bytes) -> float:
@@ -34,7 +37,6 @@ def _format_hex_dump(data_bytes: bytes, max_rows: int = 32) -> str:
     for offset in range(0, total_len, 16):
         chunk = data_bytes[offset : offset + 16]
         hex_parts = [f"{b:02x}" for b in chunk]
-        # Pad to 16 bytes if last line
         while len(hex_parts) < 16:
             hex_parts.append("  ")
         hex_str = " ".join(hex_parts[:8]) + "  " + " ".join(hex_parts[8:])
@@ -50,21 +52,47 @@ def render_decoder_bitstream(
     result: Optional[NormalizedResult],
     analysis: Optional[NormalizedAnalysis] = None,
 ) -> None:
-    """Renders the Decoder & Bitstream workspace."""
-    st.markdown("## 🔓 Decoder & Bitstream Intelligence")
-    st.caption("Stage 7-9: Blind Demodulation, FEC Chain (Arpit), and Bitstream Forensics.")
-
+    """Renders the defense-grade Decoder & Bitstream intelligence workspace."""
     tokens = get_theme_tokens()
 
-    # 1. Visual Decoder Chain Diagram
-    st.markdown("### ⛓️ Pipeline Decoding & Integrity Architecture")
+    # Workspace Header
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; border-bottom:1px solid {tokens['card_border']}; padding-bottom:0.5rem;">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+                {get_icon_svg("decoder_bitstream", size=20, color=tokens['primary'])}
+                <span style="font-size:1.15rem; font-weight:800; letter-spacing:0.04em; color:{tokens['text']};">
+                    DECODING &amp; BITSTREAM INTELLIGENCE WORKBENCH
+                </span>
+            </div>
+            <div>
+                <span class="sq-badge {'badge-pass' if (decoder and decoder.crc_passed) else 'badge-warn'}">
+                    {'CRC PASS' if (decoder and decoder.crc_passed) else 'CRC UNCHECKED'}
+                </span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    # Evaluate active stages from decoder data
-    demod_active = decoder is not None and decoder.raw_bits is not None
+    # 1. Visual Decoder Pipeline Chain
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.6rem;">
+            {get_icon_svg("layers", size=16, color=tokens['primary'])}
+            <span style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:{tokens['text']};">
+                Pipeline Decoding &amp; Integrity Architecture
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    demod_active = decoder is not None and getattr(decoder, "raw_bits", None) is not None
     interleaver_active = decoder is not None and decoder.interleaver_used and decoder.interleaver_used.lower() != "none"
-    viterbi_active = decoder is not None and decoder.viterbi_used
-    rs_active = decoder is not None and decoder.reed_solomon_used
-    crc_passed = decoder is not None and decoder.crc_passed
+    conv_active = decoder is not None and getattr(decoder, "viterbi_used", False)
+    rs_active = decoder is not None and getattr(decoder, "reed_solomon_used", False)
+    crc_passed = decoder is not None and getattr(decoder, "crc_passed", False)
 
     chain_cols = st.columns(5)
     with chain_cols[0]:
@@ -73,7 +101,7 @@ def render_decoder_bitstream(
             f"""
             <div class="sq-card" style="text-align:center;">
                 <div class="sq-card-title">STAGE 1</div>
-                <div style="font-weight:700; margin:0.3rem 0;">DEMODULATOR</div>
+                <div style="font-weight:700; margin:0.3rem 0; font-size:0.82rem;">SYMBOL DEMOD</div>
                 <span class="sq-badge {badge}">{"ACTIVE" if demod_active else "BYPASS"}</span>
             </div>
             """,
@@ -82,12 +110,12 @@ def render_decoder_bitstream(
 
     with chain_cols[1]:
         badge = "badge-pass" if interleaver_active else "badge-notrun"
-        label = decoder.interleaver_type if (decoder and interleaver_active) else "BYPASS"
+        label = getattr(decoder, "interleaver_type", "BYPASS") if (decoder and interleaver_active) else "BYPASS"
         st.markdown(
             f"""
             <div class="sq-card" style="text-align:center;">
                 <div class="sq-card-title">STAGE 2</div>
-                <div style="font-weight:700; margin:0.3rem 0;">DE-INTERLEAVER</div>
+                <div style="font-weight:700; margin:0.3rem 0; font-size:0.82rem;">DE-INTERLEAVER</div>
                 <span class="sq-badge {badge}">{label.upper()}</span>
             </div>
             """,
@@ -95,13 +123,13 @@ def render_decoder_bitstream(
         )
 
     with chain_cols[2]:
-        badge = "badge-pass" if viterbi_active else "badge-notrun"
+        badge = "badge-pass" if conv_active else "badge-notrun"
         st.markdown(
             f"""
             <div class="sq-card" style="text-align:center;">
                 <div class="sq-card-title">STAGE 3</div>
-                <div style="font-weight:700; margin:0.3rem 0;">INNER FEC (VITERBI)</div>
-                <span class="sq-badge {badge}">{"RATE 1/2 (K=7)" if viterbi_active else "BYPASS"}</span>
+                <div style="font-weight:700; margin:0.3rem 0; font-size:0.82rem;">INNER FEC (CONV)</div>
+                <span class="sq-badge {badge}">{"RATE 1/2 (K=7)" if conv_active else "BYPASS"}</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -113,7 +141,7 @@ def render_decoder_bitstream(
             f"""
             <div class="sq-card" style="text-align:center;">
                 <div class="sq-card-title">STAGE 4</div>
-                <div style="font-weight:700; margin:0.3rem 0;">OUTER FEC (RS)</div>
+                <div style="font-weight:700; margin:0.3rem 0; font-size:0.82rem;">OUTER FEC (RS)</div>
                 <span class="sq-badge {badge}">{"RS(255,223)" if rs_active else "BYPASS"}</span>
             </div>
             """,
@@ -121,43 +149,68 @@ def render_decoder_bitstream(
         )
 
     with chain_cols[4]:
-        badge = "badge-pass" if crc_passed else ("badge-fail" if (decoder and decoder.crc_checked) else "badge-notrun")
-        crc_text = "PASS" if crc_passed else ("FAIL" if (decoder and decoder.crc_checked) else "UNCHECKED")
+        badge = "badge-pass" if crc_passed else ("badge-fail" if (decoder and getattr(decoder, "crc_checked", False)) else "badge-notrun")
+        crc_text = "PASS" if crc_passed else ("FAIL" if (decoder and getattr(decoder, "crc_checked", False)) else "UNCHECKED")
         st.markdown(
             f"""
             <div class="sq-card" style="text-align:center;">
                 <div class="sq-card-title">STAGE 5</div>
-                <div style="font-weight:700; margin:0.3rem 0;">FRAME SYNC & CRC</div>
+                <div style="font-weight:700; margin:0.3rem 0; font-size:0.82rem;">FRAME SYNC &amp; CRC</div>
                 <span class="sq-badge {badge}">{crc_text}</span>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    # Raw bitstream string & bytes extraction
-    raw_bits_str = decoder.raw_bits if (decoder and decoder.raw_bits) else ""
+    # 2. Decoding Telemetry & Error Metrics
+    raw_bits_str = getattr(decoder, "raw_bits", "") if (decoder and getattr(decoder, "raw_bits", None)) else (decoder.decoded_bits_preview if decoder else "")
     clean_bits = "".join(b for b in raw_bits_str if b in ("0", "1")) if raw_bits_str else ""
     bitstream_bytes = b""
     if clean_bits:
         byte_chunks = [clean_bits[i:i+8] for i in range(0, len(clean_bits) - len(clean_bits) % 8, 8)]
         bitstream_bytes = bytes([int(b, 2) for b in byte_chunks])
 
-    # 2. Decoder Summary Telemetry
-    st.markdown("### 📊 Decoding Telemetry & Error Metrics")
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.6rem;">
+            {get_icon_svg("spectrum", size=16, color=tokens['primary'])}
+            <span style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:{tokens['text']};">
+                Decoding Telemetry &amp; Error Metrics
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     d1, d2, d3, d4 = st.columns(4)
 
     with d1:
         if decoder and decoder.ber is not None:
-            if decoder.ber == 0.0:
-                st.metric("Bit Error Rate (BER)", "0.000000", "0 errors (CRC Valid)")
-            else:
-                st.metric("Bit Error Rate (BER)", f"{decoder.ber:.3e}", "Post-Demodulation")
-        elif decoder and decoder.crc_passed:
-            st.metric("Bit Error Rate (BER)", "0.000000", "CRC-32 Validated")
+            ber_str = "0.000000" if decoder.ber == 0.0 else f"{decoder.ber:.3e}"
+            ber_sub = "0 errors (CRC Valid)" if decoder.ber == 0.0 else "Post-Demodulation"
+            st.markdown(
+                f"""
+                <div class="sq-card">
+                    <div class="sq-card-title">Bit Error Rate (BER)</div>
+                    <div class="sq-card-value" style="color:{tokens['pass_color']};">{ber_str}</div>
+                    <div class="sq-card-sub">{ber_sub}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
         else:
-            st.metric("Bit Error Rate (BER)", "UNAVAILABLE", "No reference stream")
+            st.markdown(
+                f"""
+                <div class="sq-card">
+                    <div class="sq-card-title">Bit Error Rate (BER)</div>
+                    <div class="sq-card-value" style="color:{tokens['text_muted']}; font-size:1.15rem;">UNAVAILABLE</div>
+                    <div class="sq-card-sub">No reference stream</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
     with d2:
         evm_val = None
@@ -166,7 +219,16 @@ def render_decoder_bitstream(
         elif analysis and analysis.features and analysis.features.evm is not None:
             evm_val = analysis.features.evm * 100.0
         evm_txt = f"{evm_val:.1f}%" if evm_val is not None else "N/A"
-        st.metric("Constellation EVM", evm_txt, "RMS Error")
+        st.markdown(
+            f"""
+            <div class="sq-card">
+                <div class="sq-card-title">Constellation EVM</div>
+                <div class="sq-card-value" style="color:{tokens['warn_color']};">{evm_txt}</div>
+                <div class="sq-card-sub">RMS Symbol Dispersion</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     with d3:
         sync_txt = None
@@ -192,28 +254,54 @@ def render_decoder_bitstream(
                     sync_txt = f"0x{int(''.join(str(b) for b in clean_b[:16]), 2):04X} (Header)"
         if not sync_txt:
             sync_txt = "None Detected"
-        st.metric("Detected Sync Word", sync_txt, "Frame Preamble")
+        st.markdown(
+            f"""
+            <div class="sq-card">
+                <div class="sq-card-title">Detected Sync Word</div>
+                <div class="sq-card-value" style="font-size:1.1rem; color:{tokens['primary']};">{sync_txt}</div>
+                <div class="sq-card-sub">Frame Preamble Signature</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     with d4:
         bits_count = len(clean_bits) if clean_bits else (decoder.decoded_bits_count if decoder else 0)
-        st.metric("Recovered Bit Count", f"{bits_count:,} bits", "Bitstream Length")
+        st.markdown(
+            f"""
+            <div class="sq-card">
+                <div class="sq-card-title">Recovered Bit Count</div>
+                <div class="sq-card-value">{bits_count:,}</div>
+                <div class="sq-card-sub">Bitstream Length</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
 
     # 3. Bitstream Explorer Tabs
-    st.markdown("### 🔍 Bitstream Explorer")
-    st.caption("Interactive telemetry inspection across binary, hex, byte distribution, frame, and payload layers.")
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.6rem;">
+            {get_icon_svg("file", size=16, color=tokens['primary'])}
+            <span style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:{tokens['text']};">
+                Bitstream Explorer
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     b_tabs = st.tabs([
-        "0️⃣1️⃣ Bits (Raw)",
-        "💻 Hex Dump",
-        "🧮 Bytes & Entropy",
-        "📐 Frame Structure",
-        "📄 Payload Preview",
-        "📈 Statistics",
+        "Bits (Raw)",
+        "Hex Dump",
+        "Bytes & Entropy",
+        "Frame Structure",
+        "Payload Preview",
+        "Statistics",
     ])
 
-    # TAB 1: Bits
     with b_tabs[0]:
         st.markdown("#### Raw Binary Bitstream")
         if clean_bits:
@@ -228,7 +316,6 @@ def render_decoder_bitstream(
         else:
             st.info("No demodulated bitstream available for this capture.")
 
-    # TAB 2: Hex
     with b_tabs[1]:
         st.markdown("#### Hexadecimal Memory Dump (16-Byte Rows)")
         if bitstream_bytes:
@@ -237,7 +324,6 @@ def render_decoder_bitstream(
         else:
             st.info("No byte data available to dump.")
 
-    # TAB 3: Bytes & Entropy
     with b_tabs[2]:
         st.markdown("#### Shannon Entropy & Byte Distribution")
         if bitstream_bytes:
@@ -254,10 +340,9 @@ def render_decoder_bitstream(
         else:
             st.info("No byte data available for entropy calculation.")
 
-    # TAB 4: Frame Structure
     with b_tabs[3]:
         st.markdown("#### Frame Layout & Synchronization")
-        if (decoder and (decoder.sync_word or decoder.crc_checked)) or (sync_txt and sync_txt != "None Detected") or clean_bits:
+        if (decoder and (decoder.sync_word or getattr(decoder, "crc_checked", False))) or (sync_txt and sync_txt != "None Detected") or clean_bits:
             fcol1, fcol2 = st.columns(2)
             with fcol1:
                 disp_sync = sync_txt if (sync_txt and sync_txt != "None Detected") else (decoder.sync_word if decoder and decoder.sync_word else "0xABCD")
@@ -266,11 +351,11 @@ def render_decoder_bitstream(
                     - **Sync Word Preamble:** `{disp_sync}`
                     - **Frame Synchronized:** `{'YES' if (sync_txt and sync_txt != 'None Detected') or (decoder and decoder.sync_word) else 'NO'}`
                     - **CRC Polynomial:** `CRC-16 / CRC-32 (Standard Telemetry)`
-                    - **CRC Check Result:** `{'PASS' if (decoder and decoder.crc_passed) else ('FAIL' if (decoder and decoder.crc_checked) else 'VERIFIED')}`
+                    - **CRC Check Result:** `{'PASS' if (decoder and getattr(decoder, 'crc_passed', False)) else ('FAIL' if (decoder and getattr(decoder, 'crc_checked', False)) else 'VERIFIED')}`
                     """
                 )
             with fcol2:
-                intl_txt = decoder.interleaver_type.upper() if decoder else "NONE"
+                intl_txt = getattr(decoder, "interleaver_type", "NONE").upper() if decoder else "NONE"
                 fec_txt = decoder.fec_used.upper() if decoder else "CONV RATE 1/2"
                 st.markdown(
                     f"""
@@ -283,17 +368,14 @@ def render_decoder_bitstream(
         else:
             st.info("No synchronized frame headers detected in this capture.")
 
-    # TAB 5: Payload Preview
     with b_tabs[4]:
         st.markdown("#### Recovered Payload Preview")
         if bitstream_bytes:
-            # Printable preview
             printable = "".join(chr(b) if 32 <= b <= 126 or b in (10, 13) else "." for b in bitstream_bytes[:2048])
             st.text_area("Decoded Payload Excerpt", printable, height=180)
         else:
             st.info("No recovered payload available.")
 
-    # TAB 6: Statistics
     with b_tabs[5]:
         st.markdown("#### Bit Distribution & Transition Density")
         if raw_bits_str:

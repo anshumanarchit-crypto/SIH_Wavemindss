@@ -55,29 +55,29 @@ SCENARIO_CATALOG = {
         "tags": ["16qam", "uncoded", "pass"],
         "icon": "✅",
     },
-    "BPSK — Viterbi Rate 1/2 K=7 (FEC ACTIVE, CRC PASS)": {
+    "BPSK — Conv Rate 1/2 K=7 (FEC ACTIVE, CRC PASS)": {
         "mod": "BPSK", "snr_db": 18.0, "sps": 8, "cfo_hz": 0.0,
         "fec": "conv_viterbi", "interleaver": "none", "corrupt_bits": 0,
         "stream_type": "framed", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
-        "description": "BPSK with CCSDS ASM preamble + Rate 1/2 Viterbi K=7. Inner FEC ACTIVE. CRC PASS with re-encode BER=0.",
+        "description": "BPSK with CCSDS ASM preamble + Rate 1/2 Conv K=7. Inner FEC ACTIVE. CRC PASS with re-encode BER=0.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "RATE 1/2 (K=7)", "outer_fec": "BYPASS", "crc": "PASS"},
         "tags": ["viterbi", "fec", "pass"],
         "icon": "🔐",
     },
-    "QPSK — Viterbi Near SNR Threshold (FEC ACTIVE, CRC PASS)": {
+    "QPSK — Conv Near SNR Threshold (FEC ACTIVE, CRC PASS)": {
         "mod": "QPSK", "snr_db": 14.0, "sps": 8, "cfo_hz": 0.0,
         "fec": "conv_viterbi", "interleaver": "none", "corrupt_bits": 0,
         "stream_type": "framed", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
-        "description": "QPSK Viterbi at marginal SNR (14 dB). Inner FEC active, De-Intl bypass. CRC PASS.",
+        "description": "QPSK convolutional FEC at marginal SNR (14 dB). Inner FEC active, De-Intl bypass. CRC PASS.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "RATE 1/2 (K=7)", "outer_fec": "BYPASS", "crc": "PASS"},
         "tags": ["viterbi", "threshold", "pass"],
         "icon": "🔐",
     },
-    "BPSK — Conv De-Interleaver + Viterbi (Both ACTIVE, CRC PASS)": {
+    "BPSK — Conv De-Interleaver + Conv FEC (Both ACTIVE, CRC PASS)": {
         "mod": "BPSK", "snr_db": 22.0, "sps": 8, "cfo_hz": 0.0,
         "fec": "conv_viterbi", "interleaver": "convolutional", "corrupt_bits": 0,
         "stream_type": "framed", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
-        "description": "BPSK with convolutional de-interleaver + Viterbi FEC. Both active. Mirrors G6 golden.",
+        "description": "BPSK with convolutional de-interleaver + Conv FEC. Both active. Mirrors G6 golden.",
         "expected": {"demod": "ACTIVE", "deintl": "CONVOLUTIONAL", "inner_fec": "RATE 1/2 (K=7)", "outer_fec": "BYPASS", "crc": "PASS"},
         "tags": ["g6", "interleaver", "viterbi", "pass"],
         "icon": "🔐",
@@ -91,11 +91,11 @@ SCENARIO_CATALOG = {
         "tags": ["crc_fail", "corrupted", "blocked"],
         "icon": "❌",
     },
-    "QPSK — Viterbi Active + CRC FAIL (Burst Noise Overwhelms FEC)": {
+    "QPSK — Conv FEC Active + CRC FAIL (Burst Noise Overwhelms FEC)": {
         "mod": "QPSK", "snr_db": 18.0, "sps": 8, "cfo_hz": 0.0,
         "fec": "conv_viterbi", "interleaver": "none", "corrupt_bits": 6,
         "stream_type": "framed", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
-        "description": "Viterbi active but burst channel errors (6 coded bit flips) overwhelm correction capability. CRC FAIL with positive BER.",
+        "description": "Convolutional FEC active but burst channel errors (6 coded bit flips) overwhelm correction capability. CRC FAIL with positive BER.",
         "expected": {"demod": "ACTIVE", "deintl": "BYPASS", "inner_fec": "RATE 1/2 (K=7)", "outer_fec": "BYPASS", "crc": "FAIL"},
         "tags": ["crc_fail", "viterbi", "burst_noise"],
         "icon": "❌",
@@ -127,7 +127,7 @@ SCENARIO_CATALOG = {
         "tags": ["continuous", "8psk", "not_run"],
         "icon": "📡",
     },
-    "Pure AWGN Noise — Demodulator FAILED (Rule 12 UNKNOWN)": {
+    "Pure AWGN Noise — Demod FAILED (Rule 12 UNKNOWN)": {
         "mod": "NOISE", "snr_db": -12.0, "sps": 8, "cfo_hz": 0.0,
         "fec": "none", "interleaver": "none", "corrupt_bits": 0,
         "stream_type": "noise", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
@@ -136,11 +136,11 @@ SCENARIO_CATALOG = {
         "tags": ["noise", "unknown", "rule12"],
         "icon": "🚫",
     },
-    "Degraded SNR -8 dB — Demodulator BLOCKED (UNKNOWN)": {
+    "Degraded SNR -8 dB — Demod BLOCKED (UNKNOWN)": {
         "mod": "QPSK", "snr_db": -8.0, "sps": 8, "cfo_hz": 0.0,
         "fec": "none", "interleaver": "none", "corrupt_bits": 0,
         "stream_type": "degraded", "iq_imbalance_db": 0.0, "phase_error_deg": 0.0,
-        "description": "Severely degraded QPSK below SNR floor. Demodulator cannot recover symbols. Rule 12 UNKNOWN abstention triggered.",
+        "description": "Severely degraded QPSK below SNR floor. Demod stage cannot recover symbols. Rule 12 UNKNOWN abstention triggered.",
         "expected": {"demod": "UNKNOWN", "deintl": "BYPASS", "inner_fec": "BYPASS", "outer_fec": "BYPASS", "crc": "NOT_RUN"},
         "tags": ["degraded", "snr", "unknown"],
         "icon": "🚫",
@@ -724,7 +724,7 @@ def _render_download_section(samples, meta, fs_val, selected_fmt, selected_name,
                         Analyze Signal via Backend
                     </div>
                     <div style="font-size:0.78rem;color:#94a3b8;margin-top:2px;line-height:1.5;">
-                        Runs the <b>full SpectralQ pipeline</b> (IQ extraction &rarr; AMC &rarr; Viterbi decoder
+                        Runs the <b>full SpectralQ pipeline</b> (IQ extraction &rarr; AMC &rarr; conv decoder
                         &rarr; FEC chain &rarr; CRC) on the generated signal <b>in-memory</b> —
                         no file upload required. All six dashboard workspaces are populated with real
                         live results that you can navigate to directly below.

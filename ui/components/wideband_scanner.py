@@ -21,21 +21,30 @@ from spectralq.dsp.wideband_scanner import (
 from spectralq.pipeline.runner import run
 from ui.adapters import adapt_analysis, adapt_decoder, adapt_result
 from ui.state.session_state import set_active_case_artifacts, set_workspace
-from ui.styles.theme import get_theme_tokens
+from ui.styles.theme import get_theme_tokens, get_plotly_layout_defaults
+from ui.components.icons import get_icon_svg
 
 
 def render_wideband_scanner() -> None:
     """Renders the Tier-1b Wideband Scanner workspace."""
     tokens = get_theme_tokens()
 
-    st.markdown("## 📡 Wideband Spectrum Scanner (Tier-1b)")
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:0.25rem;">
+            {get_icon_svg("wideband_scanner", size=24, color=tokens["primary"])}
+            <h2 style="margin:0; font-size:1.4rem; font-weight:700;">Wideband Spectrum Scanner (Tier-1b)</h2>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     st.caption(
         "Wideband energy detection, spectral occupancy mapping, and Digital Down-Converter (DDC) "
         "channelization for isolated single-signal analysis."
     )
 
     # 1. Preset or Capture Selection
-    st.markdown("### 🎛️ Ingest Wideband Capture")
+    st.markdown("### Ingest Wideband Capture")
     col1, col2 = st.columns([2, 1])
 
     with col1:
@@ -152,18 +161,18 @@ def render_wideband_scanner() -> None:
             annotation_position="top left",
         )
 
-    fig.update_layout(
-        title="Wideband Power Spectral Density & Emission Clusters",
-        xaxis_title="Baseband Frequency (kHz)",
-        yaxis_title="Power Spectral Density (dBFS/Hz)",
-        template=tokens["plotly_template"],
-        margin=dict(l=40, r=40, t=50, b=40),
-        height=380,
-    )
+    layout = get_plotly_layout_defaults()
+    layout.update({
+        "title": "Wideband Power Spectral Density & Emission Clusters",
+        "xaxis_title": "Baseband Frequency (kHz)",
+        "yaxis_title": "Power Spectral Density (dBFS/Hz)",
+        "height": 380,
+    })
+    fig.update_layout(layout)
     st.plotly_chart(fig, use_container_width=True)
 
     # 6. Detected Emissions Occupancy Table
-    st.markdown("### 📋 Detected Emissions Occupancy Table")
+    st.markdown("### Detected Emissions Occupancy Table")
     if not scan_res.emissions:
         st.info("No emissions detected above the threshold margin. Try reducing the detection margin slider above.")
         return

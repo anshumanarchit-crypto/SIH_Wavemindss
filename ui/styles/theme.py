@@ -1,12 +1,12 @@
 """
 SpectralQ UI Styling & Design Tokens Engine.
 Provides engineering-grade telemetry styling with complete Light and Dark theme support.
-Includes centralized design tokens, custom CSS badges, metric cards, navigation rail,
-tooltips, and Plotly theme synchronization.
+Complies strictly with the SpectralQ Master Color System and Defense Command Center specification.
 """
 
 from typing import Dict, Any
 import streamlit as st
+from ui.styles.design_system import DESIGN_TOKENS, get_design_tokens
 
 
 # -----------------------------------------------------------------------------
@@ -37,7 +37,7 @@ TOOLTIPS: Dict[str, str] = {
         "• L1: Signal Detection (burst & physical parameters)\n"
         "• L2: Modulation Identification (AMC consensus)\n"
         "• L3: Blind Symbol Demodulation (constellation lock)\n"
-        "• L4: Coding & FEC Lock (viterbi / Reed-Solomon / Interleaver sync)\n"
+        "• L4: Coding & FEC Lock (conv / Reed-Solomon / Interleaver sync)\n"
         "• L5: Frame Synchronization & CRC Validation (full payload recovery)"
     ),
     "UNKNOWN": (
@@ -59,63 +59,75 @@ TOOLTIPS: Dict[str, str] = {
 
 
 # -----------------------------------------------------------------------------
-# Design Token Palettes
+# Design Token Palettes (Flagship Dark Command Center & High-Contrast Light)
 # -----------------------------------------------------------------------------
 THEMES = {
     "dark": {
-        "bg": "#0e1117",
-        "card_bg": "#161b22",
-        "card_border": "#30363d",
-        "text": "#f0f6fc",
-        "text_muted": "#8b949e",
-        "primary": "#58a6ff",
-        "accent": "#1f6feb",
-        "pass_bg": "rgba(63, 185, 80, 0.15)",
-        "pass_color": "#3fb950",
-        "pass_border": "#238636",
-        "fail_bg": "rgba(248, 81, 73, 0.15)",
-        "fail_color": "#f85149",
-        "fail_border": "#da3633",
-        "warn_bg": "rgba(210, 153, 34, 0.15)",
-        "warn_color": "#d29922",
-        "warn_border": "#9e6a03",
-        "unavailable_bg": "#21262d",
-        "unavailable_color": "#8b949e",
-        "unavailable_border": "#484f58",
-        "ladder_bg": "rgba(88, 166, 255, 0.15)",
-        "ladder_color": "#58a6ff",
-        "ladder_border": "#1f6feb",
-        "replay_bg": "rgba(188, 140, 255, 0.15)",
-        "replay_color": "#bc8cff",
-        "replay_border": "#8957e5",
+        "bg": "#070A0F",
+        "card_bg": "#101720",
+        "card_border": "rgba(255, 255, 255, 0.08)",
+        "card_border_strong": "rgba(255, 255, 255, 0.14)",
+        "text": "#F4F7FB",
+        "text_secondary": "#A8B2C2",
+        "text_muted": "#707C90",
+        "primary": "#53D7FF",           # Primary RF Cyan
+        "accent": "#5B8CFF",            # Secondary Electric Blue
+        "violet": "#9A7CFF",
+        "magenta": "#F06BFF",
+        "pass_bg": "rgba(53, 227, 154, 0.12)",
+        "pass_color": "#35E39A",
+        "pass_border": "rgba(53, 227, 154, 0.35)",
+        "fail_bg": "rgba(255, 98, 120, 0.14)",
+        "fail_color": "#FF6278",
+        "fail_border": "rgba(255, 98, 120, 0.35)",
+        "warn_bg": "rgba(255, 184, 77, 0.12)",
+        "warn_color": "#FFB84D",
+        "warn_border": "rgba(255, 184, 77, 0.35)",
+        "unavailable_bg": "#151D27",
+        "unavailable_color": "#707C90",
+        "unavailable_border": "rgba(255, 255, 255, 0.08)",
+        "ladder_bg": "rgba(154, 124, 255, 0.14)",
+        "ladder_color": "#9A7CFF",
+        "ladder_border": "rgba(154, 124, 255, 0.35)",
+        "replay_bg": "rgba(240, 107, 255, 0.14)",
+        "replay_color": "#F06BFF",
+        "replay_border": "rgba(240, 107, 255, 0.35)",
+        "glow_primary": "0 0 16px rgba(83, 215, 255, 0.22)",
+        "glow_pass": "0 0 16px rgba(53, 227, 154, 0.22)",
         "plotly_template": "plotly_dark",
     },
     "light": {
-        "bg": "#f6f8fa",
-        "card_bg": "#ffffff",
-        "card_border": "#d0d7de",
-        "text": "#24292f",
-        "text_muted": "#57606a",
-        "primary": "#0969da",
-        "accent": "#0550ae",
-        "pass_bg": "#dafbe1",
-        "pass_color": "#1a7f37",
-        "pass_border": "#2da44e",
-        "fail_bg": "#ffebe9",
-        "fail_color": "#cf222e",
-        "fail_border": "#ff8182",
-        "warn_bg": "#fff8c5",
-        "warn_color": "#9a6700",
-        "warn_border": "#d4a72c",
-        "unavailable_bg": "#f6f8fa",
-        "unavailable_color": "#57606a",
-        "unavailable_border": "#afb8c1",
-        "ladder_bg": "#ddf4ff",
-        "ladder_color": "#0969da",
-        "ladder_border": "#54aeff",
-        "replay_bg": "#fbefff",
-        "replay_color": "#8250df",
-        "replay_border": "#c297ff",
+        "bg": "#F4F7FB",
+        "card_bg": "#FFFFFF",
+        "card_border": "#D8E0EA",
+        "card_border_strong": "#B8C4D4",
+        "text": "#152033",
+        "text_secondary": "#5C6B7F",
+        "text_muted": "#8A99AD",
+        "primary": "#0969DA",
+        "accent": "#0550AE",
+        "violet": "#8250DF",
+        "magenta": "#BF3989",
+        "pass_bg": "#DAFBE1",
+        "pass_color": "#1A7F37",
+        "pass_border": "#2DA44E",
+        "fail_bg": "#FFEBE9",
+        "fail_color": "#CF222E",
+        "fail_border": "#FF8182",
+        "warn_bg": "#FFF8C5",
+        "warn_color": "#9A6700",
+        "warn_border": "#D4A72C",
+        "unavailable_bg": "#F6F8FA",
+        "unavailable_color": "#57606A",
+        "unavailable_border": "#AFB8C1",
+        "ladder_bg": "#DDF4FF",
+        "ladder_color": "#0969DA",
+        "ladder_border": "#54AEFF",
+        "replay_bg": "#FBEFFF",
+        "replay_color": "#8250DF",
+        "replay_border": "#C297FF",
+        "glow_primary": "0 2px 10px rgba(9, 105, 218, 0.15)",
+        "glow_pass": "0 2px 10px rgba(26, 127, 55, 0.15)",
         "plotly_template": "plotly_white",
     },
 }
@@ -135,145 +147,189 @@ def get_theme_tokens() -> Dict[str, Any]:
 def get_plotly_layout_defaults() -> Dict[str, Any]:
     """Returns standard Plotly layout configuration honoring the current theme."""
     tokens = get_theme_tokens()
+    is_dark = tokens["plotly_template"] == "plotly_dark"
     return {
         "template": tokens["plotly_template"],
-        "paper_bgcolor": tokens["card_bg"],
+        "paper_bgcolor": tokens["bg"] if is_dark else tokens["bg"],
         "plot_bgcolor": tokens["card_bg"],
-        "font": {"color": tokens["text"], "family": "Inter, sans-serif"},
-        "margin": {"l": 40, "r": 20, "t": 40, "b": 40},
+        "font": {"color": tokens["text"], "family": "Inter, -apple-system, sans-serif"},
+        "margin": {"l": 45, "r": 20, "t": 45, "b": 40},
+        "xaxis": {
+            "gridcolor": "rgba(255, 255, 255, 0.06)" if is_dark else "rgba(0, 0, 0, 0.08)",
+            "zerolinecolor": "rgba(255, 255, 255, 0.12)" if is_dark else "rgba(0, 0, 0, 0.15)",
+            "tickfont": {"size": 10, "family": "JetBrains Mono, monospace"},
+        },
+        "yaxis": {
+            "gridcolor": "rgba(255, 255, 255, 0.06)" if is_dark else "rgba(0, 0, 0, 0.08)",
+            "zerolinecolor": "rgba(255, 255, 255, 0.12)" if is_dark else "rgba(0, 0, 0, 0.15)",
+            "tickfont": {"size": 10, "family": "JetBrains Mono, monospace"},
+        },
     }
 
 
 def generate_theme_css(tokens: Dict[str, Any]) -> str:
     """Generates the full scoped CSS string using theme tokens."""
+    is_dark = tokens["plotly_template"] == "plotly_dark"
+    
     return f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
 
-/* Typography Defaults */
-html, body, [class*="css"] {{
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+/* Global Root & Typography */
+html, body, [class*="css"], .stApp {{
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    background-color: {tokens["bg"]} !important;
+    color: {tokens["text"]} !important;
 }}
 
-code, pre, .mono {{
+code, pre, .mono, [data-testid="stMarkdownContainer"] code {{
     font-family: 'JetBrains Mono', monospace !important;
 }}
 
-/* Top Header */
-.sq-header {{
-    border-bottom: 2px solid {tokens["card_border"]};
-    padding-bottom: 0.6rem;
-    margin-bottom: 1.0rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* Sidebar Command Rail */
+[data-testid="stSidebar"] {{
+    background-color: {'#0B1017' if is_dark else '#EBF0F6'} !important;
+    border-right: 1px solid {tokens["card_border"]} !important;
 }}
 
-.sq-title {{
-    font-size: 1.55rem;
-    font-weight: 700;
-    color: {tokens["primary"]};
-    letter-spacing: -0.02em;
-    margin: 0;
+[data-testid="stSidebar"] hr {{
+    margin: 1rem 0 !important;
+    border-color: {tokens["card_border"]} !important;
 }}
 
-.sq-subtitle {{
-    font-size: 0.82rem;
-    color: {tokens["text_muted"]};
-    margin-top: 0.15rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+/* Button Overhaul — No Red Buttons */
+.stButton > button {{
+    background-color: {tokens["card_bg"]} !important;
+    border: 1px solid {tokens["card_border_strong"]} !important;
+    color: {tokens["text"]} !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 0.82rem !important;
+    padding: 0.45rem 0.9rem !important;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
 }}
 
-/* Telemetry Metadata Bar */
-.sq-meta-bar {{
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1.25rem;
-    background-color: {tokens["card_bg"]};
-    border: 1px solid {tokens["card_border"]};
-    border-radius: 6px;
-    padding: 0.5rem 0.85rem;
-    margin-bottom: 1.0rem;
-    font-size: 0.82rem;
+.stButton > button:hover {{
+    border-color: {tokens["primary"]} !important;
+    color: {tokens["primary"]} !important;
+    transform: translateY(-1px) !important;
+    box-shadow: {tokens["glow_primary"]} !important;
 }}
 
-.sq-meta-item {{
-    display: flex;
-    flex-direction: column;
+/* Primary Buttons: High-Fidelity Cyan Accent Gradient */
+.stButton > button[kind="primary"] {{
+    background: linear-gradient(135deg, {tokens["accent"]} 0%, {tokens["primary"]} 100%) !important;
+    border: none !important;
+    color: {'#070A0F' if is_dark else '#FFFFFF'} !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em !important;
+    box-shadow: {tokens["glow_primary"]} !important;
 }}
 
-.sq-meta-label {{
-    color: {tokens["text_muted"]};
-    font-size: 0.68rem;
-    text-transform: uppercase;
-    font-weight: 600;
-    letter-spacing: 0.04em;
+.stButton > button[kind="primary"]:hover {{
+    filter: brightness(1.08) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 0 20px rgba(83, 215, 255, 0.4) !important;
 }}
 
-.sq-meta-value {{
-    color: {tokens["text"]};
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 600;
+/* Streamlit Tabs */
+.stTabs [data-baseweb="tab-list"] {{
+    background-color: transparent !important;
+    border-bottom: 1px solid {tokens["card_border"]} !important;
+    gap: 0.5rem !important;
 }}
 
-/* High-Density Metric Cards */
+.stTabs [data-baseweb="tab"] {{
+    background-color: transparent !important;
+    border: none !important;
+    border-radius: 6px 6px 0 0 !important;
+    color: {tokens["text_muted"]} !important;
+    font-weight: 600 !important;
+    font-size: 0.82rem !important;
+    padding: 0.6rem 1rem !important;
+    transition: all 0.15s ease !important;
+}}
+
+.stTabs [aria-selected="true"] {{
+    background-color: {tokens["card_bg"]} !important;
+    color: {tokens["primary"]} !important;
+    border-bottom: 2px solid {tokens["primary"]} !important;
+}}
+
+/* Expander Overhaul */
+.streamlit-expanderHeader {{
+    background-color: {tokens["card_bg"]} !important;
+    border: 1px solid {tokens["card_border"]} !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    color: {tokens["text"]} !important;
+}}
+
+/* Metric Cards */
 .sq-card {{
     background-color: {tokens["card_bg"]};
     border: 1px solid {tokens["card_border"]};
-    border-radius: 6px;
-    padding: 0.75rem 0.9rem;
-    margin-bottom: 0.65rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border-radius: 10px;
+    padding: 1.0rem 1.15rem;
+    margin-bottom: 0.75rem;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+}}
+
+.sq-card:hover {{
+    border-color: {tokens["card_border_strong"]};
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+}}
+
+.sq-card-hero {{
+    background: linear-gradient(135deg, {tokens["card_bg"]} 0%, {'#151D27' if is_dark else '#F9FAFC'} 100%);
+    border: 1px solid {tokens["border_accent"] if "border_accent" in tokens else tokens["card_border_strong"]};
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
 }}
 
 .sq-card-title {{
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     color: {tokens["text_muted"]};
-    margin-bottom: 0.2rem;
-    font-weight: 600;
+    margin-bottom: 0.35rem;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: space-between;
 }}
 
 .sq-card-value {{
-    font-size: 1.3rem;
-    font-weight: 700;
+    font-size: 1.45rem;
+    font-weight: 800;
     color: {tokens["text"]};
     font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
 }}
 
 .sq-card-sub {{
     font-size: 0.72rem;
     color: {tokens["text_muted"]};
-    margin-top: 0.2rem;
+    margin-top: 0.35rem;
+    line-height: 1.35;
 }}
 
-/* Tooltips */
-.sq-info-icon {{
-    display: inline-block;
-    cursor: help;
-    font-size: 0.75rem;
-    color: {tokens["primary"]};
-    margin-left: 0.3rem;
-    opacity: 0.8;
-}}
-.sq-info-icon:hover {{
-    opacity: 1.0;
-}}
-
-/* Status Badges */
+/* Status Badges & Pills */
 .sq-badge {{
-    display: inline-block;
-    padding: 0.16rem 0.48rem;
-    border-radius: 4px;
-    font-size: 0.7rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.68rem;
     font-weight: 700;
     font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }}
 
@@ -283,131 +339,86 @@ code, pre, .mono {{
 .badge-unavail {{ background-color: {tokens["unavailable_bg"]}; color: {tokens["unavailable_color"]}; border: 1px solid {tokens["unavailable_border"]}; }}
 .badge-ladder {{ background-color: {tokens["ladder_bg"]}; color: {tokens["ladder_color"]}; border: 1px solid {tokens["ladder_border"]}; }}
 .badge-replay {{ background-color: {tokens["replay_bg"]}; color: {tokens["replay_color"]}; border: 1px solid {tokens["replay_border"]}; }}
-.badge-unknown {{ background-color: {tokens["fail_bg"]}; color: {tokens["fail_color"]}; border: 2px solid {tokens["fail_color"]}; font-weight: 800; }}
+.badge-unknown {{ background-color: {tokens["fail_bg"]}; color: {tokens["fail_color"]}; border: 1px solid {tokens["fail_border"]}; font-weight: 800; }}
 
-/* Prominent UNKNOWN Banner */
-.sq-unknown-banner {{
-    background-color: {tokens["fail_bg"]};
-    border: 2px solid {tokens["fail_color"]};
+/* Command Header & Telemetry Ribbon */
+.sq-header-wrap {{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0 1.0rem 0;
+    border-bottom: 1px solid {tokens["card_border"]};
+    margin-bottom: 1.0rem;
+}}
+
+.sq-meta-ribbon {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    background-color: {tokens["card_bg"]};
+    border: 1px solid {tokens["card_border"]};
     border-radius: 8px;
-    padding: 1.1rem;
+    padding: 0.6rem 1.0rem;
+    margin-bottom: 1.25rem;
+    align-items: center;
+}}
+
+.sq-ribbon-cell {{
+    display: flex;
+    flex-direction: column;
+    padding-right: 0.75rem;
+    border-right: 1px solid {tokens["card_border"]};
+}}
+
+.sq-ribbon-cell:last-child {{
+    border-right: none;
+    padding-right: 0;
+}}
+
+.sq-ribbon-label {{
+    color: {tokens["text_muted"]};
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.15rem;
+}}
+
+.sq-ribbon-val {{
+    color: {tokens["text"]};
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+}}
+
+/* Abstention / UNKNOWN Banner */
+.sq-unknown-banner {{
+    background: linear-gradient(135deg, rgba(255, 98, 120, 0.12) 0%, {tokens["card_bg"]} 100%);
+    border: 1px solid {tokens["fail_color"]};
+    border-left: 4px solid {tokens["fail_color"]};
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
     margin-bottom: 1.25rem;
 }}
 
-.sq-unknown-title {{
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: {tokens["fail_color"]};
-    margin-bottom: 0.4rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}}
-
-.sq-unknown-desc {{
-    color: {tokens["text"]};
-    font-size: 0.88rem;
-    line-height: 1.4;
-}}
-
-/* Prominent Raw Visualization Unavailable Banner */
+/* Raw Visualization Unavailable Box */
 .sq-unavailable-box {{
     background-color: {tokens["card_bg"]};
-    border: 2px dashed {tokens["card_border"]};
-    border-radius: 8px;
-    padding: 1.5rem;
+    border: 1px dashed {tokens["card_border_strong"]};
+    border-radius: 10px;
+    padding: 2.25rem 1.5rem;
     text-align: center;
     margin: 1.0rem 0;
 }}
 
-.sq-unavailable-title {{
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: {tokens["warn_color"]};
-    margin-bottom: 0.5rem;
-}}
-
-.sq-unavailable-msg {{
-    font-size: 0.86rem;
-    color: {tokens["text_muted"]};
-    max-width: 650px;
-    margin: 0 auto 0.75rem auto;
-    line-height: 1.45;
-}}
-
-/* Simulation Ground Truth Watermark */
-.sq-ground-truth-badge {{
-    background-color: {tokens["warn_bg"]};
-    border: 1px solid {tokens["warn_border"]};
-    color: {tokens["warn_color"]};
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
-    font-weight: 700;
-    padding: 0.35rem 0.75rem;
-    border-radius: 4px;
-    display: inline-block;
-    margin-bottom: 0.75rem;
-}}
-
-/* "Why This Decision?" Drawer Callout */
+/* Why This Decision Callout */
 .sq-why-callout {{
-    background-color: {tokens["ladder_bg"]};
-    border-left: 4px solid {tokens["primary"]};
-    padding: 0.85rem 1.0rem;
-    border-radius: 0 6px 6px 0;
-    margin: 0.75rem 0 1.0rem 0;
-}}
-
-.sq-why-title {{
-    font-size: 0.82rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: {tokens["primary"]};
-    margin-bottom: 0.25rem;
-}}
-
-.sq-why-text {{
-    font-size: 0.86rem;
-    color: {tokens["text"]};
-    line-height: 1.4;
-    margin: 0;
-}}
-
-/* Pipeline Stepper Bar */
-.sq-stepper {{
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
-    gap: 0.4rem;
-    margin-bottom: 1.0rem;
-}}
-
-.sq-step {{
     background-color: {tokens["card_bg"]};
     border: 1px solid {tokens["card_border"]};
-    border-radius: 5px;
-    padding: 0.45rem 0.5rem;
-    text-align: center;
-    transition: all 0.15s ease-in-out;
-}}
-
-.sq-step.active {{
-    border-color: {tokens["primary"]};
-    background-color: {tokens["ladder_bg"]};
-}}
-
-.sq-step-num {{
-    font-size: 0.65rem;
-    color: {tokens["text_muted"]};
-    font-weight: 700;
-}}
-
-.sq-step-name {{
-    font-size: 0.7rem;
-    color: {tokens["text"]};
-    font-weight: 600;
-    margin: 0.15rem 0;
-    text-transform: uppercase;
+    border-left: 4px solid {tokens["primary"]};
+    padding: 1.0rem 1.25rem;
+    border-radius: 0 10px 10px 0;
+    margin: 0.5rem 0 1.0rem 0;
 }}
 </style>
 """

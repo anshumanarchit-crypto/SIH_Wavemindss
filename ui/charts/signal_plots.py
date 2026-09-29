@@ -31,20 +31,20 @@ def create_waveform_plot(
     fig = go.Figure()
 
     times = artifacts.waveform_times_ms
-    # Real / Channel 1 (In-Phase) - Gold/Yellow
+    # Real / Channel 1 (In-Phase) - Primary Cyan
     fig.add_trace(go.Scatter(
         x=times,
         y=artifacts.waveform_i,
         name="Real (Channel 1) [I]",
-        line=dict(color="#f1e05a" if tokens["plotly_template"] == "plotly_dark" else "#b08800", width=1.3),
+        line=dict(color=tokens.get("primary", "#53D7FF"), width=1.3),
         mode="lines",
     ))
-    # Imag / Channel 2 (Quadrature) - Cyan/Blue
+    # Imag / Channel 2 (Quadrature) - Secondary Electric Blue
     fig.add_trace(go.Scatter(
         x=times,
         y=artifacts.waveform_q,
         name="Imag (Channel 2) [Q]",
-        line=dict(color="#58a6ff" if tokens["plotly_template"] == "plotly_dark" else "#0969da", width=1.3),
+        line=dict(color=tokens.get("accent", "#5B8CFF"), width=1.3),
         mode="lines",
     ))
 

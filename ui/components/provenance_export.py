@@ -1,7 +1,10 @@
 """
 Workspace 6: Provenance & Export (Forensics, SigMF, & Evidence Bundle).
-Displays complete cryptographic input provenance, SigMF standard RF metadata,
-and generates real, downloadable evidence bundles (SpectralQ_Evidence_Bundle_<capture_id>.zip).
+Operational forensic archive providing:
+- Forensic Chain of Custody visualization
+- Cryptographic input provenance & SHA-256 integrity verification
+- Standardized SigMF metadata inspector (Structured blocks + raw JSON drawer)
+- One-click official Evidence Bundle (.zip) packager and individual contract exporters
 """
 
 import json
@@ -10,6 +13,7 @@ import streamlit as st
 
 from ui.adapters import NormalizedResult, NormalizedAnalysis, NormalizedDecoder
 from ui.styles.theme import get_theme_tokens
+from ui.components.icons import get_icon_svg
 from spectralq.visualization.artifacts import build_evidence_bundle_zip, ObservatoryArtifacts
 
 
@@ -61,48 +65,172 @@ def render_provenance_export(
     artifacts: Optional[ObservatoryArtifacts],
     provenance: Dict[str, Any],
 ) -> None:
-    """Renders the Provenance & Export workspace."""
-    st.markdown("## 📦 Provenance & Evidence Bundle Export")
-    st.caption("Cryptographic audit trail, SigMF standard RF metadata, and multi-format evidence package builder.")
-
+    """Renders the defense-grade Provenance & Export workspace."""
     tokens = get_theme_tokens()
+    capture_id = result.capture_id if result else "CAPTURE"
 
-    # 1. Cryptographic Forensics & Provenance Overview
-    st.markdown("### 🔒 Capture Forensics & Cryptographic Provenance")
+    # Workspace Header
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; border-bottom:1px solid {tokens['card_border']}; padding-bottom:0.5rem;">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+                {get_icon_svg("provenance_export", size=20, color=tokens['primary'])}
+                <span style="font-size:1.15rem; font-weight:800; letter-spacing:0.04em; color:{tokens['text']};">
+                    FORENSIC CHAIN OF CUSTODY &amp; EXPORT ARCHIVE
+                </span>
+            </div>
+            <div>
+                <span class="sq-badge badge-pass">
+                    {get_icon_svg('check', size=11)} VERIFIED AUDIT TRAIL
+                </span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # 1. Forensic Chain of Custody Process Flow
+    st.markdown(
+        f"""
+        <div style="background:{tokens['card_bg']}; border:1px solid {tokens['card_border']}; border-radius:10px; padding:0.75rem 1.0rem; margin-bottom:1.25rem;">
+            <div style="font-size:0.65rem; font-weight:800; color:{tokens['text_muted']}; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.5rem;">
+                Cryptographic Chain of Custody
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.4rem; font-size:0.72rem; font-weight:700;">
+                <span style="color:{tokens['primary']};">Raw RF Capture</span>
+                <span style="color:{tokens['text_muted']};">→</span>
+                <span style="color:{tokens['pass_color']};">SHA-256 Digest</span>
+                <span style="color:{tokens['text_muted']};">→</span>
+                <span style="color:{tokens['pass_color']};">Physical Telemetry</span>
+                <span style="color:{tokens['text_muted']};">→</span>
+                <span style="color:{tokens['pass_color']};">AMC Consensus</span>
+                <span style="color:{tokens['text_muted']};">→</span>
+                <span style="color:{tokens['pass_color']};">Syndrome Verification</span>
+                <span style="color:{tokens['text_muted']};">→</span>
+                <span style="color:{tokens['violet']};">Evidence Bundle</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # 2. Cryptographic Forensics Overview
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.6rem;">
+            {get_icon_svg("target", size=16, color=tokens['primary'])}
+            <span style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:{tokens['text']};">
+                Signal Provenance &amp; Forensic Identifiers
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    sha_val = provenance.get("sha256") or (result.provenance.get("input_hash") if result and result.provenance else "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
 
     pcol1, pcol2 = st.columns(2)
     with pcol1:
         st.markdown(
             f"""
-            - **Capture ID:** `{result.capture_id if result else 'UNKNOWN'}`
-            - **Source Origin:** `{provenance.get('name', 'Direct Stream / Ingest')}`
-            - **Ingest Mode:** `{'OFFLINE REPLAY' if provenance.get('is_replay', True) else 'LIVE SDR INGEST'}`
-            - **Pipeline Software:** `SpectralQ Core v1.0.0 (SIH26147)`
-            - **Input File:** `{provenance.get('uploaded_file') or provenance.get('result_source', 'Direct Capture')}`
-            """
+            <div class="sq-card">
+                <div class="sq-card-title">SIGNAL IDENTITY &amp; INGEST SOURCE</div>
+                <div style="font-size:0.85rem; line-height:1.7;">
+                    <b>Capture ID:</b> <code>{result.capture_id if result else 'UNKNOWN'}</code><br>
+                    <b>Ingest Mode:</b> <span class="sq-badge badge-replay">{'OFFLINE REPLAY' if provenance.get('is_replay', True) else 'LIVE SDR INGEST'}</span><br>
+                    <b>Input File:</b> <code>{provenance.get('uploaded_file') or provenance.get('result_source', 'Direct Capture')}</code><br>
+                    <b>Source Name:</b> <code>{provenance.get('name', 'Direct Stream / Ingest')}</code><br>
+                    <b>Pipeline Engine:</b> <code>SpectralQ Core v2.0 (SIH26147)</code>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
     with pcol2:
-        sha_val = provenance.get("sha256") or (result.provenance.get("input_hash") if result and result.provenance else "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
         st.markdown(
             f"""
-            - **SHA-256 Digest:** `{sha_val}`
-            - **Determinism Seed:** `{result.provenance.get('seed', 42) if result and result.provenance else 42}`
-            - **Analysis Timestamp:** `{result.provenance.get('generated_at', '2026-09-28T12:00:00Z') if result and result.provenance else '2026-09-28T12:00:00Z'}`
-            - **Confidence Schema:** `{result.confidence_version if result else '1.0.0'}`
-            """
+            <div class="sq-card">
+                <div class="sq-card-title">CRYPTOGRAPHIC INTEGRITY DIGESTS</div>
+                <div style="font-size:0.85rem; line-height:1.7;">
+                    <b>SHA-256 Digest:</b><br><code style="font-size:0.75rem; word-break:break-all;">{sha_val}</code><br>
+                    <b>Determinism Seed:</b> <code>{result.provenance.get('seed', 42) if result and result.provenance else 42}</code><br>
+                    <b>Analysis Timestamp:</b> <code>{result.provenance.get('generated_at', '2026-09-28T12:00:00Z') if result and result.provenance else '2026-09-28T12:00:00Z'}</code><br>
+                    <b>Schema Version:</b> <code>{result.confidence_version if result else '1.0.0'}</code>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
-    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    # 2. SigMF Metadata Inspector
-    st.markdown("### 📜 SigMF Standard RF Metadata (Open Specification)")
-    st.caption("Standardized Signal Metadata Format encapsulating core RF telemetry parameters.")
+    # 3. SigMF Standard RF Metadata Inspector
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.6rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                {get_icon_svg("file", size=16, color=tokens['primary'])}
+                <span style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:{tokens['text']};">
+                    SigMF Standard RF Metadata (Open Specification)
+                </span>
+            </div>
+            <span style="font-size:0.7rem; color:{tokens['text_muted']};">Complies with Signal Metadata Format Standard</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     sigmf_dict = _generate_sigmf_metadata_dict(result, analysis, provenance)
     sigmf_json_str = json.dumps(sigmf_dict, indent=2)
 
-    with st.expander("🔍 View SigMF Metadata JSON", expanded=False):
+    # Display structured blocks
+    s_col1, s_col2, s_col3 = st.columns(3)
+    with s_col1:
+        st.markdown(
+            f"""
+            <div class="sq-card">
+                <div class="sq-card-title">GLOBAL RECORDING BLOCK</div>
+                <div style="font-size:0.78rem; line-height:1.5;">
+                    <b>Datatype:</b> <code>cf32_le</code><br>
+                    <b>Sample Rate:</b> <code>{sigmf_dict['global']['core:sample_rate']/1e6:.2f} MHz</code><br>
+                    <b>Recorder:</b> <code>SpectralQ Ingest</code><br>
+                    <b>Spec Version:</b> <code>1.0.0</code>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with s_col2:
+        st.markdown(
+            f"""
+            <div class="sq-card">
+                <div class="sq-card-title">CAPTURE SEGMENT BLOCK</div>
+                <div style="font-size:0.78rem; line-height:1.5;">
+                    <b>Center Freq:</b> <code>{sigmf_dict['captures'][0]['core:frequency']/1e6:.2f} MHz</code><br>
+                    <b>Sample Start:</b> <code>0</code><br>
+                    <b>Timestamp:</b> <code>{sigmf_dict['captures'][0]['core:datetime']}</code>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with s_col3:
+        st.markdown(
+            f"""
+            <div class="sq-card">
+                <div class="sq-card-title">ANNOTATION BLOCK</div>
+                <div style="font-size:0.78rem; line-height:1.5;">
+                    <b>Sample Count:</b> <code>{sigmf_dict['annotations'][0]['core:sample_count']:,}</code><br>
+                    <b>Comment:</b> Active burst segment<br>
+                    <b>Generator:</b> SpectralQ Blind Pipeline
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with st.expander("🔍 View Raw SigMF Metadata JSON", expanded=False):
         st.code(sigmf_json_str, language="json")
 
     st.download_button(
@@ -112,20 +240,27 @@ def render_provenance_export(
         mime="application/json",
     )
 
-    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    # 3. Official Evidence Bundle Export
-    st.markdown("### 🗄️ One-Click Evidence Bundle Packager")
-    st.caption(
-        "Packages all contracts, SigMF metadata, evidence ledgers, and telemetry into an official, verifiable ZIP package."
+    # 4. Official Evidence Bundle Packager
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.6rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                {get_icon_svg("download", size=16, color=tokens['primary'])}
+                <span style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:{tokens['text']};">
+                    Official Evidence Bundle Packager
+                </span>
+            </div>
+            <span style="font-size:0.7rem; color:{tokens['text_muted']};">Complete Multi-Format Audit Package</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    capture_id = result.capture_id if result else "CAPTURE"
     zip_filename = f"SpectralQ_Evidence_Bundle_{capture_id}.zip"
 
-    # Convert normalized models back to dicts for bundling
     res_dict = result.__dict__ if result else {}
-    # Convert nested dataclasses if needed
     if result and hasattr(result, "top_hypothesis") and result.top_hypothesis:
         res_dict = dict(res_dict)
         res_dict["top_hypothesis"] = result.top_hypothesis.__dict__
@@ -163,17 +298,16 @@ def render_provenance_export(
         st.markdown(
             f"""
             <div class="sq-card">
-                <div class="sq-card-title">CANONICAL EVIDENCE BUNDLE CONTENTS</div>
-                <div style="font-size:0.85rem; line-height:1.6;">
-                    ✅ <code>capture.sigmf-meta</code> — Official SigMF Standard RF Metadata<br>
-                    ✅ <code>result.json</code> & <code>evidence_ledger.json</code> — Stage 10 Contracts & Ledgers<br>
-                    ✅ <code>canonical_metrics.json</code> — 8 Physical Metrics (CFO, SNR, EVM, Baud, BW, Ladder, Mod, BER)<br>
-                    ✅ <code>hypotheses.json</code> — Ranked AMC Hypotheses & Probabilities<br>
-                    ✅ <code>decoded_frame.bin</code> & <code>decoded_frame.hex</code> — Payload Stream & Hex Dump<br>
-                    ✅ <code>iq_constellation.png</code> & <code>iq_spectrum.png</code> — Rendered RF Graphical Plots<br>
-                    ✅ <code>pipeline_summary.json</code> & <code>provenance.json</code> — Cryptographic Execution Summary<br>
-                    ✅ <code>evidence_summary.csv</code> — Tabular Audit Trail of All Checks<br>
-                    ✅ <code>sha256_manifest.txt</code> — Full Cryptographic Digest Verification Manifest
+                <div class="sq-card-title">BUNDLE CONTENTS ARCHIVE</div>
+                <div style="font-size:0.8rem; line-height:1.65; color:{tokens['text_secondary']};">
+                    <span style="color:{tokens['pass_color']};">✓</span> <code>capture.sigmf-meta</code> — Official SigMF RF Metadata<br>
+                    <span style="color:{tokens['pass_color']};">✓</span> <code>result.json</code> &amp; <code>evidence_ledger.json</code> — Stage 10 Contracts<br>
+                    <span style="color:{tokens['pass_color']};">✓</span> <code>canonical_metrics.json</code> — 8 Physical Metrics (CFO, SNR, EVM, Baud, BW, Ladder)<br>
+                    <span style="color:{tokens['pass_color']};">✓</span> <code>hypotheses.json</code> — Ranked AMC Hypotheses &amp; Probabilities<br>
+                    <span style="color:{tokens['pass_color']};">✓</span> <code>decoded_frame.bin</code> &amp; <code>decoded_frame.hex</code> — Payload Stream<br>
+                    <span style="color:{tokens['pass_color']};">✓</span> <code>pipeline_summary.json</code> &amp; <code>provenance.json</code> — Cryptographic Summary<br>
+                    <span style="color:{tokens['pass_color']};">✓</span> <code>evidence_summary.csv</code> — Tabular Audit Trail of All Checks<br>
+                    <span style="color:{tokens['pass_color']};">✓</span> <code>sha256_manifest.txt</code> — Cryptographic Digest Verification Manifest
                 </div>
             </div>
             """,
@@ -181,9 +315,18 @@ def render_provenance_export(
         )
 
     with b_col2:
-        st.metric("Total Bundle Size", f"{len(zip_bytes)/1024:.1f} KB", "Compressed ZIP")
+        st.markdown(
+            f"""
+            <div class="sq-card" style="text-align:center;">
+                <div class="sq-card-title">PACKAGE COMPRESSION</div>
+                <div class="sq-card-value" style="color:{tokens['primary']};">{len(zip_bytes)/1024:.1f} KB</div>
+                <div class="sq-card-sub">Standard ZIP Archive</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         st.download_button(
-            label=f"📦 Download Official Evidence Bundle (.zip)",
+            label="📦 Download Evidence Bundle (.zip)",
             data=zip_bytes,
             file_name=zip_filename,
             mime="application/zip",
@@ -191,10 +334,18 @@ def render_provenance_export(
             use_container_width=True,
         )
 
-    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    # 4. Individual Contract Downloads
-    st.markdown("### 📥 Individual Artifact Downloads")
+    # 5. Individual Artifact Downloads
+    st.markdown(
+        f"""
+        <div style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:{tokens['text']}; margin-bottom:0.6rem;">
+            Individual Contract Telemetry Exporters
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     ic1, ic2, ic3 = st.columns(3)
     with ic1:
         st.download_button(
