@@ -38,6 +38,7 @@ from ui.components import (
     render_guided_demo_banner,
     render_wideband_scanner,
     render_run_trace,
+    render_synthetic_signal_generator,
 )
 from spectralq.visualization.artifacts import ObservatoryArtifacts
 
@@ -142,6 +143,9 @@ elif current_ws == "Wideband Scanner":
 
 elif current_ws == "Signal Lab / Simulation":
     render_signal_lab()
+
+elif current_ws == "🧬 Synthetic Generator":
+    render_synthetic_signal_generator()
 
 elif current_ws == "Run Trace":
     render_run_trace(result=res, analysis=ana, decoder=dec, provenance=prov)

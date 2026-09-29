@@ -26,6 +26,7 @@ from ui.components.signal_lab import render_signal_lab
 from ui.components.guided_demo import render_guided_demo_banner
 from ui.components.wideband_scanner import render_wideband_scanner
 from ui.components.run_trace import render_run_trace
+from ui.components.synthetic_generator import render_synthetic_signal_generator
 
 __all__ = [
     "render_header",
@@ -50,4 +51,5 @@ __all__ = [
     "render_guided_demo_banner",
     "render_wideband_scanner",
     "render_run_trace",
+    "render_synthetic_signal_generator",
 ]

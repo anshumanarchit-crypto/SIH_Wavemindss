@@ -59,6 +59,7 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
         "Provenance & Export": "📦",
         "Wideband Scanner": "📡",
         "Signal Lab / Simulation": "🔬",
+        "🧬 Synthetic Generator": "🧬",
         "Run Trace": "⏱️",
     }
 

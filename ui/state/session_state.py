@@ -20,6 +20,7 @@ WORKSPACES = [
     "Evidence & Decision",
     "Provenance & Export",
     "Signal Lab / Simulation",
+    "🧬 Synthetic Generator",
 ]
 
 EXTENDED_WORKSPACES = [
