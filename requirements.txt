@@ -1,5 +1,9 @@
 # SpectralQ — Streamlit Cloud Production Dependencies
-# Python 3.11 compatible (Streamlit Cloud uses 3.11.x)
+# Python 3.11 compatible (Streamlit Cloud default runtime)
+#
+# NOTE: The spectralq package (python/spectralq/) is bootstrapped via
+# sys.path in app.py. The -e . below installs it formally via pyproject.toml.
+-e .
 numpy>=1.24.0,<2.0.0
 scipy>=1.10.0
 scikit-learn>=1.3.0

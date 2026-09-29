@@ -9,6 +9,19 @@ Zero DSP, zero classifier training, zero confidence mathematics,
 and zero decoder logic resides in the GUI layer.
 """
 
+# ── Path bootstrap (must be FIRST — before any spectralq imports) ──────────
+# Streamlit Cloud does not run `pip install -e .` automatically.
+# We insert the python/ directory into sys.path so `spectralq` is always
+# importable, and the repo root so the `core` package is importable too.
+import sys
+import os
+_REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
+_PYTHON_PKG_DIR = os.path.join(_REPO_ROOT, "python")
+for _p in [_PYTHON_PKG_DIR, _REPO_ROOT]:
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+# ────────────────────────────────────────────────────────────────────────────
+
 from pathlib import Path
 from typing import Optional
 import streamlit as st
