@@ -672,7 +672,7 @@ def _render_download_section(samples, meta, fs_val, selected_fmt, selected_name,
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Download cards
+    # Download buttons row
     if selected_fmt == ".wav":
         raw_bytes = _to_wav(samples, fs_val)
         mime = "audio/wav"
@@ -683,7 +683,7 @@ def _render_download_section(samples, meta, fs_val, selected_fmt, selected_name,
         raw_bytes = json.dumps(meta, indent=2).encode()
         mime = "application/json"
 
-    dl1, dl2, dl3 = st.columns([2, 2, 1])
+    dl1, dl2 = st.columns(2)
     with dl1:
         st.download_button(
             label=f"⬇️ Download {selected_fmt.upper()}  ({len(raw_bytes)/1024:.1f} KB)",
@@ -704,54 +704,291 @@ def _render_download_section(samples, meta, fs_val, selected_fmt, selected_name,
                 key="dl_json",
                 use_container_width=True,
             )
-    with dl3:
-        # Quick switch to Decoder & Bitstream
-        if st.button("🔓 View in Decoder", use_container_width=True, key="dl_view_btn"):
-            _quick_analyze(samples, fs_val, meta, selected_name, safe)
+
+    # ── Full Backend Analysis Panel ────────────────────────────────────────
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div style="
+            background:linear-gradient(135deg,#0f2240 0%,#0f1a30 100%);
+            border:1px solid #1e40af55;
+            border-left:4px solid #3b82f6;
+            border-radius:12px;
+            padding:1.25rem 1.5rem;
+            margin-bottom:0.75rem;
+        ">
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.4rem;">
+                <span style="font-size:1.5rem;">🚀</span>
+                <div>
+                    <div style="font-size:1rem;font-weight:700;color:#e2e8f0;">
+                        Analyze Signal via Backend
+                    </div>
+                    <div style="font-size:0.78rem;color:#94a3b8;margin-top:2px;line-height:1.5;">
+                        Runs the <b>full SpectralQ pipeline</b> (IQ extraction &rarr; AMC &rarr; Viterbi decoder
+                        &rarr; FEC chain &rarr; CRC) on the generated signal <b>in-memory</b> —
+                        no file upload required. All six dashboard workspaces are populated with real
+                        live results that you can navigate to directly below.
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.75rem;">
+                <span style="font-size:0.72rem;color:#60a5fa;">
+                    Stages: IQ Features &rarr; Rule AMC &rarr; ML Classifier &rarr; N5 Consensus &rarr; Decoder &rarr; Evidence Ledger
+                </span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    already_analyzed = st.session_state.get("synth_analysis_done_for") == selected_name
+    btn_label = "✅ Re-Analyze Signal via Backend" if already_analyzed else "🚀 Analyze Signal via Backend"
+    if st.button(btn_label, type="primary", use_container_width=True, key="full_analyze_btn"):
+        _run_full_backend_analysis(samples, fs_val, meta, selected_name, safe)
+
+    # If analysis is already done for this scenario, show the nav panel
+    if already_analyzed:
+        _render_post_analysis_nav()
 
 
-def _quick_analyze(samples, fs_val, meta, scenario_name, safe_name):
-    with st.spinner("Running SpectralQ pipeline on synthetic signal…"):
-        try:
-            from python.spectralq.decoder.service import run_arpit_decoder
-            from ui.adapters import adapt_decoder
-            from core.contracts import SignalData
-            from core.pipeline import SpectralQPipeline
-            from spectralq.visualization.artifacts import prepare_observatory_artifacts
-            from ui.state.session_state import set_active_case_artifacts
+def _run_full_backend_analysis(
+    samples: np.ndarray,
+    fs_val: float,
+    meta: Dict,
+    scenario_name: str,
+    safe_name: str,
+) -> None:
+    """
+    Runs the complete SpectralQ pipeline end-to-end on in-memory samples.
 
-            sig = SignalData(samples=samples, sample_rate=fs_val, is_complex=True)
-            dec_out = run_arpit_decoder(capture_input=sig, capture_id=safe_name)
+    Populates result, analysis, decoder, and observatory artifacts into
+    session_state so that ALL dashboard workspaces render live data:
+        - Mission Control         (ladder + confidence)
+        - Signal Observatory      (constellation, PSD, waterfall)
+        - Modulation & Hypotheses (AMC classification, cumulants)
+        - Decoder & Bitstream     (stage badges S1→S5, sync word)
+        - Evidence & Decision     (evidence ledger, abstention)
+        - Provenance & Export     (SigMF, provenance chain)
+
+    No file I/O required — passes analysis_override directly to runner.run().
+    """
+    from spectralq.features.iq_extractor import iq_to_analysis_contract
+    from spectralq.pipeline.runner import run as pipeline_run
+    from spectralq.visualization.artifacts import prepare_observatory_artifacts
+    from ui.adapters import adapt_result, adapt_analysis, adapt_decoder
+    from ui.state.session_state import set_active_case_artifacts
+
+    capture_id = f"SYNTH_{safe_name}"
+    prog = st.progress(0, text="Stage 1/5 — Ingest & IQ Feature Extraction…")
+    prog_ph = st.empty()
+
+    try:
+        # Stage 1: IQ feature extraction from in-memory samples (no file I/O)
+        analysis_contract = iq_to_analysis_contract(
+            samples,
+            fs_hz=fs_val,
+            capture_id=capture_id,
+        )
+        prog.progress(0.20, text="Stage 2/5 — AMC Classification (Rule-based + ML)…")
+
+        # Stage 2-5: Full pipeline with analysis_override (all stages LIVE)
+        pipe_result = pipeline_run(
+            capture_path=capture_id,    # Virtual ID — no real file needed
+            mode="live",
+            analysis_override=analysis_contract,
+        )
+        prog.progress(0.65, text="Stage 3/5 — Building observatory visualization artifacts…")
+
+        # Observatory artifacts: constellation, PSD, waterfall, waveform
+        obs_artifacts = prepare_observatory_artifacts(
+            iq_samples=samples,
+            fs_hz=fs_val,
+            source_mode="SYNTHETIC",
+            sps=meta.get("sps", 8),
+        )
+        prog.progress(0.80, text="Stage 4/5 — Adapting pipeline contracts to UI normalizers…")
+
+        # Adapt all three output contracts to normalized UI objects
+        result_dict = (
+            pipe_result.result.dict()
+            if hasattr(pipe_result.result, "dict")
+            else dict(pipe_result.result)
+        )
+        analysis_dict = (
+            pipe_result.analysis.dict()
+            if hasattr(pipe_result.analysis, "dict")
+            else dict(pipe_result.analysis)
+        )
+        norm_res = adapt_result(result_dict)
+        norm_ana = adapt_analysis(analysis_dict)
+
+        norm_dec = None
+        if pipe_result.decoder is not None:
+            d = pipe_result.decoder
             dec_dict = {
-                "schema_version": "1.0.0", "capture_id": safe_name,
-                "status": dec_out.status.value,
-                "interleaver_used": dec_out.interleaver_used,
-                "fec_used": dec_out.fec_used,
-                "decoded_bits": dec_out.decoded_bits,
-                "crc_status": dec_out.crc_status.value,
-                "reencode_ber": dec_out.reencode_ber,
-                "sync_word": dec_out.sync_word,
-                "evm_percent": dec_out.evm_percent,
-                "failure_reason": dec_out.failure_reason,
+                "schema_version": "1.0.0",
+                "capture_id": capture_id,
+                "status": d.status.value,
+                "interleaver_used": d.interleaver_used,
+                "fec_used": d.fec_used,
+                "decoded_bits": d.decoded_bits,
+                "crc_status": d.crc_status.value,
+                "reencode_ber": d.reencode_ber,
+                "sync_word": d.sync_word,
+                "evm_percent": d.evm_percent,
+                "failure_reason": d.failure_reason,
             }
             norm_dec = adapt_decoder(dec_dict)
-            obs = prepare_observatory_artifacts(
-                iq_samples=samples, fs_hz=fs_val,
-                source_mode="SYNTHETIC", sps=meta.get("sps", 8),
+
+        prog.progress(0.92, text="Stage 5/5 — Populating all dashboard workspaces…")
+
+        # Provenance for the Provenance & Export workspace
+        prov_info = {
+            "source": "Synthetic Signal Generator",
+            "scenario": scenario_name,
+            "capture_id": capture_id,
+            "modulation": meta["modulation"],
+            "snr_db": meta["snr_db"],
+            "cfo_hz": meta["cfo_hz"],
+            "sample_rate": fs_val,
+            "fec": meta["fec"],
+            "interleaver": meta["interleaver"],
+            "stream_type": meta["stream_type"],
+            "num_samples": int(len(samples)),
+            "expected_stages": meta["expected_pipeline_stages"],
+            "stage_status": pipe_result.stage_status,
+            "generator": meta.get("generator", "SpectralQ Synthetic v2.0"),
+            "tags": meta.get("tags", []),
+        }
+
+        # Populate ALL workspaces via shared session state
+        set_active_case_artifacts(
+            result=norm_res,
+            analysis=norm_ana,
+            decoder=norm_dec,
+            provenance=prov_info,
+            is_replay=False,
+            artifacts=obs_artifacts,
+        )
+
+        # Mark analysis complete for this scenario
+        st.session_state["current_case_name"] = f"[SYNTH] {safe_name}"
+        st.session_state["synth_analysis_done_for"] = scenario_name
+        st.session_state["synth_stage_status"] = pipe_result.stage_status
+        st.session_state["synth_obs"] = obs_artifacts
+
+        prog.progress(1.0, text="✅ Analysis complete — all 6 workspaces populated!")
+        prog_ph.success(
+            f"✅ **Full pipeline analysis complete** for **{scenario_name[:65]}**. "
+            "Navigate to any workspace using the buttons below."
+        )
+        st.rerun()
+
+    except Exception as exc:
+        prog.empty()
+        prog_ph.empty()
+        st.error(f"**Backend pipeline error** — `{type(exc).__name__}`")
+        with st.expander("🛠️ Full Diagnostics", expanded=True):
+            import traceback
+            st.code(traceback.format_exc())
+
+
+def _render_post_analysis_nav() -> None:
+    """
+    Renders the post-analysis workspace navigation panel.
+    Shown after a successful backend analysis run — lets user jump to any workspace.
+    """
+    stage_status: Dict[str, str] = st.session_state.get("synth_stage_status", {})
+    scenario_name: str = st.session_state.get("synth_analysis_done_for", "Synthetic Signal")
+
+    st.markdown(
+        f"""
+        <div style="
+            background: linear-gradient(135deg, #052e16 0%, #0a1f0a 100%);
+            border: 1px solid #16a34a55;
+            border-left: 4px solid #22c55e;
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin: 0.75rem 0;
+        ">
+            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.6rem;">
+                <span style="font-size:1.2rem;">✅</span>
+                <span style="font-size:0.9rem;font-weight:700;color:#22c55e;">
+                    All Dashboard Workspaces Populated
+                </span>
+            </div>
+            <div style="font-size:0.78rem;color:#86efac;line-height:1.5;">
+                <b>{scenario_name[:70]}</b> has been fully analyzed by the SpectralQ backend.
+                Click any workspace button below to explore the live results — no file upload needed.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Pipeline stage status row
+    if stage_status:
+        status_colors = {
+            "LIVE": "#22c55e", "STUB": "#f97316", "REPLAY": "#3b82f6",
+            "ERROR": "#ef4444", "UNAVAILABLE": "#6b7280",
+        }
+        n = len(stage_status)
+        s_cols = st.columns(n)
+        for col, (stage, status) in zip(s_cols, stage_status.items()):
+            c = status_colors.get(status, "#94a3b8")
+            col.markdown(
+                f'<div style="text-align:center;padding:0.5rem 0.25rem;'
+                f'background:#0f172a;border:1px solid #1e293b;border-radius:8px;">'
+                f'<div style="font-size:0.58rem;color:#475569;text-transform:uppercase;'
+                f'letter-spacing:.08em;margin-bottom:2px;">{stage}</div>'
+                f'<div style="font-size:0.75rem;font-weight:700;color:{c};">{status}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
             )
-            set_active_case_artifacts(
-                result=None, analysis=None, decoder=norm_dec,
-                provenance={"source": "Synthetic Generator", "scenario": scenario_name},
-                is_replay=False, artifacts=obs,
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(
+        '<div style="font-size:0.78rem;font-weight:700;color:#64748b;'
+        'text-transform:uppercase;letter-spacing:.08em;margin-bottom:0.5rem;">'
+        '🗂️ Navigate to Workspace</div>',
+        unsafe_allow_html=True,
+    )
+
+    # 6 workspace buttons with descriptions
+    workspace_nav = [
+        ("🚀", "Mission Control",
+         "Evidence ladder, confidence score, pipeline overview"),
+        ("🔭", "Signal Observatory",
+         "Constellation, PSD, waterfall, waveform viewer"),
+        ("🎯", "Modulation & Hypotheses",
+         "AMC classification, cumulants, hypothesis ranking"),
+        ("🔓", "Decoder & Bitstream",
+         "Stage badges S1→S5, sync word, CRC, bitstream"),
+        ("⚖️", "Evidence & Decision",
+         "Evidence ledger, abstention decision, N5 consensus"),
+        ("📦", "Provenance & Export",
+         "SigMF export, full provenance chain, run ID"),
+    ]
+
+    row1 = st.columns(3)
+    row2 = st.columns(3)
+    all_cols = list(row1) + list(row2)
+
+    for col, (icon, ws, tip) in zip(all_cols, workspace_nav):
+        with col:
+            st.markdown(
+                f'<div style="font-size:0.65rem;color:#475569;text-align:center;'
+                f'padding:0.3rem 0.5rem;margin-bottom:2px;line-height:1.3;">{tip}</div>',
+                unsafe_allow_html=True,
             )
-            st.session_state["current_case_name"] = f"[SYNTH] {safe_name}"
-            st.session_state["active_workspace"] = "Decoder & Bitstream"
-            st.success("Pipeline complete! Switching to Decoder & Bitstream…")
-            st.rerun()
-        except Exception as exc:
-            st.error(f"Pipeline error: {exc}")
-            with st.expander("🛠️ Diagnostics"):
-                st.code(str(exc))
+            if st.button(
+                f"{icon} {ws}",
+                key=f"nav_ws_{ws[:14].replace(' ','_').replace('&','n')}",
+                use_container_width=True,
+                type="primary",
+            ):
+                st.session_state["active_workspace"] = ws
+                st.rerun()
 
 
 def _render_batch_section():
