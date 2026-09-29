@@ -82,5 +82,5 @@ def set_active_case_artifacts(
 
 def set_workspace(workspace_name: str):
     """Navigates to the specified workspace."""
-    if workspace_name in WORKSPACES:
+    if workspace_name in ALL_WORKSPACES:
         st.session_state["active_workspace"] = workspace_name

@@ -225,6 +225,9 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
                     artifacts=obs_artifacts,
                 )
                 st.session_state["current_case_name"] = selected_case.name
+                if selected_case.raw_path and selected_case.raw_path.exists():
+                    st.session_state["active_capture_path"] = str(selected_case.raw_path)
+                    st.session_state["active_capture_name"] = selected_case.name
                 st.rerun()
 
     else:
@@ -351,6 +354,8 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
                                 artifacts=obs_artifacts,
                             )
                             st.session_state["current_case_name"] = uploaded_file.name
+                            st.session_state["active_capture_path"] = str(tmp_cap)
+                            st.session_state["active_capture_name"] = uploaded_file.name
                             st.sidebar.success("Signal analysis complete!")
                             st.rerun()
                         except Exception as exc:
