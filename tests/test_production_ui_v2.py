@@ -1,7 +1,7 @@
 """
 Production UI V2 Verification Test Suite.
 Verifies all 7 core requirements:
-1. Workspace navigation: all 7 workspaces render without exceptions
+1. Workspace navigation: all 8 workspaces render without exceptions
 2. Contract adapters: valid, missing, partial, and malformed inputs
 3. Raw sample visualization: actual raw data loads and renders; missing raw data produces UNAVAILABLE (zero fake data)
 4. Simulation: signal generation, impairment addition, ground truth isolation
@@ -57,7 +57,10 @@ REAL_METEOR_DIR = REPO_ROOT / "data" / "real" / "meteor_m2_lrpt"
 # 1. Workspace Navigation & Component Execution
 # =============================================================================
 def test_all_seven_workspaces_defined():
-    """Verify that all 7 required workspaces are defined in the navigation list."""
+    """Verify that all 8 required workspaces are defined in the navigation list.
+    The 8th workspace is the Synthetic Generator, added to support full benchmark
+    suite generation across all pipeline permutations.
+    """
     expected = [
         "Mission Control",
         "Signal Observatory",
@@ -66,8 +69,9 @@ def test_all_seven_workspaces_defined():
         "Evidence & Decision",
         "Provenance & Export",
         "Signal Lab / Simulation",
+        "🧬 Synthetic Generator",
     ]
-    assert len(WORKSPACES) == 7
+    assert len(WORKSPACES) == 8
     for ws in expected:
         assert ws in WORKSPACES, f"Workspace '{ws}' must be defined"
 
@@ -217,7 +221,12 @@ def test_real_raw_sample_visualization():
 
     fig_w = create_waveform_plot(artifacts)
     assert fig_w is not None
-    assert len(fig_w.data) == 2  # I and Q
+    # 3 traces: I (In-Phase), Q (Quadrature), and Envelope |z| guide (legendonly/hidden by default)
+    assert len(fig_w.data) == 3
+    trace_names = [t.name for t in fig_w.data]
+    assert any("I" in n or "In-Phase" in n for n in trace_names), "I channel trace must be present"
+    assert any("Q" in n or "Quadrature" in n for n in trace_names), "Q channel trace must be present"
+    assert any("Envelope" in n for n in trace_names), "Envelope guide trace must be present"
 
     fig_s = create_spectrum_plot(artifacts)
     assert fig_s is not None
