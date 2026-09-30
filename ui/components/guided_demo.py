@@ -16,22 +16,22 @@ Provides a fully automated, hands-free guided tour across all 10 dashboard works
 Automated Experience:
 - Starts automatically at Synthetic Generator, synthesizes raw RF signal, and executes backend analysis.
 - Smoothly auto-scrolls down through all plots, graphs, waterfalls, and tables, then scrolls back to top.
-- Autopilot automatically advances to the next tab without requiring manual clicks from the judge.
+- Autopilot automatically advances to the next tab via Python-side time tracking (no JS click fragility).
 - Evaluators can pause, resume, re-scroll, adjust speed, or jump to any step at any time.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List
+import time as _time
 import streamlit as st
 
 from ui.loaders.case_discovery import DiscoveredCase
-from ui.loaders.artifact_loader import load_case_artifacts, load_case_observatory
-from ui.state.session_state import set_active_case_artifacts, set_workspace
+from ui.state.session_state import set_workspace
 from ui.styles.theme import get_theme_tokens
 
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # 10-Stage Sequential Guided Tour Scenarios
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 DEMO_SCENARIOS = [
     {
         "step_num": 1,
@@ -174,15 +174,32 @@ DEMO_SCENARIOS = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# Backend Analysis Bootstrapper
+# ---------------------------------------------------------------------------
 def ensure_demo_synthetic_ready() -> None:
     """
     Ensures that a synthetic capture is generated and full backend analysis has run,
     so all 10 workspaces are instantly populated with genuine live RF telemetry.
+
+    Uses do_rerun=False to prevent the internal st.rerun() from locking us in an
+    infinite loop.  A single st.rerun() is triggered here after the pipeline finishes
+    so the populated workspaces become visible.
     """
     target_name = "QPSK — Uncoded Golden Reference (All BYPASS, CRC PASS)"
-    if st.session_state.get("synth_analysis_done_for") == target_name and st.session_state.get("cached_result"):
+
+    # Guard: already done → skip
+    if (
+        st.session_state.get("synth_analysis_done_for") == target_name
+        and st.session_state.get("cached_result")
+    ):
         return
 
+    # Guard: already running to avoid re-entry on the rerun triggered below
+    if st.session_state.get("_demo_analysis_running"):
+        return
+
+    st.session_state["_demo_analysis_running"] = True
     try:
         from ui.components.synthetic_generator import (
             SCENARIO_CATALOG,
@@ -197,8 +214,11 @@ def ensure_demo_synthetic_ready() -> None:
         num_syms = 1000
         fs_val = 100_000.0
         s_copy = dict(scen)
-        samples, meta = _generate_synthetic_capture(s_copy, num_symbols=num_syms, fs_hz=fs_val)
 
+        with st.spinner("🔬 Synthesizing QPSK signal & running backend analysis pipeline…"):
+            samples, meta = _generate_synthetic_capture(s_copy, num_symbols=num_syms, fs_hz=fs_val)
+
+        # Pre-populate synth session state so Synthetic Generator tab shows results
         st.session_state["synth_selected_scenario"] = target_name
         st.session_state["synth_last_samples"] = samples
         st.session_state["synth_last_meta"] = meta
@@ -207,89 +227,68 @@ def ensure_demo_synthetic_ready() -> None:
         st.session_state["synth_last_name"] = target_name
 
         safe_name = "qpsk_uncoded_golden"
-        _run_full_backend_analysis(samples, fs_val, meta, target_name, safe_name)
+
+        # KEY FIX: do_rerun=False prevents the internal st.rerun() that caused the infinite loop.
+        # show_progress=False avoids trying to render st.progress() in a nested context.
+        _run_full_backend_analysis(
+            samples, fs_val, meta, target_name, safe_name,
+            do_rerun=False, show_progress=False,
+        )
+
+        # Mark step-entry time so autopilot timer starts fresh after analysis completes
+        st.session_state["guided_demo_step_entered_at"] = _time.monotonic()
+
     except Exception as exc:
-        st.warning(f"Note: Guided demo automated ingestion note: {exc}")
+        st.warning(f"⚠️ Guided demo automated ingestion note: {exc}")
+    finally:
+        st.session_state["_demo_analysis_running"] = False
+
+    # Single rerun to surface the populated workspaces
+    st.rerun()
 
 
-def _inject_auto_scroll(
-    step_num: int,
-    total_steps: int,
-    is_autopilot: bool,
-    speed_sec: int,
-) -> None:
+# ---------------------------------------------------------------------------
+# Smooth Scroll Injection (window-level, not container-level)
+# ---------------------------------------------------------------------------
+def _inject_smooth_scroll(step_num: int, total_steps: int, speed_sec: int) -> None:
     """
-    Injects smooth automated scrolling down through plots/graphs/tables
-    and automatically advances to the next step when autopilot is enabled.
+    Injects client-side JS that smoothly scrolls the page window down through plots
+    and then back to the top.  Targets `window` directly — Streamlit's page scrolls
+    at the window level, NOT inside a named div.
     """
     delay_ms = int(speed_sec * 1000)
-    is_auto_js = "true" if is_autopilot else "false"
-    can_advance_js = "true" if step_num < total_steps else "false"
 
-    t1 = int(delay_ms * 0.14)
-    t2 = int(delay_ms * 0.38)
-    t3 = int(delay_ms * 0.68)
-    t_next = delay_ms
+    t1 = int(delay_ms * 0.12)   # scroll to ~45 % (upper plots)
+    t2 = int(delay_ms * 0.36)   # scroll to ~88 % (lower charts / tables)
+    t3 = int(delay_ms * 0.65)   # scroll back to top
 
     scroll_js = f"""
-<div id="sq_guided_scroll_tracker" style="display:none;" data-step="{step_num}"></div>
+<div id="sq_scroll_{step_num}" style="display:none;"></div>
 <script>
 (function() {{
     try {{
-        const doc = document;
-        const win = window;
-        function getScrollContainer() {{
-            return doc.querySelector('[data-testid="stAppViewContainer"]') || 
-                   doc.querySelector('.main') || 
-                   doc.documentElement || 
-                   win;
+        // Streamlit renders inside an iframe in some contexts.
+        // Always scroll the top-level window object.
+        var _win = window;
+        try {{ _win = window.top || window; }} catch(e) {{ _win = window; }}
+
+        function scrollPage(fraction) {{
+            var h = Math.max(
+                document.body.scrollHeight,
+                document.documentElement.scrollHeight
+            );
+            _win.scrollTo({{ top: Math.floor(h * fraction), behavior: 'smooth' }});
         }}
 
-        const scrollEl = getScrollContainer();
-        if (!scrollEl) return;
+        // Phase 1 — reveal upper plots
+        setTimeout(function() {{ scrollPage(0.40); }}, {t1});
+        // Phase 2 — reveal lower charts, waterfalls, tables
+        setTimeout(function() {{ scrollPage(0.85); }}, {t2});
+        // Phase 3 — scroll back to top so banner is visible
+        setTimeout(function() {{ _win.scrollTo({{ top: 0, behavior: 'smooth' }}); }}, {t3});
 
-        // Phase 1: Smooth scroll down to reveal upper and middle plots
-        setTimeout(() => {{
-            const maxH = scrollEl.scrollHeight || doc.body.scrollHeight;
-            if (scrollEl.scrollTo) {{
-                scrollEl.scrollTo({{ top: Math.min(maxH * 0.45, 950), behavior: 'smooth' }});
-            }}
-        }}, {t1});
-
-        // Phase 2: Smooth scroll down to reveal lower charts, waterfalls, bitstream & tables
-        setTimeout(() => {{
-            const maxH = scrollEl.scrollHeight || doc.body.scrollHeight;
-            if (scrollEl.scrollTo) {{
-                scrollEl.scrollTo({{ top: Math.min(maxH * 0.88, 2200), behavior: 'smooth' }});
-            }}
-        }}, {t2});
-
-        // Phase 3: Smooth scroll back up to the top
-        setTimeout(() => {{
-            if (scrollEl.scrollTo) {{
-                scrollEl.scrollTo({{ top: 0, behavior: 'smooth' }});
-            }}
-        }}, {t3});
-
-        // Phase 4: Autopilot auto-advance to next step
-        const isAutopilot = {is_auto_js};
-        const canAdvance = {can_advance_js};
-
-        if (isAutopilot && canAdvance) {{
-            setTimeout(() => {{
-                const buttons = Array.from(doc.querySelectorAll('button'));
-                const nextBtn = buttons.find(b => 
-                    b.innerText.includes('Next Step') || 
-                    b.innerText.includes('▶️') || 
-                    b.id === 'guided_next_btn'
-                );
-                if (nextBtn && !nextBtn.disabled) {{
-                    nextBtn.click();
-                }}
-            }}, {t_next});
-        }}
-    }} catch (err) {{
-        console.warn("Guided demo scroll error:", err);
+    }} catch(err) {{
+        console.warn('SpectralQ scroll error:', err);
     }}
 }})();
 </script>
@@ -297,60 +296,107 @@ def _inject_auto_scroll(
     try:
         st.html(scroll_js, unsafe_allow_javascript=True)
     except Exception:
-        # Fallback if st.html unsafe_allow_javascript is not available in some contexts
-        import streamlit.components.v1 as components
-        components.html(scroll_js, height=0)
+        try:
+            import streamlit.components.v1 as components
+            components.html(scroll_js, height=0)
+        except Exception:
+            pass
 
 
+# ---------------------------------------------------------------------------
+# Step Navigation Helper
+# ---------------------------------------------------------------------------
+def _navigate_step(step_idx: int) -> None:
+    """Sets active workspace to match the given step and records entry time."""
+    scenario = DEMO_SCENARIOS[step_idx]
+    set_workspace(scenario["target_workspace"])
+    st.session_state["guided_demo_step"] = step_idx
+    # Reset step timer so autopilot counts from now
+    st.session_state["guided_demo_step_entered_at"] = _time.monotonic()
+    if step_idx == 0:
+        ensure_demo_synthetic_ready()
+
+
+# ---------------------------------------------------------------------------
+# Main Banner Renderer
+# ---------------------------------------------------------------------------
 def render_guided_demo_banner(cases: List[DiscoveredCase]) -> None:
-    """Renders the top banner for Guided Demo Mode with autopilot controls."""
+    """Renders the top banner for Guided Demo Mode with Python-side autopilot."""
     if not st.session_state.get("guided_demo_active", False):
         return
 
     tokens = get_theme_tokens()
     total_steps = len(DEMO_SCENARIOS)
 
-    # Initialize guided demo session state variables
+    # ── Session-state defaults ────────────────────────────────────────────────
     if "guided_demo_step" not in st.session_state:
         st.session_state["guided_demo_step"] = 0
     if "guided_demo_autopilot" not in st.session_state:
         st.session_state["guided_demo_autopilot"] = True
     if "guided_demo_speed" not in st.session_state:
-        st.session_state["guided_demo_speed"] = 7  # seconds per tab
+        st.session_state["guided_demo_speed"] = 8  # seconds per tab
+    if "guided_demo_step_entered_at" not in st.session_state:
+        st.session_state["guided_demo_step_entered_at"] = _time.monotonic()
 
-    step_idx = st.session_state.get("guided_demo_step", 0)
+    step_idx = int(st.session_state.get("guided_demo_step", 0))
     step_idx = max(0, min(step_idx, total_steps - 1))
     scen = DEMO_SCENARIOS[step_idx]
 
-    # Ensure Step 1 (Synthetic Generator) has executed full backend pipeline automatically
+    # ── Step 1: ensure backend analysis has run ───────────────────────────────
     if step_idx == 0:
+        # Only call if not already done (guard is inside ensure_demo_synthetic_ready)
         ensure_demo_synthetic_ready()
 
-    # Synchronize workspace if needed
+    # ── Synchronise workspace ─────────────────────────────────────────────────
     if st.session_state.get("active_workspace") != scen["target_workspace"]:
         set_workspace(scen["target_workspace"])
 
     is_autopilot = st.session_state.get("guided_demo_autopilot", True)
-    speed_sec = st.session_state.get("guided_demo_speed", 7)
+    speed_sec = int(st.session_state.get("guided_demo_speed", 8))
 
-    # Autopilot status pill styling
+    # ── Python-side autopilot advance ────────────────────────────────────────
+    # We track when the current step was entered (monotonic seconds).
+    # On every Streamlit re-render we check elapsed time.  When it exceeds
+    # speed_sec we advance to the next step — no JS button clicking needed.
+    if is_autopilot and step_idx < total_steps - 1:
+        entered_at = st.session_state.get("guided_demo_step_entered_at", _time.monotonic())
+        elapsed = _time.monotonic() - entered_at
+        remaining_ms = max(0, int((speed_sec - elapsed) * 1000))
+
+        if elapsed >= speed_sec:
+            # Time to move to next step
+            new_idx = step_idx + 1
+            st.session_state["guided_demo_step"] = new_idx
+            _navigate_step(new_idx)
+            st.rerun()
+            return
+        else:
+            # Inject a JS timer that triggers a Streamlit re-render after remaining_ms.
+            # We do this by writing a hidden input and using a meta-refresh-like trick:
+            # inject a <script> that calls window.location.reload() after the delay.
+            # A cleaner approach: write a hidden Streamlit component that auto-reruns.
+            _inject_rerun_timer(remaining_ms)
+
+    # ── Status pill ───────────────────────────────────────────────────────────
     if is_autopilot:
         status_pill = (
-            f'<span style="background:rgba(16,185,129,0.18); color:#10b981; border:1px solid rgba(16,185,129,0.5); '
-            f'padding:3px 10px; border-radius:999px; font-weight:700; font-size:0.75rem; letter-spacing:0.04em;">'
+            f'<span style="background:rgba(16,185,129,0.18); color:#10b981; '
+            f'border:1px solid rgba(16,185,129,0.5); padding:3px 10px; '
+            f'border-radius:999px; font-weight:700; font-size:0.75rem; letter-spacing:0.04em;">'
             f'🟢 AUTOPILOT ACTIVE ({speed_sec}s / Step)</span>'
         )
     else:
         status_pill = (
-            f'<span style="background:rgba(245,158,11,0.18); color:#f59e0b; border:1px solid rgba(245,158,11,0.5); '
-            f'padding:3px 10px; border-radius:999px; font-weight:700; font-size:0.75rem; letter-spacing:0.04em;">'
+            f'<span style="background:rgba(245,158,11,0.18); color:#f59e0b; '
+            f'border:1px solid rgba(245,158,11,0.5); padding:3px 10px; '
+            f'border-radius:999px; font-weight:700; font-size:0.75rem; letter-spacing:0.04em;">'
             f'⏸️ AUTOPILOT PAUSED (Manual Inspection)</span>'
         )
 
-    # Banner HUD Box
+    # ── Banner HUD ────────────────────────────────────────────────────────────
     st.markdown(
         f"""
-        <div style="background:{tokens['card_bg']}; border: 1.5px solid {tokens['primary']}; 
+        <div style="background:{tokens['card_bg']}; border: 1.5px solid {tokens['primary']};
                     border-radius: 10px; padding: 1.0rem 1.25rem; margin-bottom: 1.0rem;
                     box-shadow: 0 4px 20px rgba(56, 189, 248, 0.12);">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -376,29 +422,30 @@ def render_guided_demo_banner(cases: List[DiscoveredCase]) -> None:
         unsafe_allow_html=True,
     )
 
-    # Progress bar across the 10 stages
+    # ── Progress bar ──────────────────────────────────────────────────────────
     progress_val = (step_idx + 1) / total_steps
     st.progress(
         progress_val,
-        text=f"Tour Progress: Step {step_idx + 1} of {total_steps} ({(step_idx + 1) * 10}%) — Viewing {scen['target_workspace']}",
+        text=(
+            f"Tour Progress: Step {step_idx + 1} of {total_steps} "
+            f"({(step_idx + 1) * 10}%) — Viewing {scen['target_workspace']}"
+        ),
     )
 
-    # Interactive Controls Row
+    # ── Control row ───────────────────────────────────────────────────────────
     col_c1, col_c2, col_c3, col_c4, col_c5, col_c6 = st.columns([1.1, 1.2, 1.4, 1.0, 1.3, 0.9])
 
     with col_c1:
-        if st.button("◀️ Previous Step", disabled=(step_idx == 0), use_container_width=True, key="demo_prev_btn"):
+        if st.button("◀️ Previous", disabled=(step_idx == 0), use_container_width=True, key="demo_prev_btn"):
             new_idx = step_idx - 1
-            st.session_state["guided_demo_step"] = new_idx
             _navigate_step(new_idx)
             st.rerun()
 
     with col_c2:
-        next_label = "Next Step ▶️" if step_idx < total_steps - 1 else "Finish Tour 🏁"
-        if st.button(next_label, type="primary", use_container_width=True, key="guided_next_btn"):
+        next_label = "Next ▶️" if step_idx < total_steps - 1 else "Finish 🏁"
+        if st.button(next_label, type="primary", use_container_width=True, key="demo_next_btn"):
             if step_idx < total_steps - 1:
                 new_idx = step_idx + 1
-                st.session_state["guided_demo_step"] = new_idx
                 _navigate_step(new_idx)
                 st.rerun()
             else:
@@ -413,24 +460,29 @@ def render_guided_demo_banner(cases: List[DiscoveredCase]) -> None:
         else:
             if st.button("▶️ Resume Autopilot", use_container_width=True, key="demo_resume_btn"):
                 st.session_state["guided_demo_autopilot"] = True
+                # Reset timer so we don't immediately jump
+                st.session_state["guided_demo_step_entered_at"] = _time.monotonic()
                 st.rerun()
 
     with col_c4:
         if st.button("🔄 Re-Scroll", use_container_width=True, key="demo_rescroll_btn"):
+            # Just rerun to re-inject the scroll JS
             st.rerun()
 
     with col_c5:
-        speed_opts = {4: "⚡ Fast (4s)", 7: "⏱️ Standard (7s)", 11: "🐢 Relaxed (11s)"}
+        speed_opts = {4: "⚡ Fast (4s)", 8: "⏱️ Standard (8s)", 14: "🐢 Relaxed (14s)"}
+        cur_key = speed_sec if speed_sec in speed_opts else 8
         selected_speed = st.selectbox(
             "Scroll Speed",
             options=list(speed_opts.keys()),
             format_func=lambda s: speed_opts[s],
-            index=1 if speed_sec == 7 else (0 if speed_sec == 4 else 2),
+            index=list(speed_opts.keys()).index(cur_key),
             key="demo_speed_select",
             label_visibility="collapsed",
         )
         if selected_speed != speed_sec:
             st.session_state["guided_demo_speed"] = selected_speed
+            st.session_state["guided_demo_step_entered_at"] = _time.monotonic()
             st.rerun()
 
     with col_c6:
@@ -439,12 +491,12 @@ def render_guided_demo_banner(cases: List[DiscoveredCase]) -> None:
             st.session_state["guided_demo_autopilot"] = False
             st.rerun()
 
-    # Step Jump Selector for Judges
-    step_titles = [f"{i+1}. {s['title']}" for i, s in enumerate(DEMO_SCENARIOS)]
-    jump_col1, jump_col2 = st.columns([1, 4])
-    with jump_col1:
-        st.caption("Quick Jump to Step:")
-    with jump_col2:
+    # ── Step Jump Selector ────────────────────────────────────────────────────
+    step_titles = [f"{i + 1}. {s['title']}" for i, s in enumerate(DEMO_SCENARIOS)]
+    jcol1, jcol2 = st.columns([1, 4])
+    with jcol1:
+        st.caption("⚡ Quick Jump:")
+    with jcol2:
         jump_idx = st.selectbox(
             "Jump to Stage",
             options=range(len(step_titles)),
@@ -454,24 +506,46 @@ def render_guided_demo_banner(cases: List[DiscoveredCase]) -> None:
             label_visibility="collapsed",
         )
         if jump_idx != step_idx:
-            st.session_state["guided_demo_step"] = jump_idx
             _navigate_step(jump_idx)
             st.rerun()
 
-    # Inject client-side smooth scrolling & automated progression
-    _inject_auto_scroll(
-        step_num=scen["step_num"],
-        total_steps=total_steps,
-        is_autopilot=is_autopilot,
-        speed_sec=speed_sec,
-    )
+    # ── Smooth scroll injection ───────────────────────────────────────────────
+    _inject_smooth_scroll(scen["step_num"], total_steps, speed_sec)
 
 
-def _navigate_step(step_idx: int) -> None:
-    """Navigates to the workspace corresponding to step_idx."""
-    scenario = DEMO_SCENARIOS[step_idx]
-    target_ws = scenario["target_workspace"]
-    set_workspace(target_ws)
-    st.session_state["guided_demo_step"] = step_idx
-    if step_idx == 0:
-        ensure_demo_synthetic_ready()
+# ---------------------------------------------------------------------------
+# Rerun Timer — triggers a page refresh via JS after `delay_ms` milliseconds
+# ---------------------------------------------------------------------------
+def _inject_rerun_timer(delay_ms: int) -> None:
+    """
+    Injects a lightweight JS snippet that reloads the Streamlit page after
+    `delay_ms` milliseconds.  This causes Streamlit to re-execute and the
+    Python autopilot logic above will then advance the step if time has elapsed.
+
+    We use window.location.reload() as the most reliable cross-browser trigger.
+    A unique timestamp prevents the browser from caching / de-duplicating the
+    injected HTML across rerenders.
+    """
+    unique_id = int(_time.monotonic() * 1000) % 1_000_000
+    timer_js = f"""
+<div id="sq_timer_{unique_id}" style="display:none;"></div>
+<script>
+(function() {{
+    var tid = setTimeout(function() {{
+        // Reload the Streamlit app to trigger Python re-execution and step advance
+        window.location.reload();
+    }}, {delay_ms});
+    // Cancel any previous timer stored on window to avoid stacking
+    if (window._sqAutopilotTimer) {{ clearTimeout(window._sqAutopilotTimer); }}
+    window._sqAutopilotTimer = tid;
+}})();
+</script>
+"""
+    try:
+        st.html(timer_js, unsafe_allow_javascript=True)
+    except Exception:
+        try:
+            import streamlit.components.v1 as components
+            components.html(timer_js, height=0)
+        except Exception:
+            pass
