@@ -134,14 +134,13 @@ THEMES = {
 
 
 def get_current_theme_name() -> str:
-    """Returns the current active theme name ('dark' or 'light')."""
-    return st.session_state.get("theme", "dark")
+    """Returns the current active theme name ('dark')."""
+    return "dark"
 
 
 def get_theme_tokens() -> Dict[str, Any]:
     """Returns the dictionary of color and style tokens for the active theme."""
-    t_name = get_current_theme_name()
-    return THEMES.get(t_name, THEMES["dark"])
+    return THEMES["dark"]
 
 
 def get_plotly_layout_defaults() -> Dict[str, Any]:

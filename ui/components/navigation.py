@@ -1,6 +1,6 @@
 """
 SpectralQ Navigation & Sidebar Control Center.
-Coordinates workspace selection, case discovery, live ingest, theme toggling,
+Coordinates workspace selection, case discovery, live ingest,
 and guided demo mode controls with a high-end cyber glassmorphic interface.
 """
 
@@ -14,7 +14,7 @@ from ui.loaders.case_discovery import DiscoveredCase
 from ui.loaders.artifact_loader import load_case_artifacts, load_case_observatory
 from ui.adapters import adapt_result, adapt_analysis, adapt_decoder
 from ui.state.session_state import set_active_case_artifacts, set_workspace, WORKSPACES, EXTENDED_WORKSPACES
-from ui.styles.theme import get_current_theme_name, get_theme_tokens
+from ui.styles.theme import get_theme_tokens
 
 
 def render_sidebar(cases: List[DiscoveredCase]) -> None:
@@ -389,16 +389,8 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
         st.session_state["guided_demo_active"] = demo_toggle
         st.rerun()
 
-    # Theme Toggle
-    current_theme = get_current_theme_name()
-    col_t1, col_t2 = st.sidebar.columns([1, 1])
-    with col_t1:
-        st.caption(f"Theme: **{current_theme.upper()}**")
-    with col_t2:
-        new_theme = "light" if current_theme == "dark" else "dark"
-        if st.button("☀️/🌙 Toggle", key="theme_toggle_btn", use_container_width=True):
-            st.session_state["theme"] = new_theme
-            st.rerun()
+    # Theme Display (Locked to Dark Theme)
+    st.sidebar.caption("Theme: **DARK**")
 
     st.sidebar.markdown(
         """
