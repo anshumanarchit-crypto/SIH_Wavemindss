@@ -387,6 +387,10 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
     )
     if demo_toggle != is_demo:
         st.session_state["guided_demo_active"] = demo_toggle
+        if demo_toggle:
+            st.session_state["guided_demo_step"] = 0
+            st.session_state["guided_demo_autopilot"] = True
+            st.session_state["active_workspace"] = "🧬 Synthetic Generator"
         st.rerun()
 
     # Theme Display (Locked to Dark Theme)
