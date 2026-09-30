@@ -799,20 +799,14 @@ def _run_full_backend_analysis(
     meta: Dict,
     scenario_name: str,
     safe_name: str,
+    do_rerun: bool = True,
+    show_progress: bool = True,
 ) -> None:
     """
     Runs the complete SpectralQ pipeline end-to-end on in-memory samples.
 
     Populates result, analysis, decoder, and observatory artifacts into
-    session_state so that ALL dashboard workspaces render live data:
-        - Mission Control         (ladder + confidence)
-        - Signal Observatory      (constellation, PSD, waterfall)
-        - Modulation & Hypotheses (AMC classification, cumulants)
-        - Decoder & Bitstream     (stage badges S1→S5, sync word)
-        - Evidence & Decision     (evidence ledger, abstention)
-        - Provenance & Export     (SigMF, provenance chain)
-
-    No file I/O required — passes analysis_override directly to runner.run().
+    session_state so that ALL dashboard workspaces render live data.
     """
     from spectralq.features.iq_extractor import iq_to_analysis_contract
     from spectralq.pipeline.runner import run as pipeline_run
@@ -824,8 +818,8 @@ def _run_full_backend_analysis(
     from spectralq.contracts.schemas import DecoderOutputContract, DecoderStatus, CrcStatus
 
     capture_id = f"SYNTH_{safe_name}"
-    prog = st.progress(0, text="Stage 1/5 — Ingest & IQ Feature Extraction…")
-    prog_ph = st.empty()
+    prog = st.progress(0, text="Stage 1/5 — Ingest & IQ Feature Extraction…") if show_progress else None
+    prog_ph = st.empty() if show_progress else None
 
     try:
         # Save scratch WAV file so physical file exists on disk
@@ -845,7 +839,8 @@ def _run_full_backend_analysis(
             fs_hz=fs_val,
             capture_id=capture_id,
         )
-        prog.progress(0.20, text="Stage 2/5 — Blind Demodulation & Bitstream Extraction…")
+        if prog:
+            prog.progress(0.20, text="Stage 2/5 — Blind Demodulation & Bitstream Extraction…")
 
         # Stage 2: Execute real DSP Demodulator & Decoder on genuine complex samples
         sig_obj = SignalData(samples=samples, sample_rate=fs_val)
@@ -905,7 +900,8 @@ def _run_full_backend_analysis(
             failure_reason=fail_reason,
         )
 
-        prog.progress(0.45, text="Stage 3/5 — Running AMC Classification & Consensus Arbitration…")
+        if prog:
+            prog.progress(0.45, text="Stage 3/5 — Running AMC Classification & Consensus Arbitration…")
 
         # Stage 3: Full pipeline with analysis_override and real decoder_override (all stages LIVE)
         pipe_result = pipeline_run(
@@ -914,7 +910,8 @@ def _run_full_backend_analysis(
             analysis_override=analysis_contract,
             decoder_override=dec_contract,
         )
-        prog.progress(0.65, text="Stage 4/5 — Building observatory visualization artifacts…")
+        if prog:
+            prog.progress(0.65, text="Stage 4/5 — Building observatory visualization artifacts…")
 
         # Observatory artifacts: constellation, PSD, waterfall, waveform
         obs_artifacts = prepare_observatory_artifacts(
@@ -923,7 +920,8 @@ def _run_full_backend_analysis(
             source_mode="SYNTHETIC",
             sps=meta.get("sps", 8),
         )
-        prog.progress(0.80, text="Stage 5/5 — Adapting pipeline contracts to UI normalizers…")
+        if prog:
+            prog.progress(0.80, text="Stage 5/5 — Adapting pipeline contracts to UI normalizers…")
 
         # Adapt all three output contracts to normalized UI objects
         result_dict = (
@@ -940,7 +938,8 @@ def _run_full_backend_analysis(
         norm_ana = adapt_analysis(analysis_dict)
         norm_dec = adapt_decoder(dec_contract)
 
-        prog.progress(0.92, text="Finalizing — Populating all dashboard workspaces…")
+        if prog:
+            prog.progress(0.92, text="Finalizing — Populating all dashboard workspaces…")
 
         # Provenance for the Provenance & Export workspace
         prov_info = {
@@ -977,16 +976,20 @@ def _run_full_backend_analysis(
         st.session_state["synth_stage_status"] = pipe_result.stage_status
         st.session_state["synth_obs"] = obs_artifacts
 
-        prog.progress(1.0, text="✅ Analysis complete — all 6 workspaces populated!")
-        prog_ph.success(
-            f"✅ **Full pipeline analysis complete** for **{scenario_name[:65]}**. "
-            "Navigate to any workspace using the buttons below."
-        )
-        st.rerun()
+        if prog and prog_ph:
+            prog.progress(1.0, text="✅ Analysis complete — all workspaces populated!")
+            prog_ph.success(
+                f"✅ **Full pipeline analysis complete** for **{scenario_name[:65]}**. "
+                "Navigate to any workspace using the buttons below."
+            )
+        if do_rerun:
+            st.rerun()
 
     except Exception as exc:
-        prog.empty()
-        prog_ph.empty()
+        if prog:
+            prog.empty()
+        if prog_ph:
+            prog_ph.empty()
         st.error(f"**Backend pipeline error** — `{type(exc).__name__}`")
         with st.expander("🛠️ Full Diagnostics", expanded=True):
             import traceback
