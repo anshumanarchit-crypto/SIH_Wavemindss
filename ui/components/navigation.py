@@ -378,20 +378,7 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
         unsafe_allow_html=True,
     )
 
-    # Guided Demo Mode Toggle
-    is_demo = st.session_state.get("guided_demo_active", False)
-    demo_toggle = st.sidebar.checkbox(
-        "🎯 Guided Demo Mode (Judges)",
-        value=is_demo,
-        help="Interactive guided tour walking through real captures, golden cases, and abstention scenarios.",
-    )
-    if demo_toggle != is_demo:
-        st.session_state["guided_demo_active"] = demo_toggle
-        if demo_toggle:
-            st.session_state["guided_demo_step"] = 0
-            st.session_state["guided_demo_autopilot"] = True
-            st.session_state["active_workspace"] = "🧬 Synthetic Generator"
-        st.rerun()
+
 
     # Theme Display (Locked to Dark Theme)
     st.sidebar.caption("Theme: **DARK**")

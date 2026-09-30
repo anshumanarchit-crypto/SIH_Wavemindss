@@ -48,7 +48,6 @@ from ui.components import (
     render_evidence_decision,
     render_provenance_export,
     render_signal_lab,
-    render_guided_demo_banner,
     render_wideband_scanner,
     render_run_trace,
     render_synthetic_signal_generator,
@@ -110,18 +109,6 @@ artifacts: Optional[ObservatoryArtifacts] = st.session_state.get("observatory_ar
 prov: dict = st.session_state.get("provenance_info", {})
 is_replay: bool = st.session_state.get("is_replay", True)
 current_ws: str = st.session_state.get("active_workspace", "Mission Control")
-
-# Guided demo top banner (if active)
-render_guided_demo_banner(cases)
-
-# Synchronize workspace and artifact references in case guided demo updated them
-current_ws = st.session_state.get("active_workspace", "Mission Control")
-res = st.session_state.get("cached_result")
-ana = st.session_state.get("cached_analysis")
-dec = st.session_state.get("cached_decoder")
-artifacts = st.session_state.get("observatory_artifacts")
-prov = st.session_state.get("provenance_info", {})
-is_replay = st.session_state.get("is_replay", True)
 
 # Standard executive header
 render_header(
