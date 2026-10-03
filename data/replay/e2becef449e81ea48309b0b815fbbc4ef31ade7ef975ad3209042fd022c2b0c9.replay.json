@@ -1,14 +1,14 @@
 {
   "schema_version": "1.0.0",
   "input_hash": "e2becef449e81ea48309b0b815fbbc4ef31ade7ef975ad3209042fd022c2b0c9",
-  "capture_id": "07_QPSK_uncoded_golden",
+  "capture_id": "arbitrary_unseen_signal_99999",
   "source_mode": "replay",
-  "cached_at_utc": "2026-09-29T14:29:06.142672+00:00",
+  "cached_at_utc": "2026-10-03T07:43:11.366078+00:00",
   "generation_parameters": {},
-  "payload_checksum": "0346c23cbaca4d48edf2c8ff1242cfe5c4f23a2ab06e66e55cd2f5507d0ca2f7",
+  "payload_checksum": "42553392e5559b13a483ccd49ef1dd99aeee781c54916f5f762df94454bb8181",
   "analysis": {
     "schema_version": "1.0.0",
-    "capture_id": "07_QPSK_uncoded_golden",
+    "capture_id": "arbitrary_unseen_signal_99999",
     "source_mode": "replay",
     "fs_hz": 800000.0,
     "fs_source": "inferred",
