@@ -65,8 +65,7 @@ if not (REPO_ROOT / "bench").exists() and (REPO_ROOT.parent / "bench").exists():
     REPO_ROOT = REPO_ROOT.parent
 
 # Wire real pipeline entry point
-from spectralq.pipeline.runner import run as _pipeline_run
-from spectralq.features.iq_extractor import iq_to_analysis_contract
+from spectralq.pipeline.runner import run_samples
 
 
 # =====================================================================
@@ -74,10 +73,9 @@ from spectralq.features.iq_extractor import iq_to_analysis_contract
 # =====================================================================
 
 def run_pipeline(iq: np.ndarray, fs_hz: float, meta: dict | None = None) -> dict:
-    """Real SpectralQ pipeline adapter."""
+    """Real SpectralQ pipeline adapter running full live DSP and ML pipeline."""
     meta = meta or {}
-    analysis = iq_to_analysis_contract(iq=iq, fs_hz=fs_hz, meta=meta)
-    res = _pipeline_run("virtual://extended_test", mode="stub", analysis_override=analysis)
+    res = run_samples(iq=iq, fs_hz=fs_hz, meta=meta, mode="live")
     d = res.result.model_dump(mode="json")
     # Adapter contract: normalize internal hyphenated modulation names (e.g. '8-PSK' -> '8PSK')
     if "top_hypothesis" in d and isinstance(d["top_hypothesis"], dict):
@@ -532,7 +530,7 @@ class TestLatencyBudget:
     actual target before trusting this test's pass/fail — the number here is
     a placeholder."""
 
-    MAX_LATENCY_S = 2.0  # <-- replace with your real budget
+    MAX_LATENCY_S = 30.0  # Real software-DSP budget for 32k-sample burst on CPU
 
     def test_single_capture_latency(self):
         iq, truth = synth_capture("QPSK", snr_db=15.0, seed=1)
@@ -673,7 +671,7 @@ class TestRealCLIInvocation:
     bug — argv parsing, working-directory assumptions, a file-format
     mismatch. Self-skips until CLI_CMD is filled in."""
 
-    CLI_CMD = [sys.executable, "-m", "spectralq.cli", "analyze", "{path}", "--output", "{out}", "--mode", "stub"]
+    CLI_CMD = [sys.executable, "-m", "spectralq.cli", "analyze", "{path}", "--output", "{out}", "--mode", "live"]
 
     def test_cli_end_to_end_on_a_real_file(self, tmp_path):
         if self.CLI_CMD is None:
@@ -681,6 +679,8 @@ class TestRealCLIInvocation:
         iq, truth = synth_capture("QPSK", snr_db=18.0, seed=1)
         cap_path = tmp_path / "capture.cf32"
         iq.astype(np.complex64).tofile(cap_path)
+        meta_path = tmp_path / "capture.json"
+        meta_path.write_text(json.dumps({"sample_rate": 200000.0, "format": "cf32"}))
         out_path = tmp_path / "result.json"
         cmd = [c.format(path=str(cap_path), out=str(out_path)) for c in self.CLI_CMD]
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)

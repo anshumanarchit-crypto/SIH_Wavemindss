@@ -13,6 +13,7 @@ import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
+import numpy as np
 
 from spectralq.contracts.schemas import (
     AnalysisContract,
@@ -131,6 +132,7 @@ def run(
     replay_cache: Optional[ReplayCache] = None,
     analysis_override: Optional[AnalysisContract] = None,
     decoder_override: Optional[DecoderOutputContract] = None,
+    capture_samples: Optional[np.ndarray] = None,
 ) -> PipelineResult:
     """
     Executes the end-to-end SpectralQ pipeline plumbing.
@@ -237,15 +239,16 @@ def run(
     elif is_live:
         from spectralq.decoder.service import run_arpit_decoder
         candidate_mod = classifier_out.ml_prediction or (rule_out.predicted_modulation if rule_out else None)
+        decoder_input = capture_samples if capture_samples is not None else capture_path
         decoder_out = run_arpit_decoder(
-            capture_input=capture_path,
+            capture_input=decoder_input,
             capture_id=analysis.capture_id,
             analysis=analysis,
             candidate_modulation=candidate_mod,
         )
         if decoder_out.status == DecoderStatus.OK:
             stage_status["Demodulator & Decoder"] = "REAL"
-        elif Path(capture_path).exists():
+        elif capture_samples is not None or Path(capture_path).exists():
             stage_status["Demodulator & Decoder"] = "LIVE"
         else:
             stage_status["Demodulator & Decoder"] = "UNAVAILABLE"
@@ -467,3 +470,29 @@ def run(
         analysis=analysis,
         decoder=decoder_out,
     )
+
+
+def run_samples(
+    iq: np.ndarray,
+    fs_hz: float,
+    meta: Optional[Dict[str, Any]] = None,
+    capture_id: Optional[str] = None,
+    candidate_modulation: Optional[str] = None,
+    seed: int = 42,
+    mode: str = "live",
+) -> PipelineResult:
+    """
+    Executes the full live SpectralQ pipeline directly on an in-memory complex baseband array.
+    """
+    from spectralq.features.iq_extractor import iq_to_analysis_contract
+    meta = meta or {}
+    cid = capture_id or "MEMORY_IQ_CAPTURE"
+    analysis = iq_to_analysis_contract(iq=iq, fs_hz=fs_hz, meta=meta, capture_id=cid)
+    return run(
+        capture_path=f"memory://{cid}",
+        mode=mode,
+        seed=seed,
+        analysis_override=analysis,
+        capture_samples=iq,
+    )
+

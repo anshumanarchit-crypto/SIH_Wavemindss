@@ -4,6 +4,7 @@ Version: 1.0.0
 Summary: SpectralQ Evidence-First Decision and Integration Layer (SIH 2026, PS SIH26147 - NTRO)
 Requires-Python: >=3.10
 Description-Content-Type: text/markdown
+License-File: LICENSE
 Requires-Dist: numpy>=1.24.0
 Requires-Dist: scipy>=1.10.0
 Requires-Dist: scikit-learn>=1.3.0
@@ -14,124 +15,168 @@ Requires-Dist: pytest>=7.4.0; extra == "dev"
 Requires-Dist: pytest-cov>=4.1.0; extra == "dev"
 Provides-Extra: gui
 Requires-Dist: streamlit>=1.28.0; extra == "gui"
+Dynamic: license-file
 
-# SpectralQ: Evidence-First Decision & Integration Layer
+# SpectralQ — Autonomous Blind RF Signal Analysis Platform
 
-**SIH 2026 — Problem Statement SIH26147 (NTRO)**  
-**Owner / Author:** Archit (Integration, Contracts, Pipeline Orchestration, Hypothesis Engine, Evidence Ledger, N5 Hybrid ID, N2 Confidence, UNKNOWN Fallback, Replay Engine)
-
----
-
-## 1. System Architecture & Team Boundaries
-
-SpectralQ implements an offline, evidence-first, deterministic decision layer for blind signal intelligence and modulation characterisation.
-
-```
-RAW .IQ / .wav
-    -> 1. Ingest + Forensics        (Sinchana)
-    -> 2. Burst Detection            (Sinchana)
-    -> 3. Blind Estimation           (Sinchana)
-    -> 4. Feature Extraction         (Sinchana)
-    -> capture.cf32 + analysis.json
-    -> 5. Classifier                 (Harsh, integrated by Archit)
-    -> 6. Demodulation               (Arpit)
-    -> 7. Hypothesis Engine          (Archit)
-    -> 8. Evidence Ledger + N2 Conf  (Archit)
-    -> 9. Bitstream Intelligence     (Arpit)
-    -> 10. Streamlit GUI             (Himanshu, strictly consumes result.json)
-```
-
-### Team Interface Contracts
-- **Sinchana (Stages 1–4):** Produces `AnalysisContract` containing blind estimation parameters, normalized cumulants ($C_{20} \dots C_{80}$), $M_2M_4$ SNR, EVM, and sub-window cluster metrics.
-- **Harsh (Stage 5):** Trains baseline `RandomForestClassifier` on scalar statistical features; integrated via `ClassifierAdapter`.
-- **Arpit (Stages 6 & 9):** Performs timing recovery, demodulation, and FEC decoding; outputs `DecoderVerificationContract`.
-- **Archit (Stages 7 & 8):** Orchestrates pipeline, evaluates N5 rule-vs-ML consensus, searches modulation/FEC hypotheses, calculates deterministic ladder levels (`L1`–`L5`), fuses multi-evidence confidence, and enforces `UNKNOWN` fallback.
-- **Himanshu (Stage 10):** Streamlit GUI consumes `result.json` as read-only. Zero decision or confidence logic resides in the GUI.
+**Smart India Hackathon 2026 | Problem Statement: SIH26147 (NTRO)**  
+**System:** SpectralQ Complete Evidence-First Signal Intelligence Observatory  
+**Branch:** `feat/final-spectralq-integration`  
 
 ---
 
-## 2. ML & Decision Engine Architecture
+## 1. Executive Overview
 
-### Signal-Derived Features ONLY
-SpectralQ uses strictly physical, statistical signal-derived features (never raw pixels, CNNs, or deep learning models):
-- **Higher-Order Cumulants:** $C_{20}, C_{21}, C_{40}, C_{42}, C_{60}, C_{63}, C_{80}$
-- **Noise & Quality:** $M_2M_4$ estimated SNR (dB), Error Vector Magnitude (EVM), Phase Ambiguity Resolution Quality
-- **Constellation Clustering:** Cluster count, silhouette score, intra/inter-cluster distance, sub-window cluster stability
-- **Envelope & Phase:** Normalized envelope variance (FSK discrimination), phase angle entropy
+**SpectralQ** is a production-grade, evidence-first blind RF signal intelligence and demodulation platform designed for non-cooperative, high-assurance RF signal analysis. 
 
-### N5 Hybrid Modulation Identification
-Both the analytic rule path and ML probability path run independently and are preserved in full:
-$$\text{Consensus Check} = (\text{Rule Prediction} \stackrel{?}{=} \text{ML Prediction})$$
-Disagreement is treated as active evidence of ambiguity and strictly penalizes confidence down to $[0.05, 0.40]$.
+The system takes raw intercepted I/Q baseband recordings (in `.cf32`, `.wav`, `.iq`, `.raw`, or `.bin` formats) and automatically extracts physical parameters, identifies modulation type via calibrated machine learning and rule-based consensus, recovers symbols, de-interleaves, performs forward error correction (FEC) decoding, and verifies payload integrity through CRC checksums.
 
-### N2 Calibrated Confidence Fusion
-Confidence is computed via a multi-evidence logistic regression mapping:
-$$z = w_0 + w_{\text{ML}} P_{\text{ML, cal}} + w_{\text{N5}} S_{\text{N5}} + w_{\text{win}} S_{\text{window}} + w_{\text{verif}} S_{\text{verif}} - w_{\text{EVM}} \text{EVM}_{\text{norm}} + w_{\text{SNR}} \text{SNR}_{\text{norm}}$$
-$$\text{Confidence} = \frac{1}{1 + e^{-z}} \in [0.0, 1.0]$$
-
-*Hardcoded constants (e.g. 95%) or uncalibrated pass-through probabilities are strictly forbidden.*
-
-### Deterministic Evidence Ladder (`ladder_level`)
-Computed purely from genuine, verified stage data availability:
-- **`L1` (Detected):** Ingest and signal energy burst detected.
-- **`L2` (Characterised):** Blind estimation parameters, SNR, and cumulants valid.
-- **`L3` (Demodulated, Internally Consistent):** Carrier/timing locked, EVM bounded, symbols generated.
-- **`L4` (Structure Verified):** Frame sync detected AND (CRC valid OR low re-encode BER residual).
-- **`L5` (Independently Cross-Checked):** `L4` verified + high cross-window consistency ($\ge 0.80$) + N5 Rule/ML agreement.
-
-### Operational Gatekeeping (`UNKNOWN` Fallback)
-If confidence falls below operational threshold ($T = 0.60$), SNR $< 1.0$ dB, cross-window drift is severe, or N5 conflict is unresolved, SpectralQ asserts `UNKNOWN` with a structured reason code (e.g. `CONFIDENCE_BELOW_THRESHOLD`, `N5_CONFLICT_UNRESOLVED`, `CROSS_WINDOW_INSTABILITY`).
-
----
-
-## 3. Installation & Quickstart
-
-### Prerequisites
-- Python 3.10+ (Tested on Python 3.13)
-- NumPy, SciPy, scikit-learn, Pydantic v2, Matplotlib, pytest
-
-### Setup
-```bash
-# In the repository root
-pip install -e .
 ```
-
-### Running SpectralQ Pipeline
-```bash
-# Process a capture analysis file
-python -m spectralq.cli run --input fixtures/bpsk_clean.json --output result.json
-
-# Deterministic Replay Mode with fixed RNG seed
-python -m spectralq.cli replay --input fixtures/qpsk_verified.json --seed 42 --output result.json
+RAW IQ / WAV (.cf32, .wav, .iq, .raw, .bin)
+                    │
+                    ▼
+     1. INGEST & FORENSICS (Sinchana)
+        - Energy burst detection
+        - Time-domain statistics & I/Q balance
+                    │
+                    ▼
+     2. BLIND DSP ESTIMATION (Sinchana)
+        - Cyclic baud rate estimation
+        - FFT carrier frequency offset (CFO)
+        - Occupied bandwidth (OBW)
+        - M2M4 signal-to-noise ratio (SNR)
+        - Swami & Sadler higher-order cumulants (|C20|, |C40|, C42)
+                    │
+                    ▼
+     3. AUTOMATIC MODULATION CLASSIFICATION (Harsh & Archit)
+        - 15-feature Calibrated Random Forest (Harsh)
+        - Deterministic Decision Tree Rule AMC (Archit)
+        - N5 Hybrid Consensus Engine (Archit)
+                    │
+                    ▼
+     4. DEMODULATION & FEC DECODING (Arpit)
+        - Baseband constellation slicer (BPSK, QPSK, 8PSK, 16QAM, 64QAM, 2FSK, 4FSK)
+        - Matrix & convolutional de-interleaving
+        - Viterbi convolutional decoder (k=7, r=1/2), Reed-Solomon RS(255,223), BCH
+        - Hardware CRC-16 / CRC-32 syndrome verification
+                    │
+                    ▼
+     5. HYPOTHESIS & CONFIDENCE ENGINE (Archit)
+        - Evidence Ledger & Multi-Window Agreement
+        - N2 Defensible Confidence Calculation (bounded in [0.0, 1.0])
+        - Deterministic Evidence Ladder (Tiers L1 through L5)
+        - UNKNOWN Abstention System (prevents low-confidence hallucinations)
+                    │
+                    ▼
+     6. SIGNAL OBSERVATORY & GUI (Himanshu)
+        - Interactive Plotly Time Waveform, Welch PSD Spectrum, & Constellation
+        - Live KPI dashboard, Decoder Telemetry, & Forensic Evidence Inspector
+        - Cryptographic Evidence Bundle Export (.zip + SHA-256 manifest)
 ```
 
 ---
 
-## 4. Verification & Calibration
+## 2. One-Command Application Launch
 
-### Running Test Suite
+To start the complete interactive SpectralQ Signal Observatory:
+
 ```bash
-pytest tests/ -v
+# 1. Activate your Python environment (Python 3.10+)
+# 2. Run Streamlit from repository root
+streamlit run app.py
 ```
 
-### Generating Test Fixtures
-```bash
-python scripts/generate_fixtures.py
-```
-
-### Training & Serializing Baseline Classifier
-```bash
-python scripts/train_baseline_rf.py
-```
-
-### Running Statistical Calibration Evaluation
-Evaluates Expected Calibration Error (ECE), Brier Score, and produces reliability diagrams on held-out validation samples:
-```bash
-python scripts/run_calibration_eval.py
-```
-Outputs are saved to `reports/calibration_reliability_diagram.png` and `reports/calibration_report.json`.
+The Observatory interface will automatically open in your default browser at `http://localhost:8501`.
 
 ---
 
-## 5. GNU Octave Integration Rule
-If `octave-cli` and Octave DSP scripts are present in the environment, the bridge communicates via CLI/JSON handoff. If unavailable, `OctaveBridge` explicitly returns `capability_unavailable: True` and records the status in the evidence ledger audit trail. DSP capabilities are never faked.
+## 3. Supported Input Formats & Capture Types
+
+SpectralQ natively ingests both raw baseband waveforms and structured forensic handoffs:
+
+| Format / Extension | Specification | Sampling Rate ($f_s$) Resolution |
+| :--- | :--- | :--- |
+| **`.cf32`** | Interleaved 32-bit floating point Complex I/Q ($\text{I}_0, \text{Q}_0, \text{I}_1, \text{Q}_1, \dots$) | Read from companion `.truth.json` or entered via UI headerless control. |
+| **`.wav`** | Standard IEEE float32 / PCM RIFF WAV container | Read **automatically** from RIFF WAV chunk header; zero user prompt required. |
+| **`.iq` / `.raw` / `.bin`** | Raw complex binary baseband recordings | Automatically loaded; configured via explicit sampling rate input. |
+| **`.json`** | Validated Pydantic `AnalysisContract` or `ResultContract` telemetry | Loaded directly; if raw samples are absent, displays honest `RAW VISUALIZATION UNAVAILABLE`. |
+
+---
+
+## 4. Subsystem Attribution & Team Roles
+
+This platform is a canonical synthesis of 5 independently developed modules:
+
+1. **Sinchana (DSP & Forensics):**
+   - Golden `.cf32` capture recordings G1 through G7.
+   - Signal ingest, energy burst detection, and power calibration.
+   - Blind physical parameter estimation: baud rate, CFO, bandwidth, and M2M4 SNR with 95% confidence intervals.
+   - Swami & Sadler phase-invariant cumulant extraction ($\|C_{20}\|, \|C_{40}\|, C_{42}, \dots$).
+
+2. **Harsh (AMC Machine Learning):**
+   - Random Forest Automatic Modulation Classification model (`models/baseline_rf.joblib`).
+   - 15 canonical feature vector binding and sigmoid probability calibration (`CalibratedClassifierCV`).
+   - 7 supported modulation classes: `BPSK`, `QPSK`, `8-PSK`, `16-QAM`, `64-QAM`, `2-FSK`, `4-FSK`.
+
+3. **Archit (Rule AMC, Decision & Confidence Engine):**
+   - Deterministic AMC Decision Tree rules.
+   - N5 Hybrid Consensus Engine (Rule vs. ML agreement evaluation).
+   - Multi-window temporal agreement across non-overlapping sub-windows.
+   - N2 Defensible Confidence computation (mathematically bounded in $[0.0, 1.0]$, never hardcoded).
+   - Deterministic Evidence Ladder (Tiers `L1` through `L5`).
+   - `UNKNOWN` Abstention System (safe rejection of low-SNR or ambiguous signals).
+
+4. **Arpit (Demodulation & FEC Decoder Engine):**
+   - Baseband constellation slicing and symbol-to-bit mapping.
+   - Matrix rectangular and convolutional de-interleavers.
+   - Soft/hard-decision Viterbi convolutional decoding ($k=7, r=1/2$, polynomials $[171, 133]$).
+   - Reed-Solomon RS(255, 223) and BCH forward error correction.
+   - CRC-16 and CRC-32 syndrome validation.
+
+5. **Himanshu (Streamlit UI & Product Integration):**
+   - Complete Streamlit Observatory interface (`app.py`, `ui/`).
+   - Interactive Plotly visualizations: Time waveform (I & Q), Welch Periodogram PSD, Constellation diagram.
+   - Mission Control, Forensic Inspector, Guided Demonstration walkthrough, and Signal Lab.
+   - Cryptographic Evidence Bundle exporter (`manifest.sha256`, `result.json`, `analysis.json`, `decoder.json`).
+
+---
+
+## 5. Three Operational Modes
+
+### 1. Live Mode
+Executes real baseband processing on ingested `.cf32`, `.wav`, or `.iq` files. If GNU Octave is present, delegates to Octave routines; otherwise seamlessly runs high-performance native Python DSP routines (`core.io` + `iq_extractor`). Executes Arpit's real decoder engine without stubs.
+
+### 2. Replay Mode
+Deterministic, zero-regression replay keyed strictly by SHA-256 content hash of the input capture. Prevents cross-capture collision and validates cryptographic payload checksums upon load.
+
+### 3. Synthetic Simulation Mode
+Allows operators in the **Signal Lab** to synthesize ground-truth parameterized waveforms with fine-grained impairment control (SNR from $-15$ to $+35\text{ dB}$, carrier frequency offsets, multipath fading, and I/Q gain/phase imbalance).
+
+---
+
+## 6. Cryptographic Evidence Bundle Export
+
+Operators can export a tamper-evident audit package for any processed capture by clicking **"Export Evidence Bundle"** in the UI sidebar:
+
+The generated `.zip` bundle contains:
+- `result.json`: Canonical `ResultContract` with top hypothesis, confidence, evidence ledger, and provenance.
+- `analysis.json`: Canonical `AnalysisContract` with physical estimates, confidence intervals, and cumulants.
+- `decoder_output.json`: Canonical `DecoderOutputContract` with decoded bit count, CRC status, and BER.
+- `manifest.sha256`: Cryptographic SHA-256 hash list verifying all bundle files.
+
+---
+
+## 7. Testing & Verification
+
+Run the complete automated test suite (unit tests, integration tests, adversarial suite, and system benchmarks):
+
+```bash
+# Run all automated tests
+pytest
+
+# Run the 58-test Adversarial & Impairment Suite
+pytest tests/test_adversarial_suite.py
+
+# Run Extended System-Level Benchmarks
+pytest tests/test_spectralq_extended_suite.py
+```

@@ -125,9 +125,7 @@ def _find_companion_metadata(file_path: Union[str, Path]) -> Optional[Dict[str, 
         path.with_suffix(".sigmf-meta"),
         path.with_suffix(".json"),
         path.with_name(f"{path.stem}.meta.json"),
-        path.with_name(f"{path.stem}.truth.json"),
         path.with_name(f"{path.name}.json"),
-        path.with_name(f"{path.name}.truth.json"),
     ]
     for candidate in candidates:
         if candidate.exists() and candidate.is_file():

@@ -242,11 +242,11 @@ class ClassifierOutputContract(BaseModel):
 
 
 # -----------------------------------------------------------------------------
-# 4. truth.json (synthetic / golden captures only)
+# 4. Ground Truth schema (synthetic / golden captures evaluation)
 # -----------------------------------------------------------------------------
 class TruthContract(BaseModel):
     """
-    Contract for truth.json (Ground truth metadata for synthetic and golden benchmarks).
+    Contract for ground truth metadata in synthetic and golden benchmarks.
     """
     model_config = ConfigDict(extra="forbid")
 

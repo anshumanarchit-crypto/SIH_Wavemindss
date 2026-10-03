@@ -59,9 +59,19 @@ def run_arpit_decoder(
     """
     sig: Optional[SignalData] = None
 
-    # 1. Resolve signal data
     if isinstance(capture_input, SignalData):
         sig = capture_input
+    elif isinstance(capture_input, np.ndarray):
+        sr = sample_rate or (analysis.fs_hz if analysis else 1000000.0)
+        sig = SignalData(
+            samples=capture_input.astype(np.complex64),
+            sample_rate=sr,
+            source_path=capture_id,
+            source_format="memory",
+            is_complex=True,
+            metadata={},
+            warnings=[],
+        )
     elif isinstance(capture_input, (str, Path)):
         p = Path(capture_input)
         if p.exists() and p.is_file():
@@ -187,8 +197,7 @@ def run_arpit_decoder(
     reencode_ber = None
     if res is not None and hasattr(res, "reencode_ber") and res.reencode_ber is not None:
         reencode_ber = float(res.reencode_ber)
-
-    # Determine actual FEC and interleaver schemes used
+    # Determine default actual FEC and interleaver schemes used
     actual_fec = getattr(res, "fec_used", None)
     if not actual_fec or actual_fec.lower() in ("none", "auto"):
         actual_fec = fec_scheme if fec_scheme != "auto" else "none"
@@ -197,55 +206,103 @@ def run_arpit_decoder(
     if not actual_intl or actual_intl.lower() == "none":
         actual_intl = deinterleave_scheme if deinterleave_scheme != "none" else "none"
 
-    # Check for official Sinchana / Golden reference captures (G1-G7)
-    cap_key = capture_id.strip().upper()
-    golden_schemes = {
-        "G1": ("none", "none"),
-        "07_QPSK_UNCODED_GOLDEN": ("none", "none"),
-        "G1_QPSK_UNCODED": ("none", "none"),
-        "G2": ("conv_viterbi_k7", "block_16x34"),
-        "08_BPSK_CONV_BLOCK": ("conv_viterbi_k7", "block_16x34"),
-        "G2_BPSK_CONV_BLOCK": ("conv_viterbi_k7", "block_16x34"),
-        "G3": ("rs_255_223", "diagonal_40x51"),
-        "09_8PSK_RS_DIAGONAL": ("rs_255_223", "diagonal_40x51"),
-        "G3_8PSK_RS_DIAGONAL": ("rs_255_223", "diagonal_40x51"),
-        "G4": ("ldpc", "pseudorandom"),
-        "10_16QAM_LDPC_PSEUDO": ("ldpc", "pseudorandom"),
-        "G4_16QAM_LDPC_PSEUDORANDOM": ("ldpc", "pseudorandom"),
-        "G5": ("concat_rs_conv", "convolutional_4x2"),
-        "11_2FSK_CONCATENATED": ("concat_rs_conv", "convolutional_4x2"),
-        "G5_2FSK_RS_CONV_INTERLEAVED": ("concat_rs_conv", "convolutional_4x2"),
-        "G6": ("conv_viterbi_k7", "convolutional"),
-        "G6_BPSK_CONV_INTERLEAVED": ("conv_viterbi_k7", "convolutional"),
-        "18_BPSK_CONV_INTERLEAVED": ("conv_viterbi_k7", "convolutional"),
-        "G7": ("conv_viterbi_k7", "none"),
-        "G7_QPSK_CONV_NEAR_THRESHOLD": ("conv_viterbi_k7", "none"),
-        "19_QPSK_CONV_NEAR_THRESHOLD": ("conv_viterbi_k7", "none"),
-    }
+    # 5. Blind / Candidate FEC & De-interleaver Resolution
+    h_bits = recovered_bits_arr if recovered_bits_arr is not None else np.array([], dtype=int)
 
-    matched_gold = None
-    for k, v in golden_schemes.items():
-        if cap_key == k or cap_key.startswith(k + "_") or cap_key.endswith("_" + k):
-            matched_gold = v
-            break
+    # Attempt LDPC (Gallager 96, 3, 963) if requested or candidate modulation is 16QAM
+    if not is_success and (fec_scheme == "ldpc" or (candidate_modulation and "16" in candidate_modulation) or len(h_bits) == 96):
+        try:
+            from spectralq.fec import LDPCCodec
+            from spectralq.interleave import pseudorandom_deinterleave, pseudorandom_interleave
+            ldpc_codec = LDPCCodec()
+            candidates_to_try = []
+            if len(h_bits) >= 96:
+                candidates_to_try.append(("none", h_bits[:96]))
+                try:
+                    deint_pr = pseudorandom_deinterleave(h_bits[:96], seed=42)
+                    candidates_to_try.append(("pseudorandom", deint_pr))
+                except Exception:
+                    pass
+            for intl_name, cand_bits in candidates_to_try:
+                syn = ldpc_codec.H.dot(cand_bits) % 2
+                if int(np.sum(syn)) == 0:
+                    rec_info, m = ldpc_codec.decode(cand_bits)
+                    if m.get("decoder_success", False):
+                        actual_fec = "ldpc"
+                        actual_intl = intl_name
+                        recovered_bits_arr = rec_info
+                        decoded_bits_val = "".join(str(int(b)) for b in rec_info)
+                        is_success = True
+                        reenc = ldpc_codec.encode(rec_info)
+                        if intl_name == "pseudorandom":
+                            reenc, _ = pseudorandom_interleave(reenc, seed=42)
+                        reencode_ber = float(np.mean(reenc != h_bits[:96]))
+                        break
+        except Exception as exc:
+            logger.debug("LDPC decode attempt failed: %s", exc)
 
-    if matched_gold is not None:
-        if actual_fec == "none":
-            actual_fec = matched_gold[0]
-        if actual_intl == "none":
-            actual_intl = matched_gold[1]
-        # Golden reference bitstream is verified against external ground-truth handoff
-        if crc_stat == CrcStatus.NOT_RUN.value or crc_stat == CrcStatus.FAIL.value:
-            crc_stat = CrcStatus.PASS.value
-            is_success = True
-            if reencode_ber is None:
-                reencode_ber = 0.0
+    # Attempt Reed-Solomon RS(255, 223) if requested or candidate modulation is 8PSK
+    if not is_success and (fec_scheme in ("rs", "rs_255_223") or (candidate_modulation and "8" in candidate_modulation) or len(h_bits) == 2040):
+        try:
+            from spectralq.fec import ReedSolomonCodec, bits_to_bytes, bytes_to_bits
+            from spectralq.interleave import diagonal_deinterleave, diagonal_interleave
+            rs_codec = ReedSolomonCodec(n=255, k=223)
+            candidates_to_try = []
+            if len(h_bits) >= 2040:
+                candidates_to_try.append(("none", h_bits[:2040]))
+                try:
+                    deint_diag = diagonal_deinterleave(h_bits[:2040], num_rows=40, num_cols=51)
+                    candidates_to_try.append(("diagonal_40x51", deint_diag))
+                except Exception:
+                    pass
+            for intl_name, cand_bits in candidates_to_try:
+                try:
+                    rec_info, m = rs_codec.decode(cand_bits)
+                    if m.get("decoder_success", False):
+                        actual_fec = "rs_255_223"
+                        actual_intl = intl_name
+                        recovered_bits_arr = rec_info
+                        decoded_bits_val = "".join(str(int(b)) for b in rec_info)
+                        is_success = True
+                        reenc_bytes = rs_codec.codec.encode(bits_to_bytes(rec_info))
+                        reenc = bytes_to_bits(reenc_bytes)
+                        if intl_name == "diagonal_40x51":
+                            reenc, _ = diagonal_interleave(reenc, num_rows=40, num_cols=51)
+                        reencode_ber = float(np.mean(reenc != h_bits[:2040]))
+                        break
+                except Exception:
+                    pass
+        except Exception as exc:
+            logger.debug("RS decode attempt failed: %s", exc)
 
-    # Contract Invariant: Decoder status cannot be 'ok' when crc_status is 'fail'
-    if crc_stat == CrcStatus.FAIL.value:
+    # SNR and Signal Quality extraction for continuous streams
+    est_snr = None
+    if analysis and analysis.estimates and hasattr(analysis.estimates, "snr") and analysis.estimates.snr is not None:
+        est_snr = float(analysis.estimates.snr.value)
+    elif res.features and hasattr(res.features, "snr_db") and res.features.snr_db is not None:
+        est_snr = float(res.features.snr_db)
+
+    is_noise = (
+        (est_snr is not None and est_snr < -5.0)
+        or (evm_pct is not None and evm_pct > 75.0 and (est_snr is None or est_snr < 5.0))
+    )
+
+    # 6. Contract Invariant: Status determination strictly based on physical evidence
+    if is_noise and not (actual_fec in ("ldpc", "rs_255_223") and is_success):
+        status_str = DecoderStatus.FAILED.value
+        failure_msg = "Noise floor or low SNR prevents carrier/constellation lock"
+        decoded_bits_val = 0
+    elif crc_stat == CrcStatus.FAIL.value:
         status_str = DecoderStatus.FAILED.value
         failure_msg = "Payload CRC checksum verification failed"
-    elif is_success or crc_stat == CrcStatus.PASS.value:
+    elif crc_stat == CrcStatus.PASS.value:
+        status_str = DecoderStatus.OK.value
+        failure_msg = None
+    elif is_success:
+        status_str = DecoderStatus.OK.value
+        failure_msg = None
+    elif has_bits:
+        # Continuous unpacketized stream with confirmed lock & reasonable EVM (e.g. uncoded QPSK, continuous 8PSK)
         status_str = DecoderStatus.OK.value
         failure_msg = None
     else:

@@ -1,0 +1,55 @@
+{
+  "schema_version": "1.0.0",
+  "accuracy": 0.5,
+  "classes": {
+    "BPSK": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "support": 2
+    },
+    "QPSK": {
+      "precision": 1.0,
+      "recall": 0.6667,
+      "f1_score": 0.8,
+      "support": 3
+    },
+    "8-PSK": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0,
+      "support": 1
+    },
+    "16-QAM": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0,
+      "support": 2
+    },
+    "64-QAM": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0,
+      "support": 0
+    },
+    "2-FSK": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0,
+      "support": 1
+    },
+    "4-FSK": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0,
+      "support": 0
+    },
+    "UNKNOWN": {
+      "precision": 0.1667,
+      "recall": 1.0,
+      "f1_score": 0.2857,
+      "support": 1
+    }
+  },
+  "total_support": 10
+}
