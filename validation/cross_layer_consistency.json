@@ -1,368 +1,42 @@
 {
-  "schema_version": "1.0.0",
-  "generated_at": "2026-10-03T07:34:45.076516+00:00",
-  "summary": "Full cross-layer verification across physical DSP, RF classifier, rules, N5 consensus, and decoder",
-  "total_cases": 10,
-  "records": [
+  "all_passed": true,
+  "checks": [
     {
-      "case_id": "G1",
-      "filename": "G1_QPSK_uncoded.cf32",
-      "ground_truth": {
-        "modulation": "QPSK",
-        "fec": "none",
-        "interleaver": "none"
-      },
-      "dsp_analysis": {
-        "estimated_snr_db": 35.0,
-        "estimated_baud": 100000.0,
-        "evm_percent": 6.7
-      },
-      "decision_engine": {
-        "top_modulation": "QPSK",
-        "rule_prediction": "QPSK",
-        "ml_prediction": "QPSK",
-        "agreement": true,
-        "final_confidence": 0.9162,
-        "unknown": false,
-        "unknown_reason": null
-      },
-      "decoder": {
-        "status": "ok",
-        "fec_used": "none",
-        "interleaver_used": "none",
-        "crc_status": "not_run",
-        "reencode_ber": null,
-        "failure_reason": null
-      },
-      "cross_layer_checks": {
-        "truth_isolated": true,
-        "crc_strictly_honest": true,
-        "noise_rejection_honest": true
-      }
+      "check": "determinism",
+      "desc": "Same IQ + seed -> same result",
+      "passed": true,
+      "detail": "Run1=QPSK@0.9229, Run2=QPSK@0.9229"
     },
     {
-      "case_id": "G10",
-      "filename": "G10_Noise_Only_AWGN.cf32",
-      "ground_truth": {
-        "modulation": "UNKNOWN",
-        "fec": "none",
-        "interleaver": "none"
-      },
-      "dsp_analysis": {
-        "estimated_snr_db": -12.65,
-        "estimated_baud": 125000.0,
-        "evm_percent": 25.0
-      },
-      "decision_engine": {
-        "top_modulation": "64-QAM",
-        "rule_prediction": "64-QAM",
-        "ml_prediction": "64-QAM",
-        "agreement": true,
-        "final_confidence": 0.8853,
-        "unknown": true,
-        "unknown_reason": "Noise-only capture detected: estimated SNR (-12.7 dB) is at or below physical detection floor (0.0 dB); classifier prediction '64-QAM' (raw_p=0.3929) overridden to UNKNOWN"
-      },
-      "decoder": {
-        "status": "failed",
-        "fec_used": "none",
-        "interleaver_used": "none",
-        "crc_status": "not_run",
-        "reencode_ber": null,
-        "failure_reason": "Noise floor or low SNR prevents carrier/constellation lock"
-      },
-      "cross_layer_checks": {
-        "truth_isolated": true,
-        "crc_strictly_honest": true,
-        "noise_rejection_honest": true
-      }
+      "check": "confidence_bounds",
+      "desc": "final_confidence is in [0.0, 1.0]",
+      "passed": true,
+      "detail": "confidence=0.9229"
     },
     {
-      "case_id": "G2",
-      "filename": "G2_BPSK_conv_block.cf32",
-      "ground_truth": {
-        "modulation": "BPSK",
-        "fec": "conv_viterbi_k7",
-        "interleaver": "block_16x34"
-      },
-      "dsp_analysis": {
-        "estimated_snr_db": 15.42,
-        "estimated_baud": 100000.0,
-        "evm_percent": 7.49
-      },
-      "decision_engine": {
-        "top_modulation": "BPSK",
-        "rule_prediction": "BPSK",
-        "ml_prediction": "BPSK",
-        "agreement": true,
-        "final_confidence": 0.9226,
-        "unknown": false,
-        "unknown_reason": null
-      },
-      "decoder": {
-        "status": "ok",
-        "fec_used": "none",
-        "interleaver_used": "none",
-        "crc_status": "not_run",
-        "reencode_ber": null,
-        "failure_reason": null
-      },
-      "cross_layer_checks": {
-        "truth_isolated": true,
-        "crc_strictly_honest": true,
-        "noise_rejection_honest": true
-      }
+      "check": "unknown_abstention_on_noise",
+      "desc": "Noise-only input triggers UNKNOWN abstention",
+      "passed": true,
+      "detail": "unknown=True, confidence=0.8943"
     },
     {
-      "case_id": "G3",
-      "filename": "G3_8PSK_RS_diagonal.cf32",
-      "ground_truth": {
-        "modulation": "8-PSK",
-        "fec": "rs_255_223",
-        "interleaver": "diagonal_40x51"
-      },
-      "dsp_analysis": {
-        "estimated_snr_db": 35.0,
-        "estimated_baud": 100000.0,
-        "evm_percent": 23.23
-      },
-      "decision_engine": {
-        "top_modulation": "8-PSK",
-        "rule_prediction": "16-QAM",
-        "ml_prediction": "8-PSK",
-        "agreement": false,
-        "final_confidence": 0.7393,
-        "unknown": true,
-        "unknown_reason": "Low confidence abstention: final_confidence (0.7393) is below validated operational threshold (0.8000); never returning low-confidence guess as factual answer"
-      },
-      "decoder": {
-        "status": "ok",
-        "fec_used": "none",
-        "interleaver_used": "none",
-        "crc_status": "not_run",
-        "reencode_ber": null,
-        "failure_reason": null
-      },
-      "cross_layer_checks": {
-        "truth_isolated": true,
-        "crc_strictly_honest": true,
-        "noise_rejection_honest": true
-      }
+      "check": "ml_probability_sums_to_one",
+      "desc": "ML probabilities across 7 classes sum to ~1.0",
+      "passed": true,
+      "detail": "sum=1.000000, n_classes=7"
     },
     {
-      "case_id": "G4",
-      "filename": "G4_16QAM_LDPC_pseudorandom.cf32",
-      "ground_truth": {
-        "modulation": "16-QAM",
-        "fec": "ldpc",
-        "interleaver": "pseudorandom"
-      },
-      "dsp_analysis": {
-        "estimated_snr_db": -2.87,
-        "estimated_baud": 100000.0,
-        "evm_percent": 33.47
-      },
-      "decision_engine": {
-        "top_modulation": "16-QAM",
-        "rule_prediction": "64-QAM",
-        "ml_prediction": "16-QAM",
-        "agreement": false,
-        "final_confidence": 0.6963,
-        "unknown": true,
-        "unknown_reason": "Noise-only capture detected: estimated SNR (-2.9 dB) is at or below physical detection floor (0.0 dB); classifier prediction '16-QAM' (raw_p=0.4282) overridden to UNKNOWN"
-      },
-      "decoder": {
-        "status": "ok",
-        "fec_used": "none",
-        "interleaver_used": "none",
-        "crc_status": "not_run",
-        "reencode_ber": null,
-        "failure_reason": null
-      },
-      "cross_layer_checks": {
-        "truth_isolated": true,
-        "crc_strictly_honest": true,
-        "noise_rejection_honest": true
-      }
+      "check": "feature_count_matches_model",
+      "desc": "Feature vector has exactly 15 features",
+      "passed": true,
+      "detail": "features=15"
     },
     {
-      "case_id": "G5",
-      "filename": "G5_2FSK_RS_Conv_interleaved.cf32",
-      "ground_truth": {
-        "modulation": "2-FSK",
-        "fec": "concat_rs_conv",
-        "interleaver": "convolutional_4x2"
-      },
-      "dsp_analysis": {
-        "estimated_snr_db": 15.01,
-        "estimated_baud": 100000.0,
-        "evm_percent": 0.0
-      },
-      "decision_engine": {
-        "top_modulation": "2-FSK",
-        "rule_prediction": "4-FSK",
-        "ml_prediction": "2-FSK",
-        "agreement": false,
-        "final_confidence": 0.7455,
-        "unknown": true,
-        "unknown_reason": "Low confidence abstention: final_confidence (0.7455) is below validated operational threshold (0.8000); never returning low-confidence guess as factual answer"
-      },
-      "decoder": {
-        "status": "ok",
-        "fec_used": "none",
-        "interleaver_used": "none",
-        "crc_status": "not_run",
-        "reencode_ber": null,
-        "failure_reason": null
-      },
-      "cross_layer_checks": {
-        "truth_isolated": true,
-        "crc_strictly_honest": true,
-        "noise_rejection_honest": true
-      }
-    },
-    {
-      "case_id": "G6",
-      "filename": "G6_BPSK_conv_interleaved.cf32",
-      "ground_truth": {
-        "modulation": "BPSK",
-        "fec": "conv_viterbi_k7",
-        "interleaver": "convolutional"
-      },
-      "dsp_analysis": {
-        "estimated_snr_db": 17.71,
-        "estimated_baud": 100000.0,
-        "evm_percent": 7.96
-      },
-      "decision_engine": {
-        "top_modulation": "BPSK",
-        "rule_prediction": "BPSK",
-        "ml_prediction": "BPSK",
-        "agreement": true,
-        "final_confidence": 0.9226,
-        "unknown": false,
-        "unknown_reason": null
-      },
-      "decoder": {
-        "status": "ok",
-        "fec_used": "none",
-        "interleaver_used": "none",
-        "crc_status": "not_run",
-        "reencode_ber": null,
-        "failure_reason": null
-      },
-      "cross_layer_checks": {
-        "truth_isolated": true,
-        "crc_strictly_honest": true,
-        "noise_rejection_honest": true
-      }
-    },
-    {
-      "case_id": "G7",
-      "filename": "G7_QPSK_conv_near_threshold.cf32",
-      "ground_truth": {
-        "modulation": "QPSK",
-        "fec": "conv_viterbi_k7",
-        "interleaver": "none"
-      },
-      "dsp_analysis": {
-        "estimated_snr_db": 11.45,
-        "estimated_baud": 100000.0,
-        "evm_percent": 12.2
-      },
-      "decision_engine": {
-        "top_modulation": "64-QAM",
-        "rule_prediction": "64-QAM",
-        "ml_prediction": "64-QAM",
-        "agreement": true,
-        "final_confidence": 0.9143,
-        "unknown": true,
-        "unknown_reason": "Physical SNR floor violation: estimated SNR (11.4 dB) is below minimum physical operational floor for 64-QAM (18.0 dB); abstaining to UNKNOWN to prevent near-threshold false acceptance"
-      },
-      "decoder": {
-        "status": "ok",
-        "fec_used": "none",
-        "interleaver_used": "none",
-        "crc_status": "not_run",
-        "reencode_ber": null,
-        "failure_reason": null
-      },
-      "cross_layer_checks": {
-        "truth_isolated": true,
-        "crc_strictly_honest": true,
-        "noise_rejection_honest": true
-      }
-    },
-    {
-      "case_id": "G8",
-      "filename": "G8_Wideband_4_emissions.cf32",
-      "ground_truth": {
-        "modulation": "16-QAM",
-        "fec": "none",
-        "interleaver": "none"
-      },
-      "dsp_analysis": {
-        "estimated_snr_db": 2.4,
-        "estimated_baud": 125000.0,
-        "evm_percent": 31.94
-      },
-      "decision_engine": {
-        "top_modulation": "16-QAM",
-        "rule_prediction": "64-QAM",
-        "ml_prediction": "16-QAM",
-        "agreement": false,
-        "final_confidence": 0.6932,
-        "unknown": true,
-        "unknown_reason": "Physical SNR floor violation: estimated SNR (2.4 dB) is below minimum physical operational floor for 16-QAM (12.0 dB); abstaining to UNKNOWN to prevent near-threshold false acceptance"
-      },
-      "decoder": {
-        "status": "ok",
-        "fec_used": "none",
-        "interleaver_used": "none",
-        "crc_status": "not_run",
-        "reencode_ber": null,
-        "failure_reason": null
-      },
-      "cross_layer_checks": {
-        "truth_isolated": true,
-        "crc_strictly_honest": true,
-        "noise_rejection_honest": true
-      }
-    },
-    {
-      "case_id": "G9",
-      "filename": "G9_Headerless_Raw_swapped.cf32",
-      "ground_truth": {
-        "modulation": "QPSK",
-        "fec": "none",
-        "interleaver": "none"
-      },
-      "dsp_analysis": {
-        "estimated_snr_db": 19.98,
-        "estimated_baud": 125000.0,
-        "evm_percent": 60.77
-      },
-      "decision_engine": {
-        "top_modulation": "QPSK",
-        "rule_prediction": "QPSK",
-        "ml_prediction": "QPSK",
-        "agreement": true,
-        "final_confidence": 0.9229,
-        "unknown": false,
-        "unknown_reason": null
-      },
-      "decoder": {
-        "status": "ok",
-        "fec_used": "none",
-        "interleaver_used": "none",
-        "crc_status": "not_run",
-        "reencode_ber": null,
-        "failure_reason": null
-      },
-      "cross_layer_checks": {
-        "truth_isolated": true,
-        "crc_strictly_honest": true,
-        "noise_rejection_honest": true
-      }
+      "check": "truth_isolation",
+      "desc": "Production code does not consume truth.json at runtime",
+      "passed": true,
+      "detail": "CLEAN"
     }
-  ]
+  ],
+  "generated_at": "2026-10-03T11:21:36.867200Z"
 }

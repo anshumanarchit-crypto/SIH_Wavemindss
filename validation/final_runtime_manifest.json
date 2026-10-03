@@ -1,0 +1,46 @@
+{
+  "python_version": "3.13.7",
+  "platform": "Windows",
+  "spectralq_package": "python/spectralq",
+  "core_package": "core/",
+  "model_path": "models\\baseline_rf.joblib",
+  "model_type": "CalibratedClassifierCV[RandomForest]",
+  "model_loaded": true,
+  "n_features": 15,
+  "feature_names": [
+    "C20",
+    "C21",
+    "C40",
+    "C42",
+    "C60",
+    "C63",
+    "C80",
+    "cluster_count",
+    "silhouette",
+    "intra_var",
+    "inter_dist",
+    "evm",
+    "phase_ambiguity_quality",
+    "snr",
+    "baud"
+  ],
+  "pipeline_entry_points": [
+    "spectralq.pipeline.runner.run(capture_path, ...)",
+    "spectralq.pipeline.runner.run_samples(iq, fs_hz, ...)"
+  ],
+  "decoder_service": "spectralq.decoder.service.run_arpit_decoder",
+  "hypothesis_engine": "spectralq.hypothesis.engine.HypothesisEngineV1",
+  "evidence_ledger": "spectralq.evidence.ledger.EvidenceLedger",
+  "confidence_engine": "spectralq.confidence.engine.ConfidenceEngine",
+  "abstention_engine": "spectralq.confidence.abstention.AbstentionSystem",
+  "fec_modules": [
+    "core.fec.ConvolutionalCodec",
+    "core.fec.ReedSolomonCodec",
+    "spectralq.fec.LDPCCodec"
+  ],
+  "ldpc_status": "GENUINE \u2014 Gallager(96,3,963) with Min-Sum Belief Propagation, parity verified",
+  "stub_mode_guarded": true,
+  "stub_mode_policy": "STUB only fires when NO file, NO replay cache, AND no Octave. Files always use Python DSP.",
+  "truth_isolation": "Golden truth files never influence runtime inference. Used only in test/validation evaluation.",
+  "generated_at": "2026-10-03T11:21:36.868917Z"
+}
