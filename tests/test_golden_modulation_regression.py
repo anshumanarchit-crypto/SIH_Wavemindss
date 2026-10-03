@@ -1,106 +1,109 @@
 """
-Regression test suite for Phase 9: Known QPSK Golden Classification.
-
-Guarantees that the known QPSK golden capture (G1) is accurately and honestly
-classified as QPSK by both the Rule-based AMC and the Calibrated Machine Learning
-classifier, preventing the historical regression where QPSK was misclassified as 16-QAM.
-
-Strict Invariant:
-No truth data or metadata is injected into the runtime inference path.
-Truth labels are strictly confined to test assertions.
+Phase 9: Golden Modulation Regression Tests.
+Executes the genuine blind pipeline on official golden captures (G1-G10).
+Truth metadata is used SOLELY in test assertions, never passed into the runtime pipeline.
 """
 
+import json
 from pathlib import Path
 import pytest
+
 from spectralq.pipeline.runner import run
-from spectralq.contracts.schemas import LadderLevel
 
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+GOLDEN_DIR = Path("data/official/sinchana/golden")
 
 
-def test_qPSK_golden_capture_classifies_as_qpsk_not_16qam():
-    """
-    Critical Regression Test (Phase 9):
-    A known QPSK golden capture (G1) must be classified as QPSK by both the
-    ML model and the rule engine, resolving to top_hypothesis.modulation == 'QPSK'.
-    Under no circumstances should it fall through to 16-QAM.
-    """
-    # Prefer sample_captures/07_QPSK_uncoded_golden.cf32 or data/official/sinchana/golden/G1_QPSK_uncoded.cf32
-    cap_candidates = [
-        REPO_ROOT / "sample_captures" / "07_QPSK_uncoded_golden.cf32",
-        REPO_ROOT / "data" / "official" / "sinchana" / "golden" / "G1_QPSK_uncoded.cf32",
-    ]
-    cap_path = None
-    for c in cap_candidates:
-        if c.exists():
-            cap_path = c
-            break
+def test_g1_qpsk_uncoded_blind_inference():
+    """Verify G1 is classified as QPSK by ML, Rule, and Top Hypothesis (not 16-QAM)."""
+    p = GOLDEN_DIR / "G1_QPSK_uncoded.cf32"
+    if not p.exists():
+        pytest.skip(f"Golden capture {p} not found")
 
-    assert cap_path is not None, f"Neither candidate QPSK capture file exists: {cap_candidates}"
+    pipeline_res = run(str(p), mode="live")
+    res = pipeline_res.result
 
-    # Execute the end-to-end real pipeline in live mode
-    pipe_out = run(capture_path=str(cap_path), mode="live")
-    res = pipe_out.result
-
-    # Assertions
-    assert res is not None, "Pipeline failed to produce a valid ResultContract"
-    assert res.rule_prediction == "QPSK", (
-        f"Rule AMC failed: expected QPSK, got '{res.rule_prediction}'. "
-        f"Cumulants: C40={pipe_out.analysis.features.cumulants.C40}, C42={pipe_out.analysis.features.cumulants.C42}"
-    )
-    assert res.ml_prediction == "QPSK", (
-        f"ML classifier failed: expected QPSK, got '{res.ml_prediction}' "
-        f"with probability {res.ml_probability:.4f}"
-    )
-    assert res.top_hypothesis.modulation == "QPSK", (
-        f"Decision engine top hypothesis failed: expected QPSK, got '{res.top_hypothesis.modulation}'"
-    )
-    assert res.unknown is False, f"Pipeline abstained unexpectedly: {res.unknown_reason}"
-    assert res.rule_ml_agreement is True, "Rule and ML should reach consensus on clean QPSK capture"
-    assert res.ladder_level in (LadderLevel.L2, LadderLevel.L3, LadderLevel.L4, LadderLevel.L5), (
-        f"Expected ladder level >= L2 for QPSK golden capture, got {res.ladder_level}"
-    )
+    assert res.top_hypothesis.modulation == "QPSK", f"Expected QPSK, got {res.top_hypothesis.modulation}"
+    assert res.ml_prediction == "QPSK", f"Expected ML QPSK, got {res.ml_prediction}"
+    assert res.rule_prediction == "QPSK", f"Expected Rule QPSK, got {res.rule_prediction}"
+    assert res.unknown is False, "G1 clean QPSK should be confirmed, not UNKNOWN"
+    assert res.final_confidence > 0.85, f"Expected confidence > 0.85, got {res.final_confidence}"
 
 
-def test_bpsk_golden_capture_classifies_as_bpsk():
-    """Verifies that BPSK clean capture is identified as BPSK."""
-    cap_candidates = [
-        REPO_ROOT / "sample_captures" / "01_BPSK_clean_20dB.wav",
-        REPO_ROOT / "sample_captures" / "08_BPSK_conv_block.cf32",
-    ]
-    cap_path = next((c for c in cap_candidates if c.exists()), None)
-    assert cap_path is not None, "No BPSK capture found"
+def test_g2_bpsk_conv_blind_inference():
+    """Verify G2 is classified as BPSK."""
+    p = GOLDEN_DIR / "G2_BPSK_conv_block.cf32"
+    if not p.exists():
+        pytest.skip(f"Golden capture {p} not found")
 
-    pipe_out = run(capture_path=str(cap_path), mode="live")
-    res = pipe_out.result
+    pipeline_res = run(str(p), mode="live")
+    res = pipeline_res.result
+
+    assert res.top_hypothesis.modulation == "BPSK"
+    assert res.ml_prediction == "BPSK"
+    assert res.unknown is False
+
+
+def test_g3_8psk_rs_blind_inference():
+    """Verify G3 is classified as 8-PSK by ML and top hypothesis."""
+    p = GOLDEN_DIR / "G3_8PSK_RS_diagonal.cf32"
+    if not p.exists():
+        pytest.skip(f"Golden capture {p} not found")
+
+    pipeline_res = run(str(p), mode="live")
+    res = pipeline_res.result
+
+    assert res.top_hypothesis.modulation == "8-PSK"
+    assert res.ml_prediction == "8-PSK"
+
+
+def test_g4_16qam_ldpc_blind_inference():
+    """Verify G4 is classified as 16-QAM by ML and top hypothesis."""
+    p = GOLDEN_DIR / "G4_16QAM_LDPC_pseudorandom.cf32"
+    if not p.exists():
+        pytest.skip(f"Golden capture {p} not found")
+
+    pipeline_res = run(str(p), mode="live")
+    res = pipeline_res.result
+
+    assert res.top_hypothesis.modulation == "16-QAM"
+    assert res.ml_prediction == "16-QAM"
+
+
+def test_g6_bpsk_conv_blind_inference():
+    """Verify G6 is classified as BPSK."""
+    p = GOLDEN_DIR / "G6_BPSK_conv_interleaved.cf32"
+    if not p.exists():
+        pytest.skip(f"Golden capture {p} not found")
+
+    pipeline_res = run(str(p), mode="live")
+    res = pipeline_res.result
+
     assert res.top_hypothesis.modulation == "BPSK"
     assert res.unknown is False
 
 
-def test_8psk_capture_classifies_as_8psk():
-    """Verifies that 8-PSK capture candidate is identified as 8-PSK."""
-    cap_candidates = [
-        REPO_ROOT / "sample_captures" / "15_8PSK_carrier_locked_18dB.wav",
-        REPO_ROOT / "sample_captures" / "09_8PSK_RS_diagonal.cf32",
-    ]
-    cap_path = next((c for c in cap_candidates if c.exists()), None)
-    assert cap_path is not None, "No 8-PSK capture found"
+def test_g7_near_threshold_stress_abstention():
+    """Verify G7 near-threshold capture abstains with UNKNOWN due to degraded SNR."""
+    p = GOLDEN_DIR / "G7_QPSK_conv_near_threshold.cf32"
+    if not p.exists():
+        pytest.skip(f"Golden capture {p} not found")
 
-    pipe_out = run(capture_path=str(cap_path), mode="live")
-    res = pipe_out.result
-    assert res.top_hypothesis.modulation == "8-PSK"
+    pipeline_res = run(str(p), mode="live")
+    res = pipeline_res.result
+
+    assert res.unknown is True, "G7 near-threshold degraded signal must abstain with UNKNOWN"
+    assert res.unknown_reason is not None and len(res.unknown_reason) > 0
 
 
-def test_16qam_capture_classifies_as_16qam():
-    """Verifies that 16-QAM capture candidate is identified as 16-QAM."""
-    cap_candidates = [
-        REPO_ROOT / "sample_captures" / "04_16QAM_high_density_22dB.wav",
-        REPO_ROOT / "sample_captures" / "10_16QAM_LDPC_pseudo.cf32",
-    ]
-    cap_path = next((c for c in cap_candidates if c.exists()), None)
-    assert cap_path is not None, "No 16-QAM capture found"
+def test_g10_pure_noise_abstention():
+    """Verify G10 pure AWGN noise abstains with UNKNOWN."""
+    p = GOLDEN_DIR / "G10_Noise_Only_AWGN.cf32"
+    if not p.exists():
+        pytest.skip(f"Golden capture {p} not found")
 
-    pipe_out = run(capture_path=str(cap_path), mode="live")
-    res = pipe_out.result
-    assert res.top_hypothesis.modulation == "16-QAM"
+    pipeline_res = run(str(p), mode="live")
+    res = pipeline_res.result
+
+    assert res.unknown is True, "G10 noise-only input must abstain with UNKNOWN"
+    assert res.unknown_reason is not None

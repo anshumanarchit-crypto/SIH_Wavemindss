@@ -44,7 +44,22 @@ def render_sidebar(cases: List[DiscoveredCase]) -> None:
     )
 
     # -------------------------------------------------------------------------
-    # 2. Workspace Navigation Rail (Now at Top with High-Tech Icons)
+    # 2. Guided Evaluator Tour Button
+    # -------------------------------------------------------------------------
+    is_demo = st.session_state.get("guided_demo_active", False)
+    if not is_demo:
+        if st.sidebar.button("🎯 Start Guided Demo", type="secondary", use_container_width=True, help="Walk step-by-step through all 10 canonical workspaces with evaluator guidance"):
+            from ui.components.guided_demo import start_guided_demo
+            start_guided_demo()
+            st.rerun()
+    else:
+        if st.sidebar.button("🛑 Stop Guided Demo", type="secondary", use_container_width=True):
+            from ui.components.guided_demo import stop_guided_demo
+            stop_guided_demo()
+            st.rerun()
+
+    # -------------------------------------------------------------------------
+    # 3. Workspace Navigation Rail (Now at Top with High-Tech Icons)
     # -------------------------------------------------------------------------
     st.sidebar.markdown(
         """

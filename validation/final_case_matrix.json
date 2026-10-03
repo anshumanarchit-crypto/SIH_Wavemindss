@@ -1,0 +1,334 @@
+{
+  "G1": {
+    "case_id": "G1",
+    "filename": "G1_QPSK_uncoded.cf32",
+    "input_hash": "e2becef449e81ea48309b0b815fbbc4ef31ade7ef975ad3209042fd022c2b0c9",
+    "dsp": {
+      "baud": 100000.0,
+      "cfo_hz": 252675.75,
+      "snr_db": 35.0,
+      "bandwidth_hz": 125000.0
+    },
+    "rule_result": "QPSK",
+    "ml_result": "QPSK",
+    "ml_probability": 0.8601883605354403,
+    "hypothesis_result": {
+      "top_modulation": "QPSK",
+      "fec": "none",
+      "interleaver": "none"
+    },
+    "decoder_result": {
+      "status": "ok",
+      "fec_used": "none",
+      "crc_status": "not_run",
+      "reencode_ber": null,
+      "decoded_bits_count": 4096
+    },
+    "evidence_count": 6,
+    "failed_checks": [],
+    "confidence": 0.9162,
+    "ladder_level": "L3",
+    "decision": "CONFIRMED",
+    "unknown_reason": null
+  },
+  "G2": {
+    "case_id": "G2",
+    "filename": "G2_BPSK_conv_block.cf32",
+    "input_hash": "e8648923f8f1c9b1c7612f6841022347b0a2d80781e7eff1c8b417fbe6164e69",
+    "dsp": {
+      "baud": 100000.0,
+      "cfo_hz": -395256.125,
+      "snr_db": 15.420132699276783,
+      "bandwidth_hz": 125000.0
+    },
+    "rule_result": "BPSK",
+    "ml_result": "BPSK",
+    "ml_probability": 0.9748976305835866,
+    "hypothesis_result": {
+      "top_modulation": "BPSK",
+      "fec": "none",
+      "interleaver": "none"
+    },
+    "decoder_result": {
+      "status": "ok",
+      "fec_used": "none",
+      "crc_status": "not_run",
+      "reencode_ber": null,
+      "decoded_bits_count": 544
+    },
+    "evidence_count": 6,
+    "failed_checks": [],
+    "confidence": 0.9226,
+    "ladder_level": "L3",
+    "decision": "CONFIRMED",
+    "unknown_reason": null
+  },
+  "G3": {
+    "case_id": "G3",
+    "filename": "G3_8PSK_RS_diagonal.cf32",
+    "input_hash": "97b154c3e557a49e81e3305f1c433b32d1601026c2a6e56a3467033a28407871",
+    "dsp": {
+      "baud": 100000.0,
+      "cfo_hz": 13357.8740234375,
+      "snr_db": 35.0,
+      "bandwidth_hz": 125000.0
+    },
+    "rule_result": "16-QAM",
+    "ml_result": "8-PSK",
+    "ml_probability": 0.8623949904849101,
+    "hypothesis_result": {
+      "top_modulation": "8-PSK",
+      "fec": "none",
+      "interleaver": "none"
+    },
+    "decoder_result": {
+      "status": "ok",
+      "fec_used": "none",
+      "crc_status": "not_run",
+      "reencode_ber": null,
+      "decoded_bits_count": 2040
+    },
+    "evidence_count": 6,
+    "failed_checks": [
+      "confidence_threshold_guard"
+    ],
+    "confidence": 0.7393,
+    "ladder_level": "L3",
+    "decision": "UNKNOWN",
+    "unknown_reason": "Low confidence abstention: final_confidence (0.7393) is below validated operational threshold (0.8000); never returning low-confidence guess as factual answer"
+  },
+  "G4": {
+    "case_id": "G4",
+    "filename": "G4_16QAM_LDPC_pseudorandom.cf32",
+    "input_hash": "f468df6c1a95ea7c87ba94e314514220c65a769562a2e3f49ae93ec9208f74e2",
+    "dsp": {
+      "baud": 100000.0,
+      "cfo_hz": -357845.46875,
+      "snr_db": -2.8672399283069727,
+      "bandwidth_hz": 125000.0
+    },
+    "rule_result": "64-QAM",
+    "ml_result": "16-QAM",
+    "ml_probability": 0.42817637205292625,
+    "hypothesis_result": {
+      "top_modulation": "16-QAM",
+      "fec": "none",
+      "interleaver": "none"
+    },
+    "decoder_result": {
+      "status": "ok",
+      "fec_used": "none",
+      "crc_status": "not_run",
+      "reencode_ber": null,
+      "decoded_bits_count": 24
+    },
+    "evidence_count": 6,
+    "failed_checks": [
+      "noise_floor_override"
+    ],
+    "confidence": 0.6963,
+    "ladder_level": "L3",
+    "decision": "UNKNOWN",
+    "unknown_reason": "Noise-only capture detected: estimated SNR (-2.9 dB) is at or below physical detection floor (0.0 dB); classifier prediction '16-QAM' (raw_p=0.4282) overridden to UNKNOWN"
+  },
+  "G5": {
+    "case_id": "G5",
+    "filename": "G5_2FSK_RS_Conv_interleaved.cf32",
+    "input_hash": "b69f616917d79c6e9a5c6cefc59e707f00e5beb2af730b6b1ce0edd37cc6cd7e",
+    "dsp": {
+      "baud": 100000.0,
+      "cfo_hz": -156262.796875,
+      "snr_db": 15.005643424292023,
+      "bandwidth_hz": 125000.0
+    },
+    "rule_result": "4-FSK",
+    "ml_result": "2-FSK",
+    "ml_probability": 0.7572248355066042,
+    "hypothesis_result": {
+      "top_modulation": "2-FSK",
+      "fec": "none",
+      "interleaver": "none"
+    },
+    "decoder_result": {
+      "status": "ok",
+      "fec_used": "none",
+      "crc_status": "not_run",
+      "reencode_ber": null,
+      "decoded_bits_count": 11072
+    },
+    "evidence_count": 6,
+    "failed_checks": [
+      "confidence_threshold_guard"
+    ],
+    "confidence": 0.7455,
+    "ladder_level": "L3",
+    "decision": "UNKNOWN",
+    "unknown_reason": "Low confidence abstention: final_confidence (0.7455) is below validated operational threshold (0.8000); never returning low-confidence guess as factual answer"
+  },
+  "G6": {
+    "case_id": "G6",
+    "filename": "G6_BPSK_conv_interleaved.cf32",
+    "input_hash": "e2d39c7370b33bc5dc0b76be84f6ecdc6571d411983463d16bcde0bfa7bac30b",
+    "dsp": {
+      "baud": 100000.0,
+      "cfo_hz": -217793.328125,
+      "snr_db": 17.70738642550667,
+      "bandwidth_hz": 125000.0
+    },
+    "rule_result": "BPSK",
+    "ml_result": "BPSK",
+    "ml_probability": 0.9752975591332923,
+    "hypothesis_result": {
+      "top_modulation": "BPSK",
+      "fec": "none",
+      "interleaver": "none"
+    },
+    "decoder_result": {
+      "status": "ok",
+      "fec_used": "none",
+      "crc_status": "not_run",
+      "reencode_ber": null,
+      "decoded_bits_count": 548
+    },
+    "evidence_count": 6,
+    "failed_checks": [],
+    "confidence": 0.9226,
+    "ladder_level": "L3",
+    "decision": "CONFIRMED",
+    "unknown_reason": null
+  },
+  "G7": {
+    "case_id": "G7",
+    "filename": "G7_QPSK_conv_near_threshold.cf32",
+    "input_hash": "3dd4a0dd37d29de23ac1df3809553454c5d4db4714f068d4962dac098f2b2055",
+    "dsp": {
+      "baud": 100000.0,
+      "cfo_hz": -61297.40234375,
+      "snr_db": 11.44608974148496,
+      "bandwidth_hz": 125000.0
+    },
+    "rule_result": "64-QAM",
+    "ml_result": "64-QAM",
+    "ml_probability": 0.8265635166750366,
+    "hypothesis_result": {
+      "top_modulation": "64-QAM",
+      "fec": "none",
+      "interleaver": "none"
+    },
+    "decoder_result": {
+      "status": "ok",
+      "fec_used": "none",
+      "crc_status": "not_run",
+      "reencode_ber": null,
+      "decoded_bits_count": 1572
+    },
+    "evidence_count": 6,
+    "failed_checks": [
+      "snr_floor_guard"
+    ],
+    "confidence": 0.9143,
+    "ladder_level": "L3",
+    "decision": "UNKNOWN",
+    "unknown_reason": "Physical SNR floor violation: estimated SNR (11.4 dB) is below minimum physical operational floor for 64-QAM (18.0 dB); abstaining to UNKNOWN to prevent near-threshold false acceptance"
+  },
+  "G8": {
+    "case_id": "G8",
+    "filename": "G8_Wideband_4_emissions.cf32",
+    "input_hash": "aa6f7e122d3e4692a6a0258acb4b16bf8dbeb67f96be01f9674a2e7f17255b91",
+    "dsp": {
+      "baud": 125000.0,
+      "cfo_hz": 0.0,
+      "snr_db": 2.4048215037945195,
+      "bandwidth_hz": 156250.0
+    },
+    "rule_result": "64-QAM",
+    "ml_result": "16-QAM",
+    "ml_probability": 0.4088369422071735,
+    "hypothesis_result": {
+      "top_modulation": "16-QAM",
+      "fec": "none",
+      "interleaver": "none"
+    },
+    "decoder_result": {
+      "status": "ok",
+      "fec_used": "none",
+      "crc_status": "not_run",
+      "reencode_ber": null,
+      "decoded_bits_count": 10668
+    },
+    "evidence_count": 6,
+    "failed_checks": [
+      "snr_floor_guard"
+    ],
+    "confidence": 0.6932,
+    "ladder_level": "L3",
+    "decision": "UNKNOWN",
+    "unknown_reason": "Physical SNR floor violation: estimated SNR (2.4 dB) is below minimum physical operational floor for 16-QAM (12.0 dB); abstaining to UNKNOWN to prevent near-threshold false acceptance"
+  },
+  "G9": {
+    "case_id": "G9",
+    "filename": "G9_Headerless_Raw_swapped.cf32",
+    "input_hash": "35fe938e015abca3d06c97283c74cc5624aa8dc09775a9512c0e19d6dce1a0ce",
+    "dsp": {
+      "baud": 125000.0,
+      "cfo_hz": -265120.15625,
+      "snr_db": 19.979637207148055,
+      "bandwidth_hz": 156250.0
+    },
+    "rule_result": "QPSK",
+    "ml_result": "QPSK",
+    "ml_probability": 0.9810535705509551,
+    "hypothesis_result": {
+      "top_modulation": "QPSK",
+      "fec": "none",
+      "interleaver": "none"
+    },
+    "decoder_result": {
+      "status": "ok",
+      "fec_used": "none",
+      "crc_status": "not_run",
+      "reencode_ber": null,
+      "decoded_bits_count": 2208
+    },
+    "evidence_count": 6,
+    "failed_checks": [],
+    "confidence": 0.9229,
+    "ladder_level": "L3",
+    "decision": "CONFIRMED",
+    "unknown_reason": null
+  },
+  "G10": {
+    "case_id": "G10",
+    "filename": "G10_Noise_Only_AWGN.cf32",
+    "input_hash": "c529143b8a55e095fab546427e2ce37952087b8affab03e185a32a85550434d9",
+    "dsp": {
+      "baud": 125000.0,
+      "cfo_hz": 365658.75,
+      "snr_db": -12.652095435215758,
+      "bandwidth_hz": 156250.0
+    },
+    "rule_result": "64-QAM",
+    "ml_result": "64-QAM",
+    "ml_probability": 0.39286311776425353,
+    "hypothesis_result": {
+      "top_modulation": "64-QAM",
+      "fec": "none",
+      "interleaver": "none"
+    },
+    "decoder_result": {
+      "status": "failed",
+      "fec_used": "none",
+      "crc_status": "not_run",
+      "reencode_ber": null,
+      "decoded_bits_count": 0
+    },
+    "evidence_count": 6,
+    "failed_checks": [
+      "noise_floor_override"
+    ],
+    "confidence": 0.8853,
+    "ladder_level": "L2",
+    "decision": "UNKNOWN",
+    "unknown_reason": "Noise-only capture detected: estimated SNR (-12.7 dB) is at or below physical detection floor (0.0 dB); classifier prediction '64-QAM' (raw_p=0.3929) overridden to UNKNOWN"
+  }
+}

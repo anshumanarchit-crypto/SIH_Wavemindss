@@ -52,6 +52,7 @@ from ui.components import (
     render_run_trace,
     render_synthetic_signal_generator,
 )
+from ui.components.guided_demo import render_guided_demo_banner
 from spectralq.visualization.artifacts import ObservatoryArtifacts
 
 
@@ -117,6 +118,7 @@ render_header(
     source_filename=st.session_state.get("current_case_name"),
     is_replay=is_replay,
 )
+render_guided_demo_banner()
 
 
 # -----------------------------------------------------------------------------
