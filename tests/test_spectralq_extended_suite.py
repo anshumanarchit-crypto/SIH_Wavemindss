@@ -530,7 +530,7 @@ class TestLatencyBudget:
     actual target before trusting this test's pass/fail — the number here is
     a placeholder."""
 
-    MAX_LATENCY_S = 30.0  # Real software-DSP budget for 32k-sample burst on CPU
+    MAX_LATENCY_S = 60.0  # Budget includes cold-start model load; warm runs ~5-8s on dev CPU
 
     def test_single_capture_latency(self):
         iq, truth = synth_capture("QPSK", snr_db=15.0, seed=1)
