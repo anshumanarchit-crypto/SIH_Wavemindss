@@ -213,10 +213,55 @@ def run(
             stage_status["Auto Fallback"] = "LIVE_UNAVAILABLE_FALLBACK_TO_REPLAY"
             is_live = False
         else:
-            analysis = bridge.run_stub(capture_path)
-            stage_status["Ingest & Forensics"] = "STUB"
-            stage_status["Feature Extraction"] = "STUB"
-            is_live = False
+            # CRITICAL FIX: If the capture file exists on disk, attempt real Python
+            # DSP analysis. Only fall to STUB if no sample rate can be recovered
+            # (e.g. raw .cf32 with no companion JSON and no WAV header) or if the
+            # file is too small / unreadable.
+            _cap_path_obj = Path(capture_path)
+            _tried_real_dsp = False
+            if (_cap_path_obj.exists() and _cap_path_obj.is_file()
+                    and not capture_path.startswith("memory://")):
+                _tried_real_dsp = True
+                try:
+                    import core.io
+                    from spectralq.features.iq_extractor import iq_to_analysis_contract as _iq_to_ac
+                    _comp_fs = None
+                    _comp_json = _cap_path_obj.with_suffix(".json")
+                    if _comp_json.exists():
+                        import json as _json_mod
+                        _comp_meta = _json_mod.loads(_comp_json.read_text())
+                        _comp_fs = float(_comp_meta.get("fs_hz", _comp_meta.get("sample_rate", 0.0))) or None
+                    _sig = core.io.load_signal(capture_path)
+                    _fs_final = _comp_fs or _sig.sample_rate
+                    if _fs_final is None or _fs_final <= 0:
+                        # No sample rate recoverable — fall to STUB and label clearly
+                        raise ValueError("no_sample_rate")
+                    analysis = _iq_to_ac(
+                        _sig.samples,
+                        fs_hz=_fs_final,
+                        capture_id=Path(capture_path).stem,
+                    )
+                    stage_status["Ingest & Forensics"] = "LIVE"
+                    stage_status["Feature Extraction"] = "LIVE"
+                    stage_status["Auto Fallback"] = "OCTAVE_UNAVAILABLE_PYTHON_DSP_USED"
+                    cache.save_analysis(capture_path, analysis)
+                    is_live = True
+                except Exception as _dsp_exc:
+                    # Real DSP failed (no sample rate, corrupt file, too small, etc.)
+                    # Fall back to stub with explicit label — NEVER silently claim LIVE.
+                    _reason = str(_dsp_exc)
+                    analysis = bridge.run_stub(capture_path)
+                    stage_status["Ingest & Forensics"] = "STUB"
+                    stage_status["Feature Extraction"] = "STUB"
+                    stage_status["Auto Fallback"] = f"DSP_FAILED_STUB: {_reason[:80]}"
+                    is_live = False
+            else:
+                # No file on disk at all — explicit STUB
+                analysis = bridge.run_stub(capture_path)
+                stage_status["Ingest & Forensics"] = "STUB"
+                stage_status["Feature Extraction"] = "STUB"
+                stage_status["Auto Fallback"] = "NO_DATA_SOURCE_STUB"
+                is_live = False
     else:
         raise ValueError(f"Unsupported execution mode '{mode}'. Choose from 'auto', 'live', 'replay', 'stub'.")
 
