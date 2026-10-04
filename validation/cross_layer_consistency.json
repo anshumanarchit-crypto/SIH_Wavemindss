@@ -17,7 +17,7 @@
       "check": "unknown_abstention_on_noise",
       "desc": "Noise-only input triggers UNKNOWN abstention",
       "passed": true,
-      "detail": "unknown=True, confidence=0.8943"
+      "detail": "unknown=True, confidence=0.9022"
     },
     {
       "check": "ml_probability_sums_to_one",
@@ -38,5 +38,5 @@
       "detail": "CLEAN"
     }
   ],
-  "generated_at": "2026-10-03T11:21:36.867200Z"
+  "generated_at": "2026-10-04T05:21:30.575829Z"
 }

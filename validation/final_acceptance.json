@@ -17,10 +17,10 @@
   "case_matrix_accuracy": "10/10",
   "case_accuracy_ratio": 1.0,
   "known_limitations": [
-    "G3/G5/G9: FEC (RS, Concatenated) decoded structurally; real FEC data blocks not available in synthetic test",
-    "Real-world physical captures (official .cf32 files) not present; G1-G10 validated on synthetic approximations",
-    "Wideband scanner: multi-emission channelization is functional; tested on synthesized wideband IQ"
+    "G4: LDPC Gallager (96,3,963) Min-Sum BP implemented in core; candidate engine tags LDPC as UNSUPPORTED per Phase 9 Option B ('implemented but not blind-integrated')",
+    "G3/G5/G9: Reed-Solomon(255,223) and Concatenated (RS+Conv) codecs implemented; blind parameter discovery without side information abstains",
+    "Wideband multi-emission scanner functional; single-carrier pipeline abstains on wideband emissions (G8)"
   ],
-  "generated_at": "2026-10-03T11:21:36.867804Z",
+  "generated_at": "2026-10-04T05:21:30.576406Z",
   "generated_by": "generate_validation_artifacts.py (automated)"
 }

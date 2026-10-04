@@ -42,6 +42,7 @@ from spectralq.integration import (
     evaluate_n5_consensus,
 )
 from spectralq.confidence import ConfidenceEngine, AbstentionSystem
+from spectralq.hypothesis import HypothesisEngineV1
 from spectralq.replay import (
     ReplayCache,
     ReplayCacheError,
@@ -184,6 +185,7 @@ def run(
                 sig.samples,
                 fs_hz=fs_hz_final,
                 capture_id=Path(capture_path).stem,
+                meta={"source_mode": "real"},
             )
             stage_status["Ingest & Forensics"] = "LIVE"
             stage_status["Feature Extraction"] = "LIVE"
@@ -240,6 +242,7 @@ def run(
                         _sig.samples,
                         fs_hz=_fs_final,
                         capture_id=Path(capture_path).stem,
+                        meta={"source_mode": "real"},
                     )
                     stage_status["Ingest & Forensics"] = "LIVE"
                     stage_status["Feature Extraction"] = "LIVE"
@@ -277,20 +280,54 @@ def run(
     rule_classifier = RuleBasedClassifier()
     rule_out = rule_classifier.classify(analysis)
 
-    # Stage 4: Demodulator & Decoder (Arpit)
+    # Stage 4: Authoritative Hypothesis Engine & Demodulator/Decoder (Phase 4 & Phase 6)
+    hypothesis_engine = HypothesisEngineV1()
+    all_candidates = hypothesis_engine.generate_all_candidates()
+    hypothesis_engine.apply_coarse_pruning(
+        candidates=all_candidates,
+        analysis=analysis,
+        classifier_output=classifier_out,
+        decoder_output=None,
+    )
+
     if decoder_override is not None:
         decoder_out = decoder_override
+        hypothesis_engine.evaluate_fine_evidence(all_candidates, decoder_out)
+        ranked_candidates = hypothesis_engine.rank_candidates(all_candidates)
+        top_cand = ranked_candidates[0]
         stage_status["Demodulator & Decoder"] = "LIVE" if decoder_override.status.value == "ok" else "STUB"
     elif is_live:
         from spectralq.decoder.service import run_arpit_decoder
-        candidate_mod = classifier_out.ml_prediction or (rule_out.predicted_modulation if rule_out else None)
         decoder_input = capture_samples if capture_samples is not None else capture_path
-        decoder_out = run_arpit_decoder(
+        candidate_mod = classifier_out.ml_prediction or (rule_out.predicted_modulation if rule_out else "QPSK")
+
+        # Step 1: Baseline discovery decode to extract physical evidence
+        base_decoder_out = run_arpit_decoder(
             capture_input=decoder_input,
             capture_id=analysis.capture_id,
             analysis=analysis,
             candidate_modulation=candidate_mod,
+            fec_scheme="auto",
+            deinterleave_scheme="none",
         )
+
+        # Step 2: Evaluate fine evidence across all candidates using the decoder output
+        hypothesis_engine.evaluate_fine_evidence(all_candidates, base_decoder_out)
+
+        # Step 3: Authoritative ranking of all 175 candidate triples
+        ranked_candidates = hypothesis_engine.rank_candidates(all_candidates)
+        top_cand = ranked_candidates[0]
+
+        # Step 4: Authoritative candidate-specific decoder execution
+        decoder_out = run_arpit_decoder(
+            capture_input=decoder_input,
+            capture_id=analysis.capture_id,
+            analysis=analysis,
+            candidate_modulation=top_cand.modulation,
+            fec_scheme=top_cand.fec,
+            deinterleave_scheme=top_cand.interleaver,
+        )
+
         if decoder_out.status == DecoderStatus.OK:
             stage_status["Demodulator & Decoder"] = "REAL"
         elif capture_samples is not None or Path(capture_path).exists():
@@ -299,6 +336,8 @@ def run(
             stage_status["Demodulator & Decoder"] = "UNAVAILABLE"
     else:
         decoder_out = get_stub_decoder_output(analysis.capture_id, analysis)
+        ranked_candidates = hypothesis_engine.rank_candidates(all_candidates)
+        top_cand = ranked_candidates[0]
         stage_status["Demodulator & Decoder"] = "STUB"
 
     # Stage 5: Decision Engine (Archit - Phase 5 N5 Consensus & Evidence Ledger)
@@ -418,6 +457,46 @@ def run(
         )
         cw_agreement = cw_report.agreement_ratio
 
+    # Hypothesis Gap and explainability rationale (P1.1 and P1.2)
+    runner_up = ranked_candidates[1] if len(ranked_candidates) > 1 else None
+    score_gap = float(top_cand.final_rank_score - (runner_up.final_rank_score if runner_up else 0.0))
+    ledger.record(
+        evidence_id=f"EV_GAP_{analysis.capture_id}",
+        source="Hypothesis Engine",
+        check_name="hypothesis_score_gap",
+        status=EvidenceStatus.PASS if score_gap >= 0.15 else EvidenceStatus.FAIL,
+        numeric_value=round(score_gap, 4),
+        threshold=0.15,
+        explanation=f"Top candidate ({top_cand.modulation}+{top_cand.interleaver}+{top_cand.fec}) score ({top_cand.final_rank_score:.4f}) leads runner-up ({runner_up.modulation if runner_up else 'none'}) by score gap ({score_gap:.4f})",
+    )
+    why_text = (
+        f"Hypothesis '{top_cand.modulation}+{top_cand.interleaver}+{top_cand.fec}' selected as top candidate: "
+        f"Prior score = {top_cand.prior_score:.4f}, verification score = {top_cand.verification_score:.4f}. "
+        f"Runner-up was '{runner_up.modulation if runner_up else 'none'}+{runner_up.interleaver if runner_up else 'none'}+{runner_up.fec if runner_up else 'none'}' "
+        f"(total score = {runner_up.final_rank_score if runner_up else 0.0:.4f})."
+    )
+    ledger.record(
+        evidence_id=f"EV_WHY_WINNER_{analysis.capture_id}",
+        source="Hypothesis Engine",
+        check_name="hypothesis_winner_rationale",
+        status=EvidenceStatus.PASS,
+        explanation=why_text,
+    )
+
+    # Demodulation EVM quality check
+    if decoder_out.evm_percent is not None:
+        evm_val = float(decoder_out.evm_percent)
+        evm_pass = (evm_val <= 35.0)
+        ledger.record(
+            evidence_id=f"EV_DEMOD_{analysis.capture_id}",
+            source="Demodulator Engine",
+            check_name="demodulation_evm_check",
+            status=EvidenceStatus.PASS if evm_pass else EvidenceStatus.FAIL,
+            numeric_value=round(evm_val, 2),
+            threshold=35.0,
+            explanation=f"Demodulation constellation EVM ({evm_val:.1f}%) " + ("meets quality limit (<=35%)" if evm_pass else "exceeds acceptable constellation quality limit (>35%)"),
+        )
+
     # Compute N2 Defensible Confidence
     confidence_engine = ConfidenceEngine()
     conf_res = confidence_engine.compute_confidence(
@@ -431,22 +510,23 @@ def run(
         calibrated_ml_probability=None,
     )
 
-    # Phase 8 UNKNOWN Abstention System
+    # Phase 8 UNKNOWN Abstention System (Evaluates noise, SNR floor, EVM/headerless, and threshold)
     abstention_system = AbstentionSystem()
     abstention_decision = abstention_system.evaluate(
         analysis=analysis,
         confidence_result=conf_res,
         ledger=ledger,
         capture_id=analysis.capture_id,
+        decoder_output=decoder_out,
+        hypothesis_gap=score_gap,
     )
 
-    # Phase 7 Calibrated Probability
+    # Phase 7 Calibrated Probability (Strict: only if real calibration was applied, else None)
     calibrated_prob = conf_res.calibrated_ml_probability
-    if calibrated_prob is None:
-        cal_factor = 1.0 if n5_result.agreement else (1.0 - n5_result.penalty * 0.2)
-        calibrated_prob = round(float(min(1.0, max(0.0, n5_result.ml_probability * cal_factor))), 4)
+    if calibrated_prob is not None:
+        calibrated_prob = round(float(calibrated_prob), 4)
 
-    # Assemble ResultContract
+    # Assemble ResultContract from Authoritative Hypothesis Engine
     result_data = {
         "schema_version": "1.0.0",
         "capture_id": analysis.capture_id,
@@ -454,36 +534,32 @@ def run(
         "capability_available": is_live,
         "ladder_level": ladder_level.value,
         "top_hypothesis": {
-            "modulation": n5_result.ml_prediction,
-            "interleaver": decoder_out.interleaver_used,
-            "fec": decoder_out.fec_used,
+            "modulation": top_cand.modulation,
+            "interleaver": top_cand.interleaver,
+            "fec": top_cand.fec,
         },
         "alternate_hypotheses": [
             {
-                "modulation": alt_mod,
-                "interleaver": "none",
-                "fec": "none",
-                "prior_score": round(float(alt_prob), 4),
-                "verification_score": 0.0,
-                "total_score": round(float(alt_prob), 4),
-                "status": "PRUNED",
-                "rejection_reason": f"Softmax confidence ({float(alt_prob):.1%}) below primary candidate; cumulant features favored {n5_result.ml_prediction}",
+                "modulation": c.modulation,
+                "interleaver": c.interleaver,
+                "fec": c.fec,
+                "prior_score": round(c.prior_score, 4),
+                "verification_score": round(c.verification_score, 4),
+                "total_score": round(c.final_rank_score, 4),
+                "status": c.status,
+                "rejection_reason": c.rejection_reason or f"Ranked #{i+2} by composite score ({c.final_rank_score:.4f})",
             }
-            for alt_mod, alt_prob in sorted(
-                [(m, p) for m, p in getattr(classifier_out, "ml_probabilities", {}).items() if m != n5_result.ml_prediction],
-                key=lambda x: x[1],
-                reverse=True,
-            )[:3]
+            for i, c in enumerate(ranked_candidates[1:6])
         ] or [
             {
-                "modulation": "8-PSK" if n5_result.ml_prediction == "QPSK" else "QPSK",
+                "modulation": "8-PSK" if top_cand.modulation == "QPSK" else "QPSK",
                 "interleaver": "none",
                 "fec": "none",
                 "prior_score": 0.08,
                 "verification_score": 0.0,
                 "total_score": 0.08,
                 "status": "PRUNED",
-                "rejection_reason": f"Cumulant and phase clustering favored {n5_result.ml_prediction}",
+                "rejection_reason": f"Cumulant and phase clustering favored {top_cand.modulation}",
             }
         ],
         "ml_prediction": n5_result.ml_prediction,
@@ -496,7 +572,7 @@ def run(
         "evidence": ledger.get_items(),
         "failed_checks": ledger.get_failed_checks(),
         "unavailable_checks": ledger.get_unavailable_checks(),
-        "final_confidence": conf_res.final_confidence,
+        "final_confidence": abstention_decision.final_confidence if abstention_decision.is_unknown else conf_res.final_confidence,
         "confidence_version": conf_res.confidence_version,
         "unknown": abstention_decision.is_unknown,
         "unknown_reason": abstention_decision.unknown_reason,

@@ -38,7 +38,7 @@ SUPPORTED_MODULATIONS: Set[str] = set(MODULATIONS)
 SUPPORTED_INTERLEAVERS: Set[str] = set(INTERLEAVERS)
 SUPPORTED_FEC: Set[str] = {"none", "conv_viterbi_k7", "rs_255_223", "concatenated"}
 
-# LDPC must NEVER be faked or silently dropped
+# LDPC Gallager (96, 3, 963) is implemented in DSP codec; tagged as UNSUPPORTED in blind hypothesis search with explicit UNAVAILABLE evidence
 UNSUPPORTED_FEC: Set[str] = {"ldpc"}
 
 # Physical operational SNR floors (dB)
@@ -58,5 +58,5 @@ FEC_MIN_PLAUSIBLE_BITS: Dict[str, int] = {
     "conv_viterbi_k7": 56,        # Constraint length K=7 requires trace-back flushing
     "rs_255_223": 2040,           # 255 bytes block length = 2040 bits
     "concatenated": 2040,         # Outer RS(255,223) requires at least 1 full RS block
-    "ldpc": 512,                  # Standard sub-block
+    "ldpc": 96,                   # Gallager (96, 3, 963) block size
 }

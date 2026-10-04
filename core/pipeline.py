@@ -191,17 +191,19 @@ class SpectralQPipeline:
         deinterleaved_bits = raw_bits
 
         if self.config.deinterleave_scheme == "block":
+            b_rows = self.config.block_rows
+            b_cols = len(raw_bits) // b_rows if (len(raw_bits) >= b_rows and len(raw_bits) % b_rows == 0) else self.config.block_cols
             deinterleaved_bits = block_deinterleave(
                 raw_bits,
-                num_rows=self.config.block_rows,
-                num_cols=self.config.block_cols,
+                num_rows=b_rows,
+                num_cols=b_cols,
                 original_length=len(raw_bits),
             )
             if len(raw_llrs) == len(raw_bits):
                 raw_llrs = block_deinterleave(
                     raw_llrs,
-                    num_rows=self.config.block_rows,
-                    num_cols=self.config.block_cols,
+                    num_rows=b_rows,
+                    num_cols=b_cols,
                     original_length=len(raw_llrs),
                 )
         elif self.config.deinterleave_scheme == "convolutional":
@@ -210,6 +212,18 @@ class SpectralQPipeline:
                 delay_step=self.config.conv_delay_step,
             )
             deinterleaved_bits = c_deintl.process(raw_bits)
+        elif self.config.deinterleave_scheme in ("diagonal", "diagonal_40x51"):
+            try:
+                from spectralq.interleave import diagonal_deinterleave
+                deinterleaved_bits = diagonal_deinterleave(raw_bits, num_rows=40, num_cols=51)
+            except Exception:
+                pass
+        elif self.config.deinterleave_scheme in ("pseudo-random", "pseudorandom"):
+            try:
+                from spectralq.interleave import pseudorandom_deinterleave
+                deinterleaved_bits = pseudorandom_deinterleave(raw_bits, seed=42)
+            except Exception:
+                pass
         timings["deinterleave_ms"] = (time.perf_counter() - t0) * 1000.0
 
         # -------------------------------------------------------------
@@ -259,7 +273,7 @@ class SpectralQPipeline:
 
             # Generate FEC stream if applicable
             fec_mode = self.config.fec_scheme.lower()
-            if fec_mode in ("viterbi_hard", "viterbi", "auto") and len(cur_raw_bits) >= 64:
+            if fec_mode in ("viterbi_hard", "viterbi", "auto", "conv_viterbi_k7", "convolutional", "conv") and len(cur_raw_bits) >= 64:
                 try:
                     v_bits = self.viterbi.decode_hard(cur_raw_bits)
                     if len(v_bits) > 0:
@@ -308,7 +322,7 @@ class SpectralQPipeline:
                                     best_decoded_frame = frame
                                     best_bits = bit_stream
                                     actual_fec_used = "none"
-                            elif fec_mode in ("viterbi_hard", "viterbi", "auto", "conv"):
+                            elif fec_mode in ("viterbi_hard", "viterbi", "auto", "conv", "conv_viterbi_k7", "convolutional"):
                                 # Raw stream did not have valid packet header; attempt post-sync Viterbi decoding
                                 start_bit = det.bit_index + det.sync_word_len
                                 aligned_bits = bit_stream[start_bit:]

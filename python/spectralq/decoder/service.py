@@ -200,17 +200,23 @@ def run_arpit_decoder(
     # Determine default actual FEC and interleaver schemes used
     actual_fec = getattr(res, "fec_used", None)
     if not actual_fec or actual_fec.lower() in ("none", "auto"):
-        actual_fec = fec_scheme if fec_scheme != "auto" else "none"
+        actual_fec = "none"
 
     actual_intl = getattr(res, "interleaver_used", None)
-    if not actual_intl or actual_intl.lower() == "none":
-        actual_intl = deinterleave_scheme if deinterleave_scheme != "none" else "none"
+    if not actual_intl:
+        actual_intl = "none"
 
     # 5. Blind / Candidate FEC & De-interleaver Resolution
-    h_bits = recovered_bits_arr if recovered_bits_arr is not None else np.array([], dtype=int)
+    # Base candidate trials on demodulated raw bitstream before any mismatched pipeline deinterleaving
+    demod_raw_bits = (
+        res.demodulation.hard_bits
+        if (res.demodulation is not None and len(res.demodulation.hard_bits) > 0)
+        else recovered_bits_arr
+    )
+    h_bits = demod_raw_bits if demod_raw_bits is not None else np.array([], dtype=int)
 
     # Attempt LDPC (Gallager 96, 3, 963) if requested or candidate modulation is 16QAM
-    if not is_success and (fec_scheme == "ldpc" or (candidate_modulation and "16" in candidate_modulation) or len(h_bits) == 96):
+    if fec_scheme == "ldpc" or (candidate_modulation and "16" in candidate_modulation) or len(h_bits) == 96:
         try:
             from spectralq.fec import LDPCCodec
             from spectralq.interleave import pseudorandom_deinterleave, pseudorandom_interleave
@@ -228,21 +234,23 @@ def run_arpit_decoder(
                 if int(np.sum(syn)) == 0:
                     rec_info, m = ldpc_codec.decode(cand_bits)
                     if m.get("decoder_success", False):
-                        actual_fec = "ldpc"
-                        actual_intl = intl_name
-                        recovered_bits_arr = rec_info
-                        decoded_bits_val = "".join(str(int(b)) for b in rec_info)
-                        is_success = True
                         reenc = ldpc_codec.encode(rec_info)
                         if intl_name == "pseudorandom":
                             reenc, _ = pseudorandom_interleave(reenc, seed=42)
-                        reencode_ber = float(np.mean(reenc != h_bits[:96]))
-                        break
+                        ber = float(np.mean(reenc != cand_bits[:96]))
+                        if ber <= 0.05:
+                            actual_fec = "ldpc"
+                            actual_intl = intl_name
+                            recovered_bits_arr = rec_info
+                            decoded_bits_val = "".join(str(int(b)) for b in rec_info)
+                            is_success = True
+                            reencode_ber = ber
+                            break
         except Exception as exc:
             logger.debug("LDPC decode attempt failed: %s", exc)
 
     # Attempt Reed-Solomon RS(255, 223) if requested or candidate modulation is 8PSK
-    if not is_success and (fec_scheme in ("rs", "rs_255_223") or (candidate_modulation and "8" in candidate_modulation) or len(h_bits) == 2040):
+    if fec_scheme in ("rs", "rs_255_223") or (candidate_modulation and "8" in candidate_modulation) or len(h_bits) == 2040:
         try:
             from spectralq.fec import ReedSolomonCodec, bits_to_bytes, bytes_to_bits
             from spectralq.interleave import diagonal_deinterleave, diagonal_interleave
@@ -259,21 +267,119 @@ def run_arpit_decoder(
                 try:
                     rec_info, m = rs_codec.decode(cand_bits)
                     if m.get("decoder_success", False):
-                        actual_fec = "rs_255_223"
-                        actual_intl = intl_name
-                        recovered_bits_arr = rec_info
-                        decoded_bits_val = "".join(str(int(b)) for b in rec_info)
-                        is_success = True
                         reenc_bytes = rs_codec.codec.encode(bits_to_bytes(rec_info))
                         reenc = bytes_to_bits(reenc_bytes)
                         if intl_name == "diagonal_40x51":
                             reenc, _ = diagonal_interleave(reenc, num_rows=40, num_cols=51)
-                        reencode_ber = float(np.mean(reenc != h_bits[:2040]))
-                        break
+                        cmp_len = min(len(reenc), len(cand_bits))
+                        ber = float(np.mean(reenc[:cmp_len] != cand_bits[:cmp_len])) if cmp_len > 0 else 1.0
+                        if ber <= 0.05:
+                            actual_fec = "rs_255_223"
+                            actual_intl = "diagonal" if "diagonal" in intl_name else intl_name
+                            recovered_bits_arr = rec_info
+                            decoded_bits_val = "".join(str(int(b)) for b in rec_info)
+                            is_success = True
+                            reencode_ber = ber
+                            break
                 except Exception:
                     pass
         except Exception as exc:
             logger.debug("RS decode attempt failed: %s", exc)
+
+    # Attempt Concatenated (RS + Conv) if requested
+    if fec_scheme in ("concatenated", "rs_conv") or (candidate_modulation and "FSK" in candidate_modulation) or len(h_bits) >= 4080:
+        try:
+            from spectralq.fec import ConcatenatedCodec
+            from spectralq.interleave import convolutional_deinterleave
+            concat_codec = ConcatenatedCodec()
+            candidates_to_try = []
+            if len(h_bits) >= 4080:
+                candidates_to_try.append(("none", h_bits))
+                try:
+                    deint_c = convolutional_deinterleave(h_bits, num_branches=4, delay_step=2)
+                    candidates_to_try.append(("convolutional", deint_c))
+                except Exception:
+                    pass
+            for intl_name, cand_bits in candidates_to_try:
+                try:
+                    rec_info, m = concat_codec.decode(cand_bits)
+                    if m.get("decoder_success", False) and len(rec_info) > 0:
+                        reenc = concat_codec.encode(rec_info)
+                        cmp_len = min(len(reenc), len(cand_bits))
+                        ber = float(np.mean(reenc[:cmp_len] != cand_bits[:cmp_len])) if cmp_len > 0 else 1.0
+                        if ber <= 0.05:
+                            actual_fec = "concatenated"
+                            actual_intl = intl_name
+                            recovered_bits_arr = rec_info
+                            decoded_bits_val = "".join(str(int(b)) for b in rec_info)
+                            is_success = True
+                            reencode_ber = ber
+                            break
+                except Exception:
+                    pass
+        except Exception as exc:
+            logger.debug("Concatenated decode attempt failed: %s", exc)
+
+    # Attempt Convolutional / Viterbi if requested or auto
+    if actual_fec in ("none", "auto") and fec_scheme in ("conv_viterbi_k7", "convolutional", "viterbi", "auto"):
+        try:
+            from spectralq.fec import ConvolutionalCodec
+            from spectralq.interleave import block_deinterleave, convolutional_deinterleave
+            conv_codec = ConvolutionalCodec()
+            candidates_to_try = []
+
+            if deinterleave_scheme == "block":
+                for r in (16, 32, 8):
+                    if len(h_bits) >= r and len(h_bits) % r == 0:
+                        try:
+                            deint_b = block_deinterleave(h_bits, rows=r, cols=len(h_bits)//r)
+                            candidates_to_try.append(("block", deint_b))
+                        except Exception:
+                            pass
+                candidates_to_try.append(("none", h_bits))
+            elif deinterleave_scheme == "convolutional":
+                try:
+                    deint_c = convolutional_deinterleave(h_bits, num_branches=4, delay_step=2)
+                    candidates_to_try.append(("convolutional", deint_c))
+                except Exception:
+                    pass
+                candidates_to_try.append(("none", h_bits))
+            else:
+                candidates_to_try.append(("none", h_bits))
+                if len(h_bits) >= 512:
+                    for r in (16, 32, 8):
+                        if len(h_bits) >= r and len(h_bits) % r == 0:
+                            try:
+                                deint_b = block_deinterleave(h_bits, rows=r, cols=len(h_bits)//r)
+                                candidates_to_try.append(("block", deint_b))
+                            except Exception:
+                                pass
+                    try:
+                        deint_c = convolutional_deinterleave(h_bits, num_branches=4, delay_step=2)
+                        candidates_to_try.append(("convolutional", deint_c))
+                    except Exception:
+                        pass
+
+            for intl_name, cand_bits in candidates_to_try:
+                try:
+                    rec_info, m = conv_codec.decode(cand_bits)
+                    if len(rec_info) > 0:
+                        reenc = conv_codec.encode(rec_info)
+                        cmp_len = min(len(reenc), len(cand_bits))
+                        ber = float(np.mean(reenc[:cmp_len] != cand_bits[:cmp_len])) if cmp_len > 0 else 1.0
+                        if ber <= 0.05:
+                            actual_fec = "conv_viterbi_k7"
+                            actual_intl = intl_name
+                            recovered_bits_arr = rec_info
+                            decoded_bits_val = "".join(str(int(b)) for b in rec_info)
+                            is_success = True
+                            reencode_ber = ber
+                            break
+                except Exception:
+                    pass
+        except Exception as exc:
+            logger.debug("Viterbi decode attempt failed: %s", exc)
+
 
     # SNR and Signal Quality extraction for continuous streams
     est_snr = None

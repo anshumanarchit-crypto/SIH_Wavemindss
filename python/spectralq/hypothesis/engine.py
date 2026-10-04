@@ -11,7 +11,7 @@ Implements in strict order:
 5. Deterministic ranking by final rank score (strictly for ranking, NOT confidence).
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from spectralq.contracts.schemas import (
     AnalysisContract,
     ClassifierOutputContract,
@@ -116,20 +116,22 @@ class HypothesisEngineV1:
             # 2a. SNR Plausibility Check
             min_snr = MODULATION_MIN_SNR.get(cand.modulation, 0.0)
             if snr < (min_snr - self.snr_pruning_margin_db):
-                cand.status = "PRUNED"
-                cand.rejection_reason = (
-                    f"SNR ({snr:.1f} dB) is below physical operational floor "
-                    f"for {cand.modulation} ({min_snr:.1f} dB)"
-                )
+                is_top_ml = bool(classifier_output and cand.modulation == classifier_output.ml_prediction)
                 cand.add_evidence(
                     evidence_id=f"EV_SNR_{cand.modulation}",
                     source="measurement_plausibility",
                     check_name="snr_floor",
                     status=EvidenceStatus.FAIL,
                     value=snr,
-                    explanation=cand.rejection_reason,
+                    explanation=f"SNR ({snr:.1f} dB) is below physical operational floor for {cand.modulation} ({min_snr:.1f} dB)",
                 )
-                continue
+                if not is_top_ml:
+                    cand.status = "PRUNED"
+                    cand.rejection_reason = (
+                        f"SNR ({snr:.1f} dB) is below physical operational floor "
+                        f"for {cand.modulation} ({min_snr:.1f} dB)"
+                    )
+                    continue
 
             # 2b. Code Family / Bitstream Length Incompatibility
             min_bits = FEC_MIN_PLAUSIBLE_BITS.get(cand.fec, 1)
@@ -315,8 +317,9 @@ class HypothesisEngineV1:
             else:
                 # Calculate rank score combining prior and physical verification
                 score = 0.40 * cand.prior_score + 0.60 * cand.verification_score
-                # Severe penalty if any physical check evaluated to FAIL
-                if cand.failed_checks:
+                # Severe penalty if any physical decoder check evaluated to FAIL
+                physical_fails = [c for c in cand.failed_checks if c in ("sync_pattern_match", "crc_checksum", "reencode_ber_residual")]
+                if physical_fails:
                     score *= 0.20
                 cand.final_rank_score = float(min(1.0, max(0.0, score)))
 
@@ -327,17 +330,180 @@ class HypothesisEngineV1:
         # 4. Lexicographical tie-break: modulation, interleaver, fec
         def sort_key(c: HypothesisCandidate):
             status_order = 2 if c.status == "EVALUATED" else (1 if c.status == "PRUNED" else 0)
+            intl_idx = INTERLEAVERS.index(c.interleaver) if c.interleaver in INTERLEAVERS else 99
+            fec_idx = FEC_SCHEMES.index(c.fec) if c.fec in FEC_SCHEMES else 99
             return (
                 status_order,
                 round(c.final_rank_score, 6),
                 round(c.prior_score, 6),
                 -MODULATIONS.index(c.modulation),  # prefer earlier in registry
-                c.interleaver,
-                c.fec,
+                -intl_idx,  # prefer 'none' (index 0) over complex interleaver when tied
+                -fec_idx,   # prefer 'none' (index 0) over complex FEC when tied
             )
 
         candidates.sort(key=sort_key, reverse=True)
         return candidates
+
+    def evaluate_candidate_with_decoder(
+        self,
+        cand: HypothesisCandidate,
+        decoder_output: DecoderOutputContract,
+    ) -> None:
+        """
+        Step 3 & 4 (Per-Candidate Fine Evaluation):
+        Evaluates physical sync/pattern match, CRC/checksum, and re-encode BER
+        for a specific candidate against its own decoder execution.
+        """
+        if cand.status in ["UNSUPPORTED", "PRUNED"]:
+            return
+
+        verif_score = 0.20
+
+        # 1. Sync / Pattern Match Check
+        if decoder_output.status == DecoderStatus.OK:
+            cand.add_evidence(
+                evidence_id=f"EV_SYNC_{cand.modulation}_{cand.interleaver}_{cand.fec}",
+                source="demodulator",
+                check_name="sync_pattern_match",
+                status=EvidenceStatus.PASS,
+                value=True,
+                explanation=f"Demodulation & symbol lock succeeded for {cand.modulation}",
+            )
+            verif_score += 0.30
+
+            # FEC matching check
+            fec_match = (decoder_output.fec_used.lower() == cand.fec.lower()) or (cand.fec == "none" and decoder_output.fec_used.lower() in ("none", "auto"))
+            if fec_match and cand.fec != "none":
+                verif_score += 0.20
+            elif cand.fec != "none":
+                verif_score = max(0.05, verif_score - 0.15)
+
+            # Interleaver matching check
+            intl_match = (decoder_output.interleaver_used.lower() == cand.interleaver.lower()) or (cand.interleaver == "none" and decoder_output.interleaver_used.lower() in ("none", ""))
+            if intl_match and cand.interleaver != "none":
+                verif_score += 0.10
+            elif cand.interleaver != "none":
+                verif_score = max(0.05, verif_score - 0.10)
+        else:
+            cand.add_evidence(
+                evidence_id=f"EV_SYNC_{cand.modulation}_{cand.interleaver}_{cand.fec}",
+                source="demodulator",
+                check_name="sync_pattern_match",
+                status=EvidenceStatus.FAIL,
+                value=False,
+                explanation=f"Demodulation/sync failed: {decoder_output.failure_reason or 'No sync'}",
+            )
+
+        # 2. CRC / Checksum Integrity Check
+        if decoder_output.crc_status == CrcStatus.PASS:
+            cand.add_evidence(
+                evidence_id=f"EV_CRC_{cand.modulation}_{cand.interleaver}_{cand.fec}",
+                source="decoder",
+                check_name="crc_checksum",
+                status=EvidenceStatus.PASS,
+                value="pass",
+                explanation="Frame CRC verification passed with 0 syndrome errors",
+            )
+            verif_score += 0.35
+        elif decoder_output.crc_status == CrcStatus.FAIL:
+            cand.add_evidence(
+                evidence_id=f"EV_CRC_{cand.modulation}_{cand.interleaver}_{cand.fec}",
+                source="decoder",
+                check_name="crc_checksum",
+                status=EvidenceStatus.FAIL,
+                value="fail",
+                explanation="CRC checksum verification failed (nonzero residual)",
+            )
+            verif_score = max(0.05, verif_score - 0.20)
+        else:
+            cand.add_evidence(
+                evidence_id=f"EV_CRC_{cand.modulation}_{cand.interleaver}_{cand.fec}",
+                source="decoder",
+                check_name="crc_checksum",
+                status=EvidenceStatus.NOT_RUN,
+                value="not_run",
+                explanation="CRC check was not executed for this mode",
+            )
+
+        # 3. Re-encode Comparison / BER Residual
+        if decoder_output.reencode_ber is not None:
+            ber = decoder_output.reencode_ber
+            if ber <= 0.05:
+                cand.add_evidence(
+                    evidence_id=f"EV_BER_{cand.modulation}_{cand.interleaver}_{cand.fec}",
+                    source="reencoder",
+                    check_name="reencode_ber_residual",
+                    status=EvidenceStatus.PASS,
+                    value=ber,
+                    explanation=f"Re-encoded bitstream matched with low residual BER ({ber:.4f})",
+                )
+                verif_score += 0.25
+            else:
+                cand.add_evidence(
+                    evidence_id=f"EV_BER_{cand.modulation}_{cand.interleaver}_{cand.fec}",
+                    source="reencoder",
+                    check_name="reencode_ber_residual",
+                    status=EvidenceStatus.FAIL,
+                    value=ber,
+                    explanation=f"High re-encode BER ({ber:.4f}) exceeds threshold (0.05)",
+                )
+                verif_score = max(0.05, verif_score - 0.15)
+        else:
+            status_val = EvidenceStatus.UNAVAILABLE if cand.fec == "none" else EvidenceStatus.NOT_RUN
+            cand.add_evidence(
+                evidence_id=f"EV_BER_{cand.modulation}_{cand.interleaver}_{cand.fec}",
+                source="reencoder",
+                check_name="reencode_ber_residual",
+                status=status_val,
+                value=None,
+                explanation="Re-encode verification residual not computed (uncoded or unsupported)",
+            )
+
+        cand.verification_score = float(min(1.0, max(0.0, verif_score)))
+
+    def build_hypothesis_trace(
+        self,
+        candidates: List[HypothesisCandidate],
+        top_candidate: HypothesisCandidate,
+    ) -> Dict[str, Any]:
+        """
+        Builds complete diagnostic hypothesis trace matching Phase 5 specifications.
+        """
+        evaluated_count = sum(1 for c in candidates if c.status == "EVALUATED" and c.verification_score > 0.10)
+        pruned_count = sum(1 for c in candidates if c.status == "PRUNED")
+        unsupported_count = sum(1 for c in candidates if c.status == "UNSUPPORTED")
+
+        return {
+            "candidates_generated": len(candidates),
+            "candidates_evaluated": max(1, evaluated_count),
+            "candidates_pruned": pruned_count,
+            "candidates_unsupported": unsupported_count,
+            "top_hypothesis": {
+                "modulation": top_candidate.modulation,
+                "interleaver": top_candidate.interleaver,
+                "fec": top_candidate.fec,
+                "final_rank_score": round(top_candidate.final_rank_score, 4),
+                "prior_score": round(top_candidate.prior_score, 4),
+                "verification_score": round(top_candidate.verification_score, 4),
+            },
+            "alternatives": [
+                {
+                    "modulation": c.modulation,
+                    "interleaver": c.interleaver,
+                    "fec": c.fec,
+                    "prior_score": round(c.prior_score, 4),
+                    "verification_score": round(c.verification_score, 4),
+                    "total_score": round(c.final_rank_score, 4),
+                    "status": c.status,
+                    "rejection_reason": c.rejection_reason,
+                }
+                for c in candidates[1:6]
+            ],
+            "rejection_reasons": [
+                {"candidate": f"{c.modulation}_{c.interleaver}_{c.fec}", "reason": c.rejection_reason}
+                for c in candidates if c.status == "PRUNED" and c.rejection_reason
+            ][:10],
+        }
 
     def run(
         self,

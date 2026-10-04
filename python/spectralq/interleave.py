@@ -562,6 +562,8 @@ def identity_deinterleave(
     return bits_arr.copy()
 
 
-# Aliases for explicit NONE naming
+# Aliases for explicit NONE and CONVOLUTIONAL naming
 none_interleave = identity_interleave
 none_deinterleave = identity_deinterleave
+convolutional_interleave = conv_interleave
+convolutional_deinterleave = conv_deinterleave

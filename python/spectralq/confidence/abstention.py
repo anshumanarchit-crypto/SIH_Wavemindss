@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 from spectralq.confidence.engine import ConfidenceResult
 from spectralq.confidence.threshold_sweep import load_abstention_config
-from spectralq.contracts.schemas import AnalysisContract, EvidenceItem, EvidenceStatus
+from spectralq.contracts.schemas import AnalysisContract, EvidenceItem, EvidenceStatus, CrcStatus
 from spectralq.evidence.ledger import EvidenceLedger
 from spectralq.hypothesis.registry import MODULATION_MIN_SNR
 
@@ -70,10 +70,12 @@ class AbstentionSystem:
         confidence_result: ConfidenceResult,
         ledger: Optional[EvidenceLedger] = None,
         capture_id: str = "CAPTURE",
+        decoder_output: Optional[Any] = None,
+        hypothesis_gap: Optional[float] = None,
     ) -> AbstentionDecision:
         """
         Executes abstention evaluation against noise, low SNR physical floors,
-        and the empirical confidence threshold.
+        unverified demodulation quality, and empirical confidence thresholds.
         """
         top_pred = confidence_result.prediction
         snr = float(analysis.estimates.snr.value)
@@ -158,6 +160,48 @@ class AbstentionSystem:
                 calibrated_ml_probability=cal_ml_p,
                 raw_hybrid_score=raw_hybrid,
             )
+
+        # ---------------------------------------------------------------------
+        # Tier 2.5: Demodulation Quality & Unverified Stream Guard (General G9/Adversarial Policy)
+        # ---------------------------------------------------------------------
+        if decoder_output is not None:
+            evm = getattr(decoder_output, "evm_percent", None)
+            crc_stat = getattr(decoder_output, "crc_status", None)
+            sync_w = getattr(decoder_output, "sync_word", None)
+            reenc_ber = getattr(decoder_output, "reencode_ber", None)
+
+            crc_pass = (crc_stat == CrcStatus.PASS) or (str(crc_stat).lower() == "pass")
+            is_unpacketized = (not crc_pass) and (sync_w is None) and (reenc_ber is None or reenc_ber > 0.05)
+
+            if evm is not None and evm > 35.0 and is_unpacketized:
+                reason = (
+                    f"Demodulation quality failure: recovered constellation EVM ({evm:.1f}%) "
+                    f"exceeds physical tolerance threshold (35.0%) on an unpacketized headerless "
+                    f"stream without CRC or FEC confirmation; abstaining to UNKNOWN"
+                )
+                if ledger is not None:
+                    ledger.record(
+                        evidence_id=f"EV_DEMOD_GUARD_{capture_id}",
+                        source="Abstention_Guard",
+                        check_name="demod_quality_guard",
+                        status=EvidenceStatus.FAIL,
+                        numeric_value=evm,
+                        threshold=35.0,
+                        explanation=reason,
+                        failure_reason=f"EVM ({evm:.1f}%) > threshold (35.0%) with unverified stream",
+                        provenance={"guard": "demod_quality_guard", "evm_percent": evm},
+                    )
+                return AbstentionDecision(
+                    is_unknown=True,
+                    unknown_reason=reason,
+                    output_label="UNKNOWN",
+                    final_confidence=float(min(final_conf, 0.40)),
+                    threshold=self.threshold,
+                    guard_triggered="demod_quality_guard",
+                    raw_ml_probability=raw_ml_p,
+                    calibrated_ml_probability=cal_ml_p,
+                    raw_hybrid_score=raw_hybrid,
+                )
 
         # ---------------------------------------------------------------------
         # Tier 3: Empirical Confidence Threshold Abstention Guard
