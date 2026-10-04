@@ -124,3 +124,57 @@ def test_adversarial_renamed_g9_swapped_iq_abstention(temp_capture_dir):
     assert res.unknown is True, "Headerless swapped IQ signal under arbitrary name must abstain to UNKNOWN"
     assert res.final_confidence <= 0.40, f"Expected capped confidence <= 0.40, got {res.final_confidence}"
     assert "EVM" in res.unknown_reason or "Demodulation quality" in res.unknown_reason
+
+
+def test_adversarial_renamed_g5_2fsk(temp_capture_dir):
+    """Copied G5 under completely arbitrary name 'deep_space_probe_epsilon_7721.cf32'.
+    Behavior must match baseband signal properties without filename bias.
+    """
+    src_cf32 = GOLDEN_DIR / "G5_2FSK_RS_Conv_interleaved.cf32"
+    src_json = GOLDEN_DIR / "G5_2FSK_RS_Conv_interleaved.json"
+    if not src_cf32.exists() or not src_json.exists():
+        pytest.skip("G5 golden capture not found")
+
+    dst_cf32 = temp_capture_dir / "deep_space_probe_epsilon_7721.cf32"
+    dst_json = temp_capture_dir / "deep_space_probe_epsilon_7721.json"
+    shutil.copyfile(src_cf32, dst_cf32)
+    shutil.copyfile(src_json, dst_json)
+
+    pr = run(str(dst_cf32), mode="live")
+    res = pr.result
+
+    assert res is not None
+    canon_pr = run(str(src_cf32), mode="live")
+    assert res.top_hypothesis.modulation == canon_pr.result.top_hypothesis.modulation
+    assert res.unknown == canon_pr.result.unknown
+
+
+def test_adversarial_directory_and_filename_invariance(temp_capture_dir):
+    """Proves that running the exact same signal under two completely different paths/names
+    yields identical predictions, confidence, and hypothesis ranking.
+    """
+    src_cf32 = GOLDEN_DIR / "G2_BPSK_conv_block.cf32"
+    src_json = GOLDEN_DIR / "G2_BPSK_conv_block.json"
+    if not src_cf32.exists() or not src_json.exists():
+        pytest.skip("G2 golden capture not found")
+
+    dir_a = temp_capture_dir / "dir_alpha"
+    dir_b = temp_capture_dir / "dir_beta"
+    dir_a.mkdir()
+    dir_b.mkdir()
+
+    file_a = dir_a / "sensor_channel_01.cf32"
+    file_b = dir_b / "satcom_downlink_99.cf32"
+    shutil.copyfile(src_cf32, file_a)
+    shutil.copyfile(src_json, dir_a / "sensor_channel_01.json")
+    shutil.copyfile(src_cf32, file_b)
+    shutil.copyfile(src_json, dir_b / "satcom_downlink_99.json")
+
+    res_a = run(str(file_a), mode="live").result
+    res_b = run(str(file_b), mode="live").result
+
+    assert res_a.top_hypothesis.modulation == res_b.top_hypothesis.modulation == "BPSK"
+    assert res_a.top_hypothesis.fec == res_b.top_hypothesis.fec == "conv_viterbi_k7"
+    assert res_a.top_hypothesis.interleaver == res_b.top_hypothesis.interleaver == "block"
+    assert abs(res_a.final_confidence - res_b.final_confidence) < 1e-4
+    assert res_a.unknown == res_b.unknown

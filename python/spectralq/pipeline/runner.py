@@ -318,6 +318,11 @@ def run(
         decoder_output=None,
     )
 
+    cand_gen_count = len(all_candidates)
+    cand_pruned_count = 0
+    cand_eval_count = 0
+    cand_verif_count = 0
+
     if decoder_override is not None:
         decoder_out = decoder_override
         hypothesis_engine.evaluate_fine_evidence(all_candidates, decoder_out)
@@ -363,18 +368,53 @@ def run(
                     c.status = "PRUNED"
                     c.rejection_reason = f"Interleaver '{c.interleaver}' is physically incompatible with FEC '{c.fec}'"
 
-        surviving_cands = [c for c in all_candidates if c.status == "EVALUATED" and c.modulation == candidate_mod]
+        # Stage A2: Candidate Modulation Shortlist (Phase 2 & 3 True Universal Candidate Search)
+        # We do NOT force candidate_modulation = ml_prediction as the sole modulation considered.
+        plausible_mods = [candidate_mod]
+        if classifier_out and classifier_out.ml_probabilities:
+            competing = sorted(
+                [(p, m) for m, p in classifier_out.ml_probabilities.items() if m != candidate_mod],
+                reverse=True
+            )
+            for p_comp, m_comp in competing:
+                if p_comp >= 0.05 and m_comp not in plausible_mods:
+                    plausible_mods.append(m_comp)
+                    break
+        if rule_out and rule_out.predicted_modulation and rule_out.predicted_modulation not in ("UNKNOWN", None):
+            if rule_out.predicted_modulation not in plausible_mods:
+                plausible_mods.append(rule_out.predicted_modulation)
+
+        # Mark candidates outside plausible modulation shortlist as PRUNED
+        for c in all_candidates:
+            if c.status == "EVALUATED" and c.modulation not in plausible_mods:
+                c.status = "PRUNED"
+                c.rejection_reason = f"Plausibility pruning: modulation '{c.modulation}' excluded by joint ML/rule evidence"
+
+        # Select candidate triples across the plausible modulations for Stage B receiver verification
+        surviving_cands = []
+        for p_mod in plausible_mods:
+            mod_cands = [c for c in all_candidates if c.status == "EVALUATED" and c.modulation == p_mod]
+            if not mod_cands:
+                continue
+            if p_mod == candidate_mod:
+                uncoded = [c for c in mod_cands if c.fec == "none" and c.interleaver == "none"]
+                coded = [c for c in mod_cands if c.fec != "none"][:2]
+                surviving_cands.extend(uncoded + coded)
+            else:
+                uncoded = [c for c in mod_cands if c.fec == "none"][:1]
+                coded = [c for c in mod_cands if c.fec != "none"][:1]
+                surviving_cands.extend(uncoded + coded)
+
         if not surviving_cands:
             surviving_cands = [c for c in all_candidates if c.status == "EVALUATED"][:4]
 
-        # If base_out already produced a verified CRC PASS on uncoded, keep none/none and 1 competing candidate
-        is_base_crc_pass = (base_out.crc_status == CrcStatus.PASS) or (str(base_out.crc_status).lower() == "pass")
-        if is_base_crc_pass and len(surviving_cands) > 2:
-            surviving_cands = [c for c in surviving_cands if c.fec == "none"] + [c for c in surviving_cands if c.fec != "none"][:1]
+        # Bounded evaluation budget: cap at 6 total candidates to guarantee fast execution (<2s)
+        if len(surviving_cands) > 6:
+            surviving_cands = surviving_cands[:6]
 
         decoder_evaluated_outputs = []
         for cand in surviving_cands:
-            if cand.fec == "none" and cand.interleaver == "none":
+            if cand.modulation == candidate_mod and cand.fec == "none" and cand.interleaver == "none":
                 c_out = base_out
             else:
                 c_out = run_arpit_decoder(
@@ -384,10 +424,25 @@ def run(
                     candidate_modulation=cand.modulation,
                     fec_scheme=cand.fec,
                     deinterleave_scheme=cand.interleaver,
-                    pipeline_result=cached_pipe_res,
+                    pipeline_result=cached_pipe_res if cand.modulation == candidate_mod else None,
                 )
             hypothesis_engine.evaluate_fine_evidence(all_candidates, c_out)
             decoder_evaluated_outputs.append((cand, c_out))
+
+            # Populate candidate telemetry and accounting
+            cand.decoder_status = c_out.status.value if hasattr(c_out.status, "value") else str(c_out.status)
+            cand.fec_status = c_out.fec_used
+            cand.interleaver_status = c_out.interleaver_used
+            cand.crc_status = c_out.crc_status.value if hasattr(c_out.crc_status, "value") else str(c_out.crc_status)
+            cand.reencode_ber = c_out.reencode_ber
+            is_verified = (c_out.status == DecoderStatus.OK and (c_out.reencode_ber == 0.0 or c_out.crc_status == CrcStatus.PASS))
+            cand.verification_status = "VERIFIED" if is_verified else "UNVERIFIED"
+
+        # Candidate Accounting Totals
+        cand_gen_count = len(all_candidates)
+        cand_pruned_count = sum(1 for c in all_candidates if c.status in ("PRUNED", "UNSUPPORTED"))
+        cand_eval_count = len(decoder_evaluated_outputs)
+        cand_verified_count = sum(1 for c, out in decoder_evaluated_outputs if out.status == DecoderStatus.OK and (out.reencode_ber == 0.0 or out.crc_status == CrcStatus.PASS))
 
         # Step 2: Authoritative ranking of all candidate triples based on physical verification evidence
         ranked_candidates = hypothesis_engine.rank_candidates(all_candidates)
@@ -395,7 +450,7 @@ def run(
 
         # Step 3: Match winner's decoder output from candidate competition
         matched_out = next(
-            (out for cand, out in decoder_evaluated_outputs if cand.fec == top_cand.fec and cand.interleaver == top_cand.interleaver),
+            (out for cand, out in decoder_evaluated_outputs if cand.modulation == top_cand.modulation and cand.fec == top_cand.fec and cand.interleaver == top_cand.interleaver),
             None
         )
         if matched_out is not None:
@@ -408,7 +463,7 @@ def run(
                 candidate_modulation=top_cand.modulation,
                 fec_scheme=top_cand.fec,
                 deinterleave_scheme=top_cand.interleaver,
-                pipeline_result=cached_pipe_res,
+                pipeline_result=cached_pipe_res if top_cand.modulation == candidate_mod else None,
             )
 
         if decoder_out.status == DecoderStatus.OK:
@@ -665,6 +720,10 @@ def run(
             "seed": seed,
             "software_version": "1.0.0",
             "generated_at": now_utc,
+            "candidates_generated": cand_gen_count,
+            "candidates_pruned": cand_pruned_count,
+            "candidates_decoder_evaluated": cand_eval_count,
+            "candidates_verified": cand_verif_count,
         },
     }
 

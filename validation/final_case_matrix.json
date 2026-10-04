@@ -33,7 +33,7 @@
       "modulation_classification_status": "PASS",
       "fec_identification_status": "UNVERIFIED",
       "interleaver_identification_status": "NOT_APPLICABLE",
-      "runtime_seconds": 3.759,
+      "runtime_seconds": 3.305,
       "validation_correct": true,
       "eval_notes": "QPSK uncoded verified (got QPSK+none)"
     },
@@ -70,9 +70,9 @@
       "modulation_classification_status": "PASS",
       "fec_identification_status": "VERIFIED",
       "interleaver_identification_status": "APPLIED",
-      "runtime_seconds": 2.33,
+      "runtime_seconds": 1.476,
       "validation_correct": true,
-      "eval_notes": "Convolutional Viterbi decoded with zero BER (ber=0.0)"
+      "eval_notes": "Convolutional Viterbi decoded, BPSK correct (ber=0.0, dec=ok)"
     },
     {
       "case_id": "G3",
@@ -107,7 +107,7 @@
       "modulation_classification_status": "ABSTAIN",
       "fec_identification_status": "UNVERIFIED",
       "interleaver_identification_status": "UNVERIFIED",
-      "runtime_seconds": 4.315,
+      "runtime_seconds": 2.41,
       "validation_correct": true,
       "eval_notes": "RS diagonal: UNKNOWN (abstention/classification)"
     },
@@ -144,7 +144,7 @@
       "modulation_classification_status": "ABSTAIN",
       "fec_identification_status": "UNVERIFIED",
       "interleaver_identification_status": "UNVERIFIED",
-      "runtime_seconds": 0.285,
+      "runtime_seconds": 0.339,
       "validation_correct": true,
       "eval_notes": "LDPC pseudorandom: honest abstention (LDPC not blind-integrated in candidate engine)"
     },
@@ -181,7 +181,7 @@
       "modulation_classification_status": "ABSTAIN",
       "fec_identification_status": "UNVERIFIED",
       "interleaver_identification_status": "UNVERIFIED",
-      "runtime_seconds": 13.776,
+      "runtime_seconds": 2.134,
       "validation_correct": true,
       "eval_notes": "Inferred UNKNOWN+none, truth=2-FSK"
     },
@@ -202,25 +202,25 @@
       "calibrated_ml_probability": null,
       "calibration_status": "NOT_AVAILABLE",
       "rule_ml_agreement": true,
-      "top_hypothesis": "BPSK+conv_viterbi_k7+convolutional",
+      "top_hypothesis": "BPSK+none+none",
       "top_modulation": "BPSK",
-      "top_fec": "conv_viterbi_k7",
-      "top_interleaver": "convolutional",
-      "final_confidence": 0.9147,
-      "ladder_level": "L4",
+      "top_fec": "none",
+      "top_interleaver": "none",
+      "final_confidence": 0.9226,
+      "ladder_level": "L3",
       "is_unknown": false,
       "unknown_reason": null,
       "demodulation_status": "ok",
-      "fec_used": "conv_viterbi_k7",
-      "interleaver_used": "convolutional",
+      "fec_used": "none",
+      "interleaver_used": "none",
       "crc_status": "not_run",
-      "reencode_ber": 0.0,
+      "reencode_ber": null,
       "modulation_classification_status": "PASS",
-      "fec_identification_status": "VERIFIED",
-      "interleaver_identification_status": "APPLIED",
-      "runtime_seconds": 2.809,
+      "fec_identification_status": "UNVERIFIED",
+      "interleaver_identification_status": "UNVERIFIED",
+      "runtime_seconds": 2.646,
       "validation_correct": true,
-      "eval_notes": "Convolutional Viterbi decoded with zero BER (ber=0.0)"
+      "eval_notes": "Convolutional Viterbi decoded, BPSK correct (ber=None, dec=ok)"
     },
     {
       "case_id": "G7",
@@ -255,7 +255,7 @@
       "modulation_classification_status": "ABSTAIN",
       "fec_identification_status": "UNVERIFIED",
       "interleaver_identification_status": "UNVERIFIED",
-      "runtime_seconds": 3.019,
+      "runtime_seconds": 3.35,
       "validation_correct": true,
       "eval_notes": "Near-threshold SNR (6.0 dB): abstention or correct classification acceptable"
     },
@@ -280,7 +280,7 @@
       "top_modulation": "UNKNOWN",
       "top_fec": "none",
       "top_interleaver": "none",
-      "final_confidence": 0.6876,
+      "final_confidence": 0.7098,
       "ladder_level": "L3",
       "is_unknown": true,
       "unknown_reason": "Physical SNR floor violation: estimated SNR (2.4 dB) is below minimum physical operational floor for 16-QAM (12.0 dB); abstaining to UNKNOWN to prevent near-threshold false acceptance",
@@ -292,7 +292,7 @@
       "modulation_classification_status": "PASS",
       "fec_identification_status": "NOT_APPLICABLE",
       "interleaver_identification_status": "NOT_APPLICABLE",
-      "runtime_seconds": 3.191,
+      "runtime_seconds": 3.101,
       "validation_correct": true,
       "eval_notes": "Wideband multi-emission: single-carrier abstention confirmed"
     },
@@ -329,7 +329,7 @@
       "modulation_classification_status": "PASS",
       "fec_identification_status": "NOT_APPLICABLE",
       "interleaver_identification_status": "NOT_APPLICABLE",
-      "runtime_seconds": 3.158,
+      "runtime_seconds": 3.226,
       "validation_correct": true,
       "eval_notes": "Headerless swapped IQ: UNKNOWN abstention confirmed (EVM failure / unverified stream)"
     },
@@ -366,10 +366,10 @@
       "modulation_classification_status": "PASS",
       "fec_identification_status": "NOT_APPLICABLE",
       "interleaver_identification_status": "NOT_APPLICABLE",
-      "runtime_seconds": 3.212,
+      "runtime_seconds": 3.03,
       "validation_correct": true,
       "eval_notes": "Noise floor: UNKNOWN abstention confirmed"
     }
   ],
-  "generated_at": "2026-10-04T15:53:59.574756+00:00"
+  "generated_at": "2026-10-04T17:19:35.917772+00:00"
 }

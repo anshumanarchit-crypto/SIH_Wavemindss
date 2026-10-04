@@ -17,6 +17,7 @@ class HypothesisCandidate(BaseModel):
     """
     model_config = ConfigDict(extra="forbid")
 
+    candidate_id: Optional[str] = Field(default=None, description="Unique candidate identifier")
     modulation: str = Field(..., description="Hypothesized modulation scheme")
     interleaver: str = Field(..., description="Hypothesized interleaver scheme")
     fec: str = Field(..., description="Hypothesized FEC scheme")
@@ -28,6 +29,15 @@ class HypothesisCandidate(BaseModel):
     verification_score: float = Field(default=0.0, ge=0.0, le=1.0, description="Physical verification score from decoder")
     final_rank_score: float = Field(default=0.0, ge=0.0, le=1.0, description="Deterministic rank score (ranking only, NOT a confidence)")
     rejection_reason: Optional[str] = Field(default=None, description="Explicit reason if pruned or unsupported")
+    decoder_status: Optional[str] = Field(default=None, description="Decoder execution status")
+    fec_status: Optional[str] = Field(default=None, description="FEC decoder verification status")
+    interleaver_status: Optional[str] = Field(default=None, description="Deinterleaver verification status")
+    verification_status: Optional[str] = Field(default=None, description="Overall candidate verification status")
+    crc_status: Optional[str] = Field(default=None, description="CRC verification status")
+    reencode_ber: Optional[float] = Field(default=None, description="Re-encode bit error rate")
+    physical_evidence: Optional[Dict[str, Any]] = Field(default=None, description="Telemetry from physical DSP/demod")
+    ml_evidence: Optional[Dict[str, Any]] = Field(default=None, description="Telemetry from ML classifier")
+    rule_evidence: Optional[Dict[str, Any]] = Field(default=None, description="Telemetry from rule engine")
 
     def add_evidence(
         self,

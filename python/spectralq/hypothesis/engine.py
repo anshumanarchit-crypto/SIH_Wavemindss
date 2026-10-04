@@ -61,6 +61,7 @@ class HypothesisEngineV1:
                         rejection_reason = f"FEC scheme '{fec.upper()}' is unsupported in upstream DSP suite (never fabricated)"
 
                     cand = HypothesisCandidate(
+                        candidate_id=f"CAND_{mod}_{intl}_{fec}",
                         modulation=mod,
                         interleaver=intl,
                         fec=fec,

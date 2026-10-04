@@ -319,6 +319,10 @@ class ProvenanceBlock(BaseModel):
     seed: int = Field(..., description="Deterministic RNG seed")
     software_version: str = Field(..., min_length=1, description="SpectralQ software release tag")
     generated_at: str = Field(..., min_length=1, description="ISO-8601 UTC timestamp")
+    candidates_generated: Optional[int] = Field(None, description="Total candidates generated in hypothesis space (175)")
+    candidates_pruned: Optional[int] = Field(None, description="Candidates pruned during Stage A physical/ML coarse search")
+    candidates_decoder_evaluated: Optional[int] = Field(None, description="Candidates reaching Stage B physical receiver verification")
+    candidates_verified: Optional[int] = Field(None, description="Candidates with confirmed physical FEC/CRC verification")
 
 
 class ResultContract(BaseModel):

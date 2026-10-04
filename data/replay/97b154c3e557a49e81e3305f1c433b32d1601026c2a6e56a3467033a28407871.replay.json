@@ -1,14 +1,14 @@
 {
   "schema_version": "1.0.0",
   "input_hash": "97b154c3e557a49e81e3305f1c433b32d1601026c2a6e56a3467033a28407871",
-  "capture_id": "flight_telemetry_beta_1028",
+  "capture_id": "G3_8PSK_RS_diagonal",
   "source_mode": "replay",
-  "cached_at_utc": "2026-10-04T15:56:50.339094+00:00",
+  "cached_at_utc": "2026-10-04T17:19:15.801506+00:00",
   "generation_parameters": {},
-  "payload_checksum": "54931a5cc1968efaffcd9d3549195e8ed762f7f7908bf77d85374eec1fbd7e7d",
+  "payload_checksum": "9fb888cd362b7d7c96eef2a180092e9192008e90cb438cf97299535e31fc5b15",
   "analysis": {
     "schema_version": "1.0.0",
-    "capture_id": "flight_telemetry_beta_1028",
+    "capture_id": "G3_8PSK_RS_diagonal",
     "source_mode": "replay",
     "fs_hz": 800000.0,
     "fs_source": "inferred",
