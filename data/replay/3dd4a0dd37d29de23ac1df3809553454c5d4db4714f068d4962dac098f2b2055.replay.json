@@ -1,14 +1,14 @@
 {
   "schema_version": "1.0.0",
   "input_hash": "3dd4a0dd37d29de23ac1df3809553454c5d4db4714f068d4962dac098f2b2055",
-  "capture_id": "G7_QPSK_conv_near_threshold",
+  "capture_id": "uplink_burst_gamma_5512",
   "source_mode": "replay",
-  "cached_at_utc": "2026-10-04T07:45:10.792526+00:00",
+  "cached_at_utc": "2026-10-04T15:56:53.905483+00:00",
   "generation_parameters": {},
-  "payload_checksum": "6872bc2c58025f5135677b58f1603c959ccc05c7d5a39af6e1e237ab1be11a93",
+  "payload_checksum": "5d47286f25a418f4db1081678b2fb530a0cc92bbcdbec00731eec5ba5e72e261",
   "analysis": {
     "schema_version": "1.0.0",
-    "capture_id": "G7_QPSK_conv_near_threshold",
+    "capture_id": "uplink_burst_gamma_5512",
     "source_mode": "replay",
     "fs_hz": 800000.0,
     "fs_source": "inferred",

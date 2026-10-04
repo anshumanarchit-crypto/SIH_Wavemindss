@@ -1,0 +1,214 @@
+{
+  "timestamp": "2026-10-04T09:12:57Z",
+  "total_duration_s": 468.202,
+  "pytest_return_code": 0,
+  "test_count": 29,
+  "passed_count": 28,
+  "failed_count": 0,
+  "skipped_count": 1,
+  "slowest_tests": [
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestPerClassFairness::test_every_supported_class_clears_a_recall_floor",
+      "duration_s": 103.545,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestConfidenceCalibration::test_expected_calibration_error_bounded",
+      "duration_s": 92.004,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestAdversarialPerturbationFragility::test_small_noise_budget_does_not_flip_a_confident_label[QPSK]",
+      "duration_s": 73.635,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestPerClassFairness::test_predictions_are_not_dominated_by_a_single_class",
+      "duration_s": 61.758,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestAdversarialPerturbationFragility::test_small_noise_budget_does_not_flip_a_confident_label[16QAM]",
+      "duration_s": 45.042,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestGoldenMasterRegression::test_outputs_match_recorded_golden_master",
+      "duration_s": 30.861,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestStatelessness::test_back_to_back_captures_do_not_influence_each_other",
+      "duration_s": 9.744,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestDeterminism::test_identical_input_identical_output",
+      "duration_s": 9.57,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestRealCLIInvocation::test_cli_end_to_end_on_a_real_file",
+      "duration_s": 5.532,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestLatencyBudget::test_latency_does_not_blow_up_on_longer_captures",
+      "duration_s": 2.841,
+      "status": "PASSED"
+    }
+  ],
+  "all_tests": [
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestPerClassFairness::test_every_supported_class_clears_a_recall_floor",
+      "duration_s": 103.545,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestConfidenceCalibration::test_expected_calibration_error_bounded",
+      "duration_s": 92.004,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestAdversarialPerturbationFragility::test_small_noise_budget_does_not_flip_a_confident_label[QPSK]",
+      "duration_s": 73.635,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestPerClassFairness::test_predictions_are_not_dominated_by_a_single_class",
+      "duration_s": 61.758,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestAdversarialPerturbationFragility::test_small_noise_budget_does_not_flip_a_confident_label[16QAM]",
+      "duration_s": 45.042,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestGoldenMasterRegression::test_outputs_match_recorded_golden_master",
+      "duration_s": 30.861,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestStatelessness::test_back_to_back_captures_do_not_influence_each_other",
+      "duration_s": 9.744,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestDeterminism::test_identical_input_identical_output",
+      "duration_s": 9.57,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestRealCLIInvocation::test_cli_end_to_end_on_a_real_file",
+      "duration_s": 5.532,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestLatencyBudget::test_latency_does_not_blow_up_on_longer_captures",
+      "duration_s": 2.841,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestClippingSaturation::test_clipping_degrades_confidence_not_silently_wrong[0.15]",
+      "duration_s": 2.471,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestIQImbalance::test_mild_to_moderate_iq_imbalance_survives[0.3-2.0]",
+      "duration_s": 2.367,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestOutOfDistributionRobustness::test_extreme_snr_is_handled_safely[-15.0]",
+      "duration_s": 2.177,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestOutOfDistributionRobustness::test_extreme_snr_is_handled_safely[-10.0]",
+      "duration_s": 2.017,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestClippingSaturation::test_clipping_degrades_confidence_not_silently_wrong[0.7]",
+      "duration_s": 2.008,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestCoChannelInterference::test_interferer_reduces_confidence_or_flags_ambiguity[3.0]",
+      "duration_s": 1.788,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestIQImbalance::test_mild_to_moderate_iq_imbalance_survives[1.0-5.0]",
+      "duration_s": 1.732,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestIQImbalance::test_mild_to_moderate_iq_imbalance_survives[2.5-8.0]",
+      "duration_s": 1.729,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestClippingSaturation::test_clipping_degrades_confidence_not_silently_wrong[0.4]",
+      "duration_s": 1.702,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestCoChannelInterference::test_interferer_reduces_confidence_or_flags_ambiguity[0.0]",
+      "duration_s": 1.632,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestBurstBoundaryInstability::test_modulation_switch_mid_capture_is_visible_in_the_output",
+      "duration_s": 1.607,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestCoChannelInterference::test_interferer_reduces_confidence_or_flags_ambiguity[10.0]",
+      "duration_s": 1.47,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestDCOffset::test_dc_offset_at_realistic_levels[0.6]",
+      "duration_s": 1.469,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestLatencyBudget::test_single_capture_latency",
+      "duration_s": 1.399,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestOutOfDistributionRobustness::test_extreme_snr_is_handled_safely[35.0]",
+      "duration_s": 1.372,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestOutOfDistributionRobustness::test_unfamiliar_sample_rate_does_not_silently_misbehave",
+      "duration_s": 1.369,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestDCOffset::test_dc_offset_at_realistic_levels[0.3]",
+      "duration_s": 1.324,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestDCOffset::test_dc_offset_at_realistic_levels[0.1]",
+      "duration_s": 1.288,
+      "status": "PASSED"
+    },
+    {
+      "nodeid": "tests/test_spectralq_extended_suite.py::TestQuantizationConsistency::test_float_vs_quantized_agreement_rate",
+      "duration_s": 0.004,
+      "status": "SKIPPED"
+    }
+  ],
+  "bottleneck_analysis": {
+    "classifier_model_loading": "Optimized via in-memory model cache (_MODEL_CACHE in ClassifierAdapter)",
+    "candidate_decoder_loop": "Optimized to evaluate only candidate-specified FEC schemes with representative codeword slices",
+    "viterbi_acs_loop": "Vectorized across all 64 trellis states in core.fec.ConvolutionalCodec",
+    "feature_extraction": "Vectorized Lloyd k-means and higher-order cumulants"
+  }
+}

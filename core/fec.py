@@ -107,6 +107,23 @@ class ConvolutionalCodec:
             self.prev_state[ns, 0] = s0
             self.prev_state[ns, 1] = s1
 
+        # Fast vectorized Viterbi transition tables
+        self.s0 = np.zeros(self.num_states, dtype=np.int32)
+        self.s1 = np.zeros(self.num_states, dtype=np.int32)
+        self.b0 = np.zeros(self.num_states, dtype=np.uint8)
+        self.b1 = np.zeros(self.num_states, dtype=np.uint8)
+        self.out0 = np.zeros((self.num_states, 2), dtype=np.uint8)
+        self.out1 = np.zeros((self.num_states, 2), dtype=np.uint8)
+
+        for ns in range(self.num_states):
+            candidates = []
+            for s in range(self.num_states):
+                for bit in (0, 1):
+                    if self.next_state[s, bit] == ns:
+                        candidates.append((s, bit, self.branch_outputs[s, bit]))
+            self.s0[ns], self.b0[ns], self.out0[ns] = candidates[0][0], candidates[0][1], candidates[0][2]
+            self.s1[ns], self.b1[ns], self.out1[ns] = candidates[1][0], candidates[1][1], candidates[1][2]
+
     def encode(self, bits: Union[np.ndarray, List[int]], add_tail_bits: bool = True) -> np.ndarray:
         """
         Encode input bit array using the (K, r=1/2) convolutional code.
@@ -174,28 +191,28 @@ class ConvolutionalCodec:
         survivor_state = np.zeros((n_pairs, self.num_states), dtype=np.int32)
         survivor_bit = np.zeros((n_pairs, self.num_states), dtype=BIT_ARRAY_DTYPE)
 
+        r = received[: 2 * n_pairs].reshape(-1, 2)
+        r0 = r[:, 0]
+        r1 = r[:, 1]
+        out0_0 = self.out0[:, 0]
+        out0_1 = self.out0[:, 1]
+        out1_0 = self.out1[:, 0]
+        out1_1 = self.out1[:, 1]
+
         for step in range(n_pairs):
-            r0 = int(received[2 * step])
-            r1 = int(received[2 * step + 1])
+            cur_r0 = r0[step]
+            cur_r1 = r1[step]
 
-            new_metrics = np.full(self.num_states, INF, dtype=np.float32)
+            bm0 = (out0_0 ^ cur_r0) + (out0_1 ^ cur_r1)
+            bm1 = (out1_0 ^ cur_r0) + (out1_1 ^ cur_r1)
 
-            for s in range(self.num_states):
-                if path_metrics[s] >= INF:
-                    continue
+            m0 = path_metrics[self.s0] + bm0
+            m1 = path_metrics[self.s1] + bm1
 
-                for bit in (0, 1):
-                    ns = self.next_state[s, bit]
-                    c0, c1 = self.branch_outputs[s, bit]
-                    bm = (r0 ^ c0) + (r1 ^ c1)
-                    tot = path_metrics[s] + bm
-
-                    if tot < new_metrics[ns]:
-                        new_metrics[ns] = tot
-                        survivor_state[step, ns] = s
-                        survivor_bit[step, ns] = bit
-
-            path_metrics = new_metrics
+            choose1 = m1 < m0
+            path_metrics = np.where(choose1, m1, m0)
+            survivor_state[step] = np.where(choose1, self.s1, self.s0)
+            survivor_bit[step] = np.where(choose1, self.b1, self.b0)
 
         best_state = int(np.argmin(path_metrics))
         final_metric = float(path_metrics[best_state])

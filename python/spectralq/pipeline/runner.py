@@ -51,6 +51,31 @@ from spectralq.replay import (
     CacheMismatchError,
 )
 
+_CACHED_CLASSIFIER_ADAPTER: Optional[ClassifierAdapter] = None
+
+PLAUSIBLE_INTERLEAVERS_FOR_FEC = {
+    "none": {"none"},
+    "conv_viterbi_k7": {"none", "block", "convolutional"},
+    "rs_255_223": {"none", "diagonal"},
+    "concatenated": {"none", "convolutional"},
+    "ldpc": {"none", "pseudo-random"},
+}
+
+PLAUSIBLE_FEC_FOR_MODULATION = {
+    "BPSK": {"none", "conv_viterbi_k7"},
+    "QPSK": {"none", "conv_viterbi_k7"},
+    "8-PSK": {"none", "conv_viterbi_k7", "rs_255_223"},
+    "8PSK": {"none", "conv_viterbi_k7", "rs_255_223"},
+    "16-QAM": {"none", "conv_viterbi_k7", "ldpc"},
+    "16QAM": {"none", "conv_viterbi_k7", "ldpc"},
+    "64-QAM": {"none", "conv_viterbi_k7"},
+    "64QAM": {"none", "conv_viterbi_k7"},
+    "2-FSK": {"none", "conv_viterbi_k7", "rs_255_223", "concatenated"},
+    "2FSK": {"none", "conv_viterbi_k7", "rs_255_223", "concatenated"},
+    "4-FSK": {"none", "conv_viterbi_k7", "rs_255_223", "concatenated"},
+    "4FSK": {"none", "conv_viterbi_k7", "rs_255_223", "concatenated"},
+}
+
 
 def compute_file_hash(file_path: str) -> str:
     """Computes SHA-256 hash of a file or string path if file is virtual/missing."""
@@ -269,10 +294,13 @@ def run(
         raise ValueError(f"Unsupported execution mode '{mode}'. Choose from 'auto', 'live', 'replay', 'stub'.")
 
     # Stage 3: Classifier (Harsh) & Rule Engine (Archit)
+    global _CACHED_CLASSIFIER_ADAPTER
     stage_status["Classifier"] = "LIVE" if is_live else "STUB"
     model_path = Path("models/baseline_rf.joblib")
     if model_path.exists():
-        classifier_adapter = ClassifierAdapter.load_from_file(str(model_path))
+        if _CACHED_CLASSIFIER_ADAPTER is None:
+            _CACHED_CLASSIFIER_ADAPTER = ClassifierAdapter.load_from_file(str(model_path))
+        classifier_adapter = _CACHED_CLASSIFIER_ADAPTER
     else:
         classifier_adapter = ClassifierAdapter()
     classifier_out = classifier_adapter.predict(analysis, capture_id=analysis.capture_id)
@@ -301,32 +329,87 @@ def run(
         decoder_input = capture_samples if capture_samples is not None else capture_path
         candidate_mod = classifier_out.ml_prediction or (rule_out.predicted_modulation if rule_out else "QPSK")
 
-        # Step 1: Baseline discovery decode to extract physical evidence
-        base_decoder_out = run_arpit_decoder(
+        # Step 1: Real candidate receiver competition across viable candidate triples
+        base_out = run_arpit_decoder(
             capture_input=decoder_input,
             capture_id=analysis.capture_id,
             analysis=analysis,
             candidate_modulation=candidate_mod,
-            fec_scheme="auto",
+            fec_scheme="none",
             deinterleave_scheme="none",
         )
+        cached_pipe_res = getattr(base_out, "_pipeline_result", None)
 
-        # Step 2: Evaluate fine evidence across all candidates using the decoder output
-        hypothesis_engine.evaluate_fine_evidence(all_candidates, base_decoder_out)
+        # Apply coarse pruning based on recovered bitstream length
+        bit_len = len(base_out.decoded_bits) if isinstance(base_out.decoded_bits, str) else 0
+        from spectralq.hypothesis.registry import FEC_MIN_PLAUSIBLE_BITS
+        if bit_len > 0:
+            for c in all_candidates:
+                min_b = FEC_MIN_PLAUSIBLE_BITS.get(c.fec, 1)
+                if bit_len < min_b and c.fec not in ("none", "ldpc"):
+                    c.status = "PRUNED"
+                    c.rejection_reason = f"Bitstream length ({bit_len}) is below minimum for {c.fec} ({min_b})"
 
-        # Step 3: Authoritative ranking of all 175 candidate triples
+        # Prune physically incompatible modulation/FEC and interleaver/FEC pairings
+        for c in all_candidates:
+            if c.status == "EVALUATED":
+                valid_fecs = PLAUSIBLE_FEC_FOR_MODULATION.get(c.modulation, {"none", "conv_viterbi_k7"})
+                if c.fec not in valid_fecs:
+                    c.status = "PRUNED"
+                    c.rejection_reason = f"FEC scheme '{c.fec}' is physically incompatible with modulation '{c.modulation}'"
+                    continue
+                valid_intls = PLAUSIBLE_INTERLEAVERS_FOR_FEC.get(c.fec, {"none"})
+                if c.interleaver not in valid_intls:
+                    c.status = "PRUNED"
+                    c.rejection_reason = f"Interleaver '{c.interleaver}' is physically incompatible with FEC '{c.fec}'"
+
+        surviving_cands = [c for c in all_candidates if c.status == "EVALUATED" and c.modulation == candidate_mod]
+        if not surviving_cands:
+            surviving_cands = [c for c in all_candidates if c.status == "EVALUATED"][:4]
+
+        # If base_out already produced a verified CRC PASS on uncoded, keep none/none and 1 competing candidate
+        is_base_crc_pass = (base_out.crc_status == CrcStatus.PASS) or (str(base_out.crc_status).lower() == "pass")
+        if is_base_crc_pass and len(surviving_cands) > 2:
+            surviving_cands = [c for c in surviving_cands if c.fec == "none"] + [c for c in surviving_cands if c.fec != "none"][:1]
+
+        decoder_evaluated_outputs = []
+        for cand in surviving_cands:
+            if cand.fec == "none" and cand.interleaver == "none":
+                c_out = base_out
+            else:
+                c_out = run_arpit_decoder(
+                    capture_input=decoder_input,
+                    capture_id=analysis.capture_id,
+                    analysis=analysis,
+                    candidate_modulation=cand.modulation,
+                    fec_scheme=cand.fec,
+                    deinterleave_scheme=cand.interleaver,
+                    pipeline_result=cached_pipe_res,
+                )
+            hypothesis_engine.evaluate_fine_evidence(all_candidates, c_out)
+            decoder_evaluated_outputs.append((cand, c_out))
+
+        # Step 2: Authoritative ranking of all candidate triples based on physical verification evidence
         ranked_candidates = hypothesis_engine.rank_candidates(all_candidates)
         top_cand = ranked_candidates[0]
 
-        # Step 4: Authoritative candidate-specific decoder execution
-        decoder_out = run_arpit_decoder(
-            capture_input=decoder_input,
-            capture_id=analysis.capture_id,
-            analysis=analysis,
-            candidate_modulation=top_cand.modulation,
-            fec_scheme=top_cand.fec,
-            deinterleave_scheme=top_cand.interleaver,
+        # Step 3: Match winner's decoder output from candidate competition
+        matched_out = next(
+            (out for cand, out in decoder_evaluated_outputs if cand.fec == top_cand.fec and cand.interleaver == top_cand.interleaver),
+            None
         )
+        if matched_out is not None:
+            decoder_out = matched_out
+        else:
+            decoder_out = run_arpit_decoder(
+                capture_input=decoder_input,
+                capture_id=analysis.capture_id,
+                analysis=analysis,
+                candidate_modulation=top_cand.modulation,
+                fec_scheme=top_cand.fec,
+                deinterleave_scheme=top_cand.interleaver,
+                pipeline_result=cached_pipe_res,
+            )
 
         if decoder_out.status == DecoderStatus.OK:
             stage_status["Demodulator & Decoder"] = "REAL"
@@ -519,6 +602,7 @@ def run(
         capture_id=analysis.capture_id,
         decoder_output=decoder_out,
         hypothesis_gap=score_gap,
+        top_candidate=top_cand,
     )
 
     # Phase 7 Calibrated Probability (Strict: only if real calibration was applied, else None)
@@ -608,7 +692,8 @@ def run_samples(
     from spectralq.features.iq_extractor import iq_to_analysis_contract
     meta = meta or {}
     cid = capture_id or "MEMORY_IQ_CAPTURE"
-    analysis = iq_to_analysis_contract(iq=iq, fs_hz=fs_hz, meta=meta, capture_id=cid)
+    sps_val = int(round(float(meta.get("sps", 8))))
+    analysis = iq_to_analysis_contract(iq=iq, fs_hz=fs_hz, meta=meta, capture_id=cid, sps=sps_val)
     return run(
         capture_path=f"memory://{cid}",
         mode=mode,

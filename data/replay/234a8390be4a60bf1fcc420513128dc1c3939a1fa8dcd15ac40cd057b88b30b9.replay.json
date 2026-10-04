@@ -3,9 +3,9 @@
   "input_hash": "234a8390be4a60bf1fcc420513128dc1c3939a1fa8dcd15ac40cd057b88b30b9",
   "capture_id": "G5_2FSK_uncoded",
   "source_mode": "replay",
-  "cached_at_utc": "2026-09-28T19:44:47.178746+00:00",
+  "cached_at_utc": "2026-10-04T15:18:20.117200+00:00",
   "generation_parameters": {},
-  "payload_checksum": "50f9adb847a1105fcf15cf87e2a7358e5eb8db9e1982634f24675d6e7e77ae7a",
+  "payload_checksum": "3127c75c8f8b0d271c30f6a97abd9237d39b6643e965d563fd9ab94cc4540220",
   "analysis": {
     "schema_version": "1.0.0",
     "capture_id": "G5_2FSK_uncoded",
@@ -47,12 +47,12 @@
     },
     "features": {
       "cumulants": {
-        "C20": 1.2300362481283458e-08,
-        "C21": 0.9999999724659898,
+        "C20": 1.2300362481230103e-08,
+        "C21": 0.9999999724659899,
         "C40": 0.0029172389313426085,
-        "C42": -0.9396307018491057,
+        "C42": -0.9396307018491061,
         "C60": 0.00444007041669748,
-        "C63": 3.643078626016626,
+        "C63": 3.643078626016628,
         "C80": 0.006110397402824676
       },
       "cluster": {

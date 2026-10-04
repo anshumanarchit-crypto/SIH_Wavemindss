@@ -72,12 +72,13 @@ class AbstentionSystem:
         capture_id: str = "CAPTURE",
         decoder_output: Optional[Any] = None,
         hypothesis_gap: Optional[float] = None,
+        top_candidate: Optional[Any] = None,
     ) -> AbstentionDecision:
         """
         Executes abstention evaluation against noise, low SNR physical floors,
         unverified demodulation quality, and empirical confidence thresholds.
         """
-        top_pred = confidence_result.prediction
+        top_pred = getattr(top_candidate, "modulation", None) or confidence_result.prediction
         snr = float(analysis.estimates.snr.value)
         final_conf = confidence_result.final_confidence
         raw_ml_p = confidence_result.ml_probability
@@ -173,10 +174,10 @@ class AbstentionSystem:
             crc_pass = (crc_stat == CrcStatus.PASS) or (str(crc_stat).lower() == "pass")
             is_unpacketized = (not crc_pass) and (sync_w is None) and (reenc_ber is None or reenc_ber > 0.05)
 
-            if evm is not None and evm > 35.0 and is_unpacketized:
+            if evm is not None and evm > 40.0 and is_unpacketized:
                 reason = (
                     f"Demodulation quality failure: recovered constellation EVM ({evm:.1f}%) "
-                    f"exceeds physical tolerance threshold (35.0%) on an unpacketized headerless "
+                    f"exceeds physical tolerance threshold (40.0%) on an unpacketized headerless "
                     f"stream without CRC or FEC confirmation; abstaining to UNKNOWN"
                 )
                 if ledger is not None:
@@ -186,9 +187,9 @@ class AbstentionSystem:
                         check_name="demod_quality_guard",
                         status=EvidenceStatus.FAIL,
                         numeric_value=evm,
-                        threshold=35.0,
+                        threshold=40.0,
                         explanation=reason,
-                        failure_reason=f"EVM ({evm:.1f}%) > threshold (35.0%) with unverified stream",
+                        failure_reason=f"EVM ({evm:.1f}%) > threshold (40.0%) with unverified stream",
                         provenance={"guard": "demod_quality_guard", "evm_percent": evm},
                     )
                 return AbstentionDecision(

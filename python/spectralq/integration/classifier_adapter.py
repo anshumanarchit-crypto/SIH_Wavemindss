@@ -98,6 +98,8 @@ class ClassifierAdapter:
         else:
             self.expected_features = list(CANONICAL_FEATURE_NAMES)
 
+    _MODEL_CACHE: Dict[str, Any] = {}
+
     @classmethod
     def load_from_file(
         cls,
@@ -105,17 +107,22 @@ class ClassifierAdapter:
         model_version: Optional[str] = None,
         training_metadata: Optional[Dict[str, Any]] = None,
     ) -> "ClassifierAdapter":
-        """Loads a pickled/joblib model from disk."""
-        if not os.path.exists(filepath):
+        """Loads a pickled/joblib model from disk with in-memory caching."""
+        abs_path = os.path.abspath(filepath)
+        if not os.path.exists(abs_path):
             raise FileNotFoundError(f"Model file not found at: {filepath}")
 
-        # Try joblib if available, else standard pickle
-        try:
-            import joblib
-            model = joblib.load(filepath)
-        except Exception:
-            with open(filepath, "rb") as f:
-                model = pickle.load(f)
+        if abs_path in cls._MODEL_CACHE:
+            model = cls._MODEL_CACHE[abs_path]
+        else:
+            # Try joblib if available, else standard pickle
+            try:
+                import joblib
+                model = joblib.load(abs_path)
+            except Exception:
+                with open(abs_path, "rb") as f:
+                    model = pickle.load(f)
+            cls._MODEL_CACHE[abs_path] = model
 
         version = model_version or getattr(model, "spectralq_version", "rf-loaded-1.0.0")
         return cls(model=model, model_version=version, training_metadata=training_metadata)

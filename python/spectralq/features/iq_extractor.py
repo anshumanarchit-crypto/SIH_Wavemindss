@@ -495,6 +495,11 @@ def iq_to_analysis_contract(
         sps:         Samples per symbol (used for cluster/EVM estimation).
     """
     meta = meta or {}
+    if "sps" in meta:
+        try:
+            sps = max(1, int(round(float(meta["sps"]))))
+        except (ValueError, TypeError):
+            pass
     n_samples = len(iq)
 
     # Generate deterministic capture ID from IQ content hash

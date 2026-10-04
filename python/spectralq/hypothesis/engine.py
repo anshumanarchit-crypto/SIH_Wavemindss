@@ -293,15 +293,16 @@ class HypothesisEngineV1:
                 cand.verification_score = float(min(1.0, max(0.0, verif_score)))
             else:
                 # Candidate does not match the active decoder run: physical checks were NOT_RUN for it
-                cand.add_evidence(
-                    evidence_id=f"EV_DEC_{cand.modulation}_{cand.interleaver}_{cand.fec}",
-                    source="decoder",
-                    check_name="physical_verification",
-                    status=EvidenceStatus.NOT_RUN,
-                    value=None,
-                    explanation=f"Physical decoder ran {decoder_output.fec_used}/{decoder_output.interleaver_used}; not run for this candidate",
-                )
-                cand.verification_score = 0.10
+                if cand.verification_score is None or cand.verification_score <= 0.10:
+                    cand.add_evidence(
+                        evidence_id=f"EV_DEC_{cand.modulation}_{cand.interleaver}_{cand.fec}",
+                        source="decoder",
+                        check_name="physical_verification",
+                        status=EvidenceStatus.NOT_RUN,
+                        value=None,
+                        explanation=f"Physical decoder ran {decoder_output.fec_used}/{decoder_output.interleaver_used}; not run for this candidate",
+                    )
+                    cand.verification_score = 0.10
 
     def rank_candidates(self, candidates: List[HypothesisCandidate]) -> List[HypothesisCandidate]:
         """
