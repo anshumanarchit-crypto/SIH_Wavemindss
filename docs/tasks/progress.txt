@@ -1,0 +1,13 @@
+SPECTRALQ FINAL RELEASE HARDENING
+
+Status: NOT_STARTED
+
+Rules:
+- append only
+- never erase history
+- record exact commands
+- record actual output
+- record changed files
+- record commit
+- failed verification means task is incomplete
+- no fabricated PASS
