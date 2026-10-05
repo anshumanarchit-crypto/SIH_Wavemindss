@@ -73,10 +73,15 @@ python/spectralq/visualization/eye_diagram.py
 python/spectralq/visualization/simulation.py
 python/spectralq/visualization/spectrum.py
 python/spectralq/visualization/waterfall.py
+tests/test_adversarial_capture_renaming.py
 tests/test_adversarial_suite.py
+tests/test_candidate_decoder_search.py
 tests/test_contracts.py
+tests/test_crc_integrity.py
+tests/test_final_hardening_verification.py
 tests/test_golden_modulation_regression.py
 tests/test_himanshu_gui.py
+tests/test_live_calibration_integrity.py
 tests/test_phase10_bench.py
 tests/test_phase11_real_integration.py
 tests/test_phase2_pipeline.py
@@ -88,5 +93,8 @@ tests/test_phase7_calibration.py
 tests/test_phase8_unknown.py
 tests/test_phase9_replay.py
 tests/test_production_ui_v2.py
+tests/test_reencode_integrity.py
+tests/test_runtime_truth_isolation.py
 tests/test_sample_captures_decoder_regression.py
 tests/test_spectralq_extended_suite.py
+tests/test_truth_isolation_runtime.py
