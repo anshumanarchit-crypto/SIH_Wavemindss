@@ -122,15 +122,15 @@ Evaluated via `scripts/generate_validation_artifacts.py` against official Sincha
 | Case | Description | True Mod / FEC / Interleaver | Pipeline Top Hypothesis | Confidence | Ladder | UNKNOWN | Status | Re-encode BER | Evaluator Notes |
 |:---:|---|---|---|:---:|:---:|:---:|:---:|:---:|---|
 | **G1** | Meteor M2 LRPT / QPSK uncoded | QPSK / uncoded / none | **QPSK+none+none** | 0.9162 | L3 | False | **PASS** | `null` | Carrier locked, demodulation confirmed, truthful null BER |
-| **G2** | NOAA APT / BPSK Conv Block | BPSK / Conv K=7 / Block 16x34 | **BPSK+conv_viterbi_k7+block** | 0.9226 | L4 | False | **PASS** | **0.0** | Candidate-specific Viterbi decoding with zero bit errors |
+| **G2** | NOAA APT / BPSK Conv Block | BPSK / Conv K=7 / Block 16x34 | **BPSK+conv_viterbi_k7+block** | 0.9147 | L4 | False | **PASS** | **0.0** | Candidate-specific Viterbi decoding with zero bit errors |
 | **G3** | DVB-S2 / 8-PSK RS Diagonal | 8-PSK / RS(255,223) / Diagonal | **UNKNOWN+none+none** | 0.7543 | L3 | True | **PASS** | `null` | Honest abstention (confidence 0.7543 < 0.80 operational threshold) |
-| **G4** | WiFi / 16-QAM LDPC Pseudo | 16-QAM / LDPC / Pseudorandom | **UNKNOWN+none+none** | 0.7128 | L3 | True | **PASS** | `null` | Honest abstention (LDPC not blind-integrated without side info) |
+| **G4** | WiFi / 16-QAM LDPC Pseudo | 16-QAM / LDPC / Pseudorandom | **UNKNOWN+none+none** | 0.6907 | L4 | True | **PASS** | 0.0208 | LDPC decoded; physical SNR floor guard (-2.9 dB < 12 dB) abstention |
 | **G5** | 2-FSK RS+Conv Interleaved | 2-FSK / RS+Conv / Conv 6-br | **UNKNOWN+none+none** | 0.7603 | L3 | True | **PASS** | `null` | Honest abstention (confidence 0.7603 < 0.80 operational threshold) |
-| **G6** | BPSK Conv Interleaved | BPSK / Conv K=7 / Conv 4-br | **BPSK+conv_viterbi_k7+convolutional** | 0.9226 | L4 | False | **PASS** | **0.0** | Candidate-specific Viterbi decoding with zero bit errors |
+| **G6** | BPSK Conv Interleaved | BPSK / Conv K=7 / Conv 4-br | **BPSK+conv_viterbi_k7+convolutional** | 0.9147 | L4 | False | **PASS** | **0.0** | Candidate-specific Viterbi decoding with zero bit errors |
 | **G7** | QPSK near SNR threshold | QPSK / Conv K=7 / none (SNR 6dB) | **UNKNOWN+none+none** | 0.9143 | L3 | True | **PASS** | `null` | Physical SNR floor violation abstention prevents false acceptance |
 | **G8** | Wideband 4-emissions scenario | WIDEBAND / none / none | **UNKNOWN+none+none** | 0.6876 | L3 | True | **PASS** | `null` | Single-carrier pipeline abstains on wideband emission |
-| **G9** | Headerless Raw swapped IQ | BPSK / none / none (swapped IQ) | **UNKNOWN+none+none** | 0.4000 | L3 | True | **PASS** | `null` | Demodulation EVM 60.8% > 35% on unverified stream triggers UNKNOWN |
-| **G10** | Noise floor only (AWGN) | NOISE / none / none (SNR -12.7dB)| **UNKNOWN+none+none** | 0.8742 | L2 | True | **PASS** | `null` | Flat energy envelope detected, noise floor abstention confirmed |
+| **G9** | Headerless Raw swapped IQ | BPSK / none / none (swapped IQ) | **UNKNOWN+none+none** | 0.4000 | L3 | True | **PASS** | `null` | Demodulation EVM 60.8% > 40% on unverified stream triggers UNKNOWN |
+| **G10** | Noise floor only (AWGN) | NOISE / none / none (SNR -12.7dB)| **UNKNOWN+none+none** | 0.0000 | L2 | True | **PASS** | `null` | Flat energy envelope detected, noise floor abstention confirmed |
 
 *Result*: **10/10 Cases Correctly Classified or Honestly Abstained (100.0% Validation Accuracy)**.
 

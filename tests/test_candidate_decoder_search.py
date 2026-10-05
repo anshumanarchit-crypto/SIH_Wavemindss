@@ -55,7 +55,7 @@ def test_candidate_search_multi_candidate_decoder_execution():
     unsupported_count = sum(1 for c in all_cands if c.status == "UNSUPPORTED")
     surviving = [c for c in all_cands if c.status == "EVALUATED"]
     assert len(surviving) > 0, "Expected surviving candidates after coarse pruning"
-    assert unsupported_count == 35, "All 35 LDPC candidates must be marked UNSUPPORTED"
+    assert unsupported_count == 0, f"Expected 0 unsupported candidates since all 5 FEC families are implemented, got {unsupported_count}"
 
     # Step 3: Competing candidate decoder execution
     # Candidate 1: (BPSK, conv_viterbi_k7, block) - True signal parameters
@@ -130,3 +130,29 @@ def test_end_to_end_runner_uses_authoritative_hypothesis_winner():
     assert pr.decoder.reencode_ber == 0.0
     assert pr.decoder.fec_used == "conv_viterbi_k7"
     assert pr.decoder.interleaver_used == "block"
+
+
+def test_ldpc_candidate_decoder_execution():
+    """Verify that LDPC candidate on G4 evaluates and achieves status OK with low BER."""
+    g4_path = GOLDEN_DIR / "G4_16QAM_LDPC_pseudorandom.cf32"
+    meta_path = GOLDEN_DIR / "G4_16QAM_LDPC_pseudorandom.json"
+    if not g4_path.exists() or not meta_path.exists():
+        pytest.skip(f"Capture {g4_path} not found")
+
+    meta = json.loads(meta_path.read_text())
+    fs = float(meta["sample_rate"])
+    sig = load_signal(str(g4_path))
+    analysis = iq_to_analysis_contract(sig.samples, fs_hz=fs, capture_id="G4_SEARCH_TEST")
+
+    c_out = run_arpit_decoder(
+        capture_input=str(g4_path),
+        capture_id="G4_LDPC_TEST",
+        analysis=analysis,
+        candidate_modulation="16-QAM",
+        fec_scheme="ldpc",
+        deinterleave_scheme="pseudo-random",
+    )
+    assert c_out.status == DecoderStatus.OK
+    assert c_out.fec_used == "ldpc"
+    assert c_out.interleaver_used == "pseudo-random"
+    assert c_out.reencode_ber is not None and c_out.reencode_ber <= 0.05

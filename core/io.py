@@ -523,6 +523,12 @@ def load_iq(
             "Sample rate unknown for '%s'. Provide sample_rate or a companion JSON.", path.name
         )
 
+    if effective_sr is not None:
+        try:
+            effective_sr = float(effective_sr)
+        except (ValueError, TypeError):
+            pass
+
     if effective_sr is not None and effective_sr <= 0:
         raise ValueError(
             f"Resolved sample_rate ({effective_sr}) must be positive and non-zero."

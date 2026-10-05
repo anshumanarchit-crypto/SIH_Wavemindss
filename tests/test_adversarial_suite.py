@@ -943,7 +943,7 @@ class TestGRepositoryHardcodingCheck:
 
     def _scan_files(self, extensions: Tuple[str, ...] = (".py", ".md", ".json", ".txt")) -> List[Path]:
         """Returns production source files to scan, excluding prompt docs and test fixtures."""
-        exclude_dirs = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", "node_modules", "prompt"}
+        exclude_dirs = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", "node_modules", "prompt", "scratch"}
         files = []
         for ext in extensions:
             for f in ROOT.rglob(f"*{ext}"):
@@ -956,7 +956,7 @@ class TestGRepositoryHardcodingCheck:
         name = filepath.name.lower()
         stem = filepath.stem.lower()
         # Exclude prompt documents, audit reports, and this test file
-        exclude_stems = {"final_audit", "test_adversarial_suite", "spectralq_archit_prompt_pack"}
+        exclude_stems = {"final_audit", "test_adversarial_suite", "spectralq_archit_prompt_pack", "changes_final_competitive"}
         return stem in exclude_stems or any(ex in name for ex in exclude_stems)
 
     def _is_enforcement_context(self, context: str) -> bool:

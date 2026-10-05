@@ -36,10 +36,10 @@ FEC_SCHEMES: List[str] = [
 
 SUPPORTED_MODULATIONS: Set[str] = set(MODULATIONS)
 SUPPORTED_INTERLEAVERS: Set[str] = set(INTERLEAVERS)
-SUPPORTED_FEC: Set[str] = {"none", "conv_viterbi_k7", "rs_255_223", "concatenated"}
+SUPPORTED_FEC: Set[str] = {"none", "conv_viterbi_k7", "rs_255_223", "concatenated", "ldpc"}
 
-# LDPC Gallager (96, 3, 963) is implemented in DSP codec; tagged as UNSUPPORTED in blind hypothesis search with explicit UNAVAILABLE evidence
-UNSUPPORTED_FEC: Set[str] = {"ldpc"}
+# LDPC Gallager (96, 3, 963) is genuinely supported and evaluated for compatible block dimensions
+UNSUPPORTED_FEC: Set[str] = set()
 
 # Physical operational SNR floors (dB)
 MODULATION_MIN_SNR: Dict[str, float] = {

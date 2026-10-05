@@ -495,9 +495,12 @@ def iq_to_analysis_contract(
         sps:         Samples per symbol (used for cluster/EVM estimation).
     """
     meta = meta or {}
-    if "sps" in meta:
+    has_explicit_sps = False
+    if "sps" in meta or "samples_per_symbol" in meta:
         try:
-            sps = max(1, int(round(float(meta["sps"]))))
+            val = meta.get("sps") or meta.get("samples_per_symbol")
+            sps = max(1, int(round(float(val))))
+            has_explicit_sps = True
         except (ValueError, TypeError):
             pass
     n_samples = len(iq)
@@ -599,14 +602,14 @@ def iq_to_analysis_contract(
         "capture_id": capture_id,
         "source_mode": meta.get("source_mode", "synthetic"),
         "fs_hz": float(fs_hz),
-        "fs_source": "inferred",
+        "fs_source": meta.get("fs_source", "inferred"),
         "bursts": [burst],
         "estimates": {
             "baud": {
                 "value": baud_hz,
                 "ci_lo": max(1.0, baud_hz - baud_ci),
                 "ci_hi": baud_hz + baud_ci,
-                "method": "iq_symbol_rate_inferred",
+                "method": "explicit_metadata" if has_explicit_sps else "iq_symbol_rate_inferred",
             },
             "cfo": {
                 "value": cfo_est,

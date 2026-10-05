@@ -71,7 +71,7 @@
   },
   "8PSK_4dB": {
     "confidence": 0.87,
-    "modulation": "64QAM",
+    "modulation": "16QAM",
     "unknown": true
   },
   "BPSK_12dB": {

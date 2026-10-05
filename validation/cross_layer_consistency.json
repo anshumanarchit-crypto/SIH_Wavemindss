@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-10-05T06:04:20.183122+00:00",
+  "generated_at": "2026-10-05T06:52:11.571480+00:00",
   "summary": "Full cross-layer verification across physical DSP, RF classifier, rules, N5 consensus, and decoder",
   "total_cases": 10,
   "records": [
@@ -30,9 +30,10 @@
         "status": "ok",
         "fec_used": "none",
         "interleaver_used": "none",
-        "crc_status": "not_run",
+        "crc_status": "not_present",
         "reencode_ber": null,
-        "failure_reason": null
+        "failure_reason": null,
+        "crc_failure_reason": "Continuous physical layer stream: transmission protocol does not implement packet framing or CRC fields"
       },
       "cross_layer_checks": {
         "truth_isolated": true,
@@ -68,7 +69,8 @@
         "interleaver_used": "none",
         "crc_status": "not_run",
         "reencode_ber": null,
-        "failure_reason": "Noise floor or low SNR prevents carrier/constellation lock"
+        "failure_reason": "Noise floor or low SNR prevents carrier/constellation lock",
+        "crc_failure_reason": "Noise floor or low SNR prevents carrier/constellation lock"
       },
       "cross_layer_checks": {
         "truth_isolated": true,
@@ -102,9 +104,10 @@
         "status": "ok",
         "fec_used": "conv_viterbi_k7",
         "interleaver_used": "block",
-        "crc_status": "not_run",
+        "crc_status": "not_present",
         "reencode_ber": 0.0,
-        "failure_reason": null
+        "failure_reason": null,
+        "crc_failure_reason": "Continuous physical layer stream: transmission protocol does not implement packet framing or CRC fields"
       },
       "cross_layer_checks": {
         "truth_isolated": true,
@@ -138,9 +141,10 @@
         "status": "ok",
         "fec_used": "none",
         "interleaver_used": "none",
-        "crc_status": "not_run",
+        "crc_status": "not_present",
         "reencode_ber": null,
-        "failure_reason": null
+        "failure_reason": null,
+        "crc_failure_reason": "Continuous physical layer stream: transmission protocol does not implement packet framing or CRC fields"
       },
       "cross_layer_checks": {
         "truth_isolated": true,
@@ -176,7 +180,8 @@
         "interleaver_used": "pseudo-random",
         "crc_status": "not_run",
         "reencode_ber": 0.020833333333333332,
-        "failure_reason": null
+        "failure_reason": null,
+        "crc_failure_reason": "Framing unresolved: low or near-threshold SNR (-2.9 dB) prevents reliable packet frame demarcation"
       },
       "cross_layer_checks": {
         "truth_isolated": true,
@@ -210,9 +215,10 @@
         "status": "ok",
         "fec_used": "none",
         "interleaver_used": "none",
-        "crc_status": "not_run",
+        "crc_status": "not_present",
         "reencode_ber": null,
-        "failure_reason": null
+        "failure_reason": null,
+        "crc_failure_reason": "Continuous physical layer stream: transmission protocol does not implement packet framing or CRC fields"
       },
       "cross_layer_checks": {
         "truth_isolated": true,
@@ -246,9 +252,10 @@
         "status": "ok",
         "fec_used": "conv_viterbi_k7",
         "interleaver_used": "convolutional",
-        "crc_status": "not_run",
+        "crc_status": "not_present",
         "reencode_ber": 0.0,
-        "failure_reason": null
+        "failure_reason": null,
+        "crc_failure_reason": "Continuous physical layer stream: transmission protocol does not implement packet framing or CRC fields"
       },
       "cross_layer_checks": {
         "truth_isolated": true,
@@ -282,9 +289,10 @@
         "status": "ok",
         "fec_used": "none",
         "interleaver_used": "none",
-        "crc_status": "not_run",
+        "crc_status": "not_present",
         "reencode_ber": null,
-        "failure_reason": null
+        "failure_reason": null,
+        "crc_failure_reason": "Continuous physical layer stream: transmission protocol does not implement packet framing or CRC fields"
       },
       "cross_layer_checks": {
         "truth_isolated": true,
@@ -320,7 +328,8 @@
         "interleaver_used": "none",
         "crc_status": "not_run",
         "reencode_ber": null,
-        "failure_reason": null
+        "failure_reason": null,
+        "crc_failure_reason": "Framing unresolved: low or near-threshold SNR (2.4 dB) prevents reliable packet frame demarcation"
       },
       "cross_layer_checks": {
         "truth_isolated": true,
@@ -354,9 +363,10 @@
         "status": "ok",
         "fec_used": "none",
         "interleaver_used": "none",
-        "crc_status": "not_run",
+        "crc_status": "not_present",
         "reencode_ber": null,
-        "failure_reason": null
+        "failure_reason": null,
+        "crc_failure_reason": "Continuous physical layer stream: transmission protocol does not implement packet framing or CRC fields"
       },
       "cross_layer_checks": {
         "truth_isolated": true,

@@ -252,7 +252,8 @@ def test_high_ml_weak_evidence_abstains_or_reduces_confidence(clean_qpsk_analysi
 # -----------------------------------------------------------------------------
 # 5. Unsupported Modulation / FEC -> Explicit Unsupported State
 # -----------------------------------------------------------------------------
-def test_unsupported_fec_explicit_rejection(clean_qpsk_analysis_dict):
+def test_unsupported_fec_explicit_rejection(clean_qpsk_analysis_dict, monkeypatch):
+    monkeypatch.setattr("spectralq.hypothesis.engine.UNSUPPORTED_FEC", {"ldpc"})
     analysis = validate_analysis_dict(clean_qpsk_analysis_dict)
     engine = HypothesisEngineV1()
     candidates = engine.generate_all_candidates()

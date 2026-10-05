@@ -203,7 +203,8 @@ def test_candidate_generation_completeness():
 # -----------------------------------------------------------------------------
 # 2. LDPC-Unavailable Handling (Never Silently Dropped or Faked)
 # -----------------------------------------------------------------------------
-def test_ldpc_unsupported_handling():
+def test_ldpc_unsupported_handling(monkeypatch):
+    monkeypatch.setattr("spectralq.hypothesis.engine.UNSUPPORTED_FEC", {"ldpc"})
     engine = HypothesisEngineV1()
     candidates = engine.generate_all_candidates()
 
@@ -254,7 +255,8 @@ def test_coarse_pruning_snr_and_block_length(g1_analysis_data, g1_classifier_dat
 # -----------------------------------------------------------------------------
 # 4. Evidence State Handling (All 4 States Reachable and Distinguishable)
 # -----------------------------------------------------------------------------
-def test_all_four_evidence_states_reachable(g1_analysis_data, g1_classifier_data, g1_decoder_data):
+def test_all_four_evidence_states_reachable(monkeypatch, g1_analysis_data, g1_classifier_data, g1_decoder_data):
+    monkeypatch.setattr("spectralq.hypothesis.engine.UNSUPPORTED_FEC", {"ldpc"})
     analysis = validate_analysis_dict(g1_analysis_data)
     classifier_out = validate_classifier_output_dict(g1_classifier_data)
     decoder_out = validate_decoder_output_dict(g1_decoder_data)

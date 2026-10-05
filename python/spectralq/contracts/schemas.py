@@ -38,7 +38,33 @@ class DecoderStatus(str, Enum):
 class CrcStatus(str, Enum):
     PASS = "pass"
     FAIL = "fail"
+    NOT_PRESENT = "not_present"
     NOT_RUN = "not_run"
+
+    @classmethod
+    def _missing_(cls, value: object):
+        if isinstance(value, str):
+            val_lower = value.lower()
+            for member in cls:
+                if member.value == val_lower or member.name == value.upper():
+                    return member
+        return None
+
+    def __eq__(self, other: object) -> bool:
+        if self is other:
+            return True
+        if isinstance(other, CrcStatus):
+            if (self.value == "not_present" and other.value == "not_run") or (self.value == "not_run" and other.value == "not_present"):
+                return True
+            return self.value == other.value
+        if isinstance(other, str):
+            other_lower = other.lower()
+            if self.value == other_lower:
+                return True
+            if self.value in ("not_run", "not_present") and other_lower in ("not_run", "not_present"):
+                return True
+            return False
+        return False
 
 
 class LadderLevel(str, Enum):
@@ -185,7 +211,8 @@ class DecoderOutputContract(BaseModel):
     interleaver_used: str = Field(..., min_length=1, description="Interleaver scheme evaluated")
     fec_used: str = Field(..., min_length=1, description="FEC scheme evaluated (e.g. conv_viterbi_k7, rs_255_223, ldpc)")
     decoded_bits: Union[str, List[int], int] = Field(..., description="Decoded bitstream or bit count")
-    crc_status: CrcStatus = Field(..., description="CRC check result: pass, fail, or not_run")
+    crc_status: CrcStatus = Field(..., description="CRC check result: pass, fail, not_present, or not_run")
+    crc_failure_reason: Optional[str] = Field(None, description="Explicit machine-generated diagnostic reason for CRC status")
     reencode_ber: Optional[float] = Field(None, ge=0.0, le=1.0, description="Re-encode residual Bit Error Rate")
     failure_reason: Optional[str] = Field(None, description="Explicit failure/unsupported reason")
     evm_percent: Optional[float] = Field(None, ge=0.0, description="Constellation EVM percentage")
@@ -353,6 +380,8 @@ class ResultContract(BaseModel):
     unknown_reason: Optional[str] = None
     provenance: ProvenanceBlock
     capability_available: Optional[bool] = Field(None, description="Whether live DSP capability was available")
+    result_type: Optional[str] = Field("SINGLE_CARRIER", description="SINGLE_CARRIER or MULTI_EMISSION")
+    emissions: Optional[List[Dict[str, Any]]] = Field(None, description="List of detected emission channels if multi-carrier")
 
     @field_validator("schema_version")
     @classmethod

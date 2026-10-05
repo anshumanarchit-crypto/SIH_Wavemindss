@@ -18,7 +18,13 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 from spectralq.confidence.engine import ConfidenceResult
 from spectralq.confidence.threshold_sweep import load_abstention_config
-from spectralq.contracts.schemas import AnalysisContract, EvidenceItem, EvidenceStatus, CrcStatus
+from spectralq.contracts.schemas import (
+    AnalysisContract,
+    EvidenceItem,
+    EvidenceStatus,
+    CrcStatus,
+    DecoderStatus,
+)
 from spectralq.evidence.ledger import EvidenceLedger
 from spectralq.hypothesis.registry import MODULATION_MIN_SNR
 
@@ -90,7 +96,17 @@ class AbstentionSystem:
         # ---------------------------------------------------------------------
         # If signal power is negligible, SNR is at or below noise floor,
         # or bursts are absent, input is pure noise.
-        is_noise = (snr <= 0.0) or (len(analysis.bursts) == 0) or (analysis.features.cluster.silhouette < 0.15 and snr < 3.0)
+        # However, if actual receiver physical verification succeeded (e.g. valid LDPC/FEC with zero syndrome errors),
+        # it is provably a valid communication transmission operating near or below 0 dB.
+        decoder_verified = (
+            decoder_output is not None
+            and getattr(decoder_output, "status", None) == DecoderStatus.OK
+            and getattr(decoder_output, "reencode_ber", None) is not None
+            and getattr(decoder_output, "reencode_ber", 1.0) <= 0.05
+        )
+        is_noise = (not decoder_verified) and (
+            (snr <= 0.0) or (len(analysis.bursts) == 0) or (analysis.features.cluster.silhouette < 0.15 and snr < 3.0)
+        )
 
         if is_noise:
             reason = (
@@ -119,7 +135,7 @@ class AbstentionSystem:
                 is_unknown=True,
                 unknown_reason=reason,
                 output_label="UNKNOWN",
-                final_confidence=final_conf,
+                final_confidence=0.0,
                 threshold=self.threshold,
                 guard_triggered="noise_floor_override",
                 raw_ml_probability=raw_ml_p,
