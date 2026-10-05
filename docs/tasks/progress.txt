@@ -307,4 +307,56 @@ Commit: 15435fe
 Verification: Candidate decoder suite 3/3 passed; explicit G2 (BER 0.0), G6 (BER 0.0), LDPC genuine invocation, and FEC/interleaver preservation verified across 15 sub-cases; 22/22 sample captures regression passed.
 Status: TASK 5 COMPLETE.
 
+============================================================
+TASK 6 — HYPOTHESIS / TRUTH / CACHE INTEGRITY
+============================================================
+Timestamp: 2026-10-05T07:22:00Z
+Objective: Ensure authoritative winner is produced by HypothesisEngine without ML-only override, enforce zero filename or case-ID inference, zero truth.json runtime access, and preserve candidate cache isolation.
+
+Verification Details:
+- Truth Reference Isolation (tests/test_runtime_truth_isolation.py & tests/test_truth_isolation_runtime.py):
+  * Scanned all production modules (pipeline, decoder, features, evidence, confidence, integration, hypothesis, core).
+  * 0 truth.json or truth_mapping.json references found.
+  * 0 hardcoded G1-G10 case ID branching or scheme lookups found.
+- Runtime Behavioral Invariance Under File & Directory Renaming:
+  * Arbitrary renamed file test (tests/test_runtime_truth_isolation.py): modulation, ML prediction, rule prediction, and confidence remain identical.
+  * Adversarial renaming test suite (tests/test_adversarial_capture_renaming.py):
+    - G2 renamed to random_signal_alpha_9941.cf32: Correctly recovers BPSK + conv_viterbi_k7 + block with 0.0 BER.
+    - G3 renamed to flight_telemetry_beta_1028.cf32: Yields identical output matching baseband physics.
+    - G7 renamed to uplink_burst_gamma_5512.cf32: Safely abstains to UNKNOWN based on low SNR.
+    - G9 renamed to downlink_carrier_delta_3399.cf32: Safely abstains to UNKNOWN based on EVM degradation.
+    - G5 renamed to deep_space_probe_epsilon_7721.cf32: Identical modulation and confidence preserved.
+    - Cross-directory invariance: Running identical baseband under two disparate directories and names produces bit-exact identical predictions.
+- Runtime Filesystem Truth Guard & Cache Isolation:
+  * test_11_truth_file_never_read_at_runtime: Runtime monkeypatch of open() confirms truth.json is never read during live execution.
+  * test_10_candidate_cache_cannot_contaminate_another_candidate: Candidate A cache does not leak or alter evaluation of Candidate B or subsequent runs.
+
+Exact Verification Commands and Actual Output:
+1. pytest -q tests/test_runtime_truth_isolation.py
+Output:
+...                                                                      [100%]
+Status: 3 passed in 21.0s (100%)
+
+2. pytest -q tests/test_truth_isolation_runtime.py
+Output:
+...                                                                      [100%]
+Status: 3 passed in 20.3s (100%)
+
+3. pytest -q tests/test_adversarial_capture_renaming.py
+Output:
+......                                                                   [100%]
+Status: 6 passed in 83.2s (100%)
+
+4. pytest -q tests/test_final_hardening_verification.py -k "test_10 or test_11 or test_12"
+Output:
+...                                                                      [100%]
+Status: 3 passed in 23.0s (100%)
+
+Changed Files:
+- Progress.txt
+- docs/tasks/progress.txt
+
+Status: TASK 6 COMPLETE.
+
+
 
