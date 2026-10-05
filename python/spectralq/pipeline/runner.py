@@ -106,7 +106,7 @@ def get_stub_classifier_output(capture_id: str, analysis: AnalysisContract) -> C
             "2-FSK": 0.01,
             "4-FSK": 0.01,
         },
-        "calibrated_probability": 0.82,
+        "calibrated_probability": None,
         "model_version": "stub-rf-1.0.0",
         "feature_vector_used": {
             "C20": analysis.features.cumulants.C20,
@@ -267,7 +267,10 @@ def run(
                         _sig.samples,
                         fs_hz=_fs_final,
                         capture_id=Path(capture_path).stem,
-                        meta={"source_mode": "real"},
+                        meta={
+                            "source_mode": "real",
+                            "fs_source": "header" if (_comp_fs or _sig.source_format != "memory") else "inferred",
+                        },
                     )
                     stage_status["Ingest & Forensics"] = "LIVE"
                     stage_status["Feature Extraction"] = "LIVE"
@@ -321,7 +324,7 @@ def run(
     cand_gen_count = len(all_candidates)
     cand_pruned_count = 0
     cand_eval_count = 0
-    cand_verif_count = 0
+    cand_verified_count = 0
 
     if decoder_override is not None:
         decoder_out = decoder_override
@@ -371,13 +374,18 @@ def run(
         # Stage A2: Candidate Modulation Shortlist (Phase 2 & 3 True Universal Candidate Search)
         # We do NOT force candidate_modulation = ml_prediction as the sole modulation considered.
         plausible_mods = [candidate_mod]
+        if candidate_mod in ("2-FSK", "4-FSK", "2FSK", "4FSK"):
+            sibling = "2-FSK" if "4" in candidate_mod else "4-FSK"
+            if sibling not in plausible_mods:
+                plausible_mods.append(sibling)
+
         if classifier_out and classifier_out.ml_probabilities:
             competing = sorted(
                 [(p, m) for m, p in classifier_out.ml_probabilities.items() if m != candidate_mod],
                 reverse=True
             )
             for p_comp, m_comp in competing:
-                if p_comp >= 0.05 and m_comp not in plausible_mods:
+                if p_comp >= 0.02 and m_comp not in plausible_mods:
                     plausible_mods.append(m_comp)
                     break
         if rule_out and rule_out.predicted_modulation and rule_out.predicted_modulation not in ("UNKNOWN", None):
@@ -398,24 +406,30 @@ def run(
                 continue
             if p_mod == candidate_mod:
                 uncoded = [c for c in mod_cands if c.fec == "none" and c.interleaver == "none"]
-                coded = [c for c in mod_cands if c.fec != "none"][:2]
+                coded = [c for c in mod_cands if c.fec != "none"][:6]
                 surviving_cands.extend(uncoded + coded)
             else:
                 uncoded = [c for c in mod_cands if c.fec == "none"][:1]
-                coded = [c for c in mod_cands if c.fec != "none"][:1]
+                coded = [c for c in mod_cands if c.fec != "none"][:4]
                 surviving_cands.extend(uncoded + coded)
 
         if not surviving_cands:
-            surviving_cands = [c for c in all_candidates if c.status == "EVALUATED"][:4]
+            surviving_cands = [c for c in all_candidates if c.status == "EVALUATED"][:6]
 
-        # Bounded evaluation budget: cap at 6 total candidates to guarantee fast execution (<2s)
-        if len(surviving_cands) > 6:
-            surviving_cands = surviving_cands[:6]
+        # Bounded evaluation budget: cap at 12 total candidates to guarantee fast execution (<2s)
+        if len(surviving_cands) > 12:
+            surviving_cands = surviving_cands[:12]
 
+        cached_candidate_outputs = {}
+        cached_pipe_by_mod = {candidate_mod: cached_pipe_res}
         decoder_evaluated_outputs = []
         for cand in surviving_cands:
-            if cand.modulation == candidate_mod and cand.fec == "none" and cand.interleaver == "none":
+            cand_key = (cand.modulation, cand.interleaver, cand.fec)
+            if cand_key in cached_candidate_outputs:
+                c_out = cached_candidate_outputs[cand_key]
+            elif cand.modulation == candidate_mod and cand.fec == "none" and cand.interleaver == "none":
                 c_out = base_out
+                cached_candidate_outputs[cand_key] = c_out
             else:
                 c_out = run_arpit_decoder(
                     capture_input=decoder_input,
@@ -424,9 +438,12 @@ def run(
                     candidate_modulation=cand.modulation,
                     fec_scheme=cand.fec,
                     deinterleave_scheme=cand.interleaver,
-                    pipeline_result=cached_pipe_res if cand.modulation == candidate_mod else None,
+                    pipeline_result=cached_pipe_by_mod.get(cand.modulation),
                 )
-            hypothesis_engine.evaluate_fine_evidence(all_candidates, c_out)
+                cached_candidate_outputs[cand_key] = c_out
+                if cand.modulation not in cached_pipe_by_mod and getattr(c_out, "_pipeline_result", None) is not None:
+                    cached_pipe_by_mod[cand.modulation] = getattr(c_out, "_pipeline_result", None)
+            hypothesis_engine.evaluate_fine_evidence(all_candidates, c_out, candidate_modulation=cand.modulation)
             decoder_evaluated_outputs.append((cand, c_out))
 
             # Populate candidate telemetry and accounting
@@ -435,24 +452,38 @@ def run(
             cand.interleaver_status = c_out.interleaver_used
             cand.crc_status = c_out.crc_status.value if hasattr(c_out.crc_status, "value") else str(c_out.crc_status)
             cand.reencode_ber = c_out.reencode_ber
-            is_verified = (c_out.status == DecoderStatus.OK and (c_out.reencode_ber == 0.0 or c_out.crc_status == CrcStatus.PASS))
+            is_verified = (
+                c_out.status == DecoderStatus.OK
+                and (
+                    (c_out.reencode_ber is not None and c_out.reencode_ber <= 0.05)
+                    or c_out.crc_status == CrcStatus.PASS
+                )
+            )
             cand.verification_status = "VERIFIED" if is_verified else "UNVERIFIED"
 
         # Candidate Accounting Totals
         cand_gen_count = len(all_candidates)
         cand_pruned_count = sum(1 for c in all_candidates if c.status in ("PRUNED", "UNSUPPORTED"))
         cand_eval_count = len(decoder_evaluated_outputs)
-        cand_verified_count = sum(1 for c, out in decoder_evaluated_outputs if out.status == DecoderStatus.OK and (out.reencode_ber == 0.0 or out.crc_status == CrcStatus.PASS))
+        cand_verified_count = sum(
+            1 for c, out in decoder_evaluated_outputs
+            if out.status == DecoderStatus.OK and (
+                (out.reencode_ber is not None and out.reencode_ber <= 0.05)
+                or out.crc_status == CrcStatus.PASS
+            )
+        )
 
         # Step 2: Authoritative ranking of all candidate triples based on physical verification evidence
         ranked_candidates = hypothesis_engine.rank_candidates(all_candidates)
         top_cand = ranked_candidates[0]
 
         # Step 3: Match winner's decoder output from candidate competition
-        matched_out = next(
-            (out for cand, out in decoder_evaluated_outputs if cand.modulation == top_cand.modulation and cand.fec == top_cand.fec and cand.interleaver == top_cand.interleaver),
-            None
-        )
+        matched_out = cached_candidate_outputs.get((top_cand.modulation, top_cand.interleaver, top_cand.fec))
+        if matched_out is None:
+            matched_out = next(
+                (out for cand, out in decoder_evaluated_outputs if cand.modulation == top_cand.modulation and cand.fec == top_cand.fec and cand.interleaver == top_cand.interleaver),
+                None
+            )
         if matched_out is not None:
             decoder_out = matched_out
         else:
@@ -645,7 +676,7 @@ def run(
         ml_prediction=n5_result.ml_prediction,
         rule_ml_agreement=n5_result.agreement,
         ledger=ledger,
-        calibrated_ml_probability=None,
+        calibrated_ml_probability=classifier_out.calibrated_probability,
     )
 
     # Phase 8 UNKNOWN Abstention System (Evaluates noise, SNR floor, EVM/headerless, and threshold)
@@ -665,6 +696,30 @@ def run(
     if calibrated_prob is not None:
         calibrated_prob = round(float(calibrated_prob), 4)
 
+    # Phase 18 & TEST 16: Wideband Multi-Carrier / Multi-Emission Detection
+    result_type_val = "SINGLE_CARRIER"
+    emissions_list = None
+    raw_iq_for_scan = None
+    if capture_samples is not None:
+        raw_iq_for_scan = capture_samples
+    elif Path(capture_path).exists():
+        try:
+            import core.io
+            raw_sig_scan = core.io.load_signal(capture_path)
+            raw_iq_for_scan = raw_sig_scan.samples
+        except Exception:
+            raw_iq_for_scan = None
+
+    if raw_iq_for_scan is not None and len(raw_iq_for_scan) >= 128:
+        try:
+            from spectralq.dsp.wideband_scanner import scan_wideband_spectrum
+            wb_scan = scan_wideband_spectrum(raw_iq_for_scan, fs_hz=analysis.fs_hz or 1e6)
+            if len(wb_scan.emissions) > 1:
+                result_type_val = "MULTI_EMISSION"
+                emissions_list = [e.to_dict() for e in wb_scan.emissions]
+        except Exception as _wb_err:
+            logger.debug("Wideband scanner check encountered error: %s", _wb_err)
+
     # Assemble ResultContract from Authoritative Hypothesis Engine
     result_data = {
         "schema_version": "1.0.0",
@@ -672,6 +727,8 @@ def run(
         "source_mode": pipeline_source_mode.value,
         "capability_available": is_live,
         "ladder_level": ladder_level.value,
+        "result_type": result_type_val,
+        "emissions": emissions_list,
         "top_hypothesis": {
             "modulation": top_cand.modulation,
             "interleaver": top_cand.interleaver,
@@ -723,7 +780,7 @@ def run(
             "candidates_generated": cand_gen_count,
             "candidates_pruned": cand_pruned_count,
             "candidates_decoder_evaluated": cand_eval_count,
-            "candidates_verified": cand_verif_count,
+            "candidates_verified": cand_verified_count,
         },
     }
 

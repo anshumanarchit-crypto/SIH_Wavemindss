@@ -163,8 +163,34 @@ class ClassifierAdapter:
         ordered_vec = self.validate_features(feat_dict)
         X = np.array([ordered_vec], dtype=np.float64)
 
+        is_calibrated = False
+        calibrated_top_prob: Optional[float] = None
+        cal_probs = None
+
         if self.model is not None and hasattr(self.model, "predict_proba"):
-            raw_probs = self.model.predict_proba(X)[0]
+            # Check if model is a calibrated classifier (e.g. CalibratedClassifierCV)
+            if hasattr(self.model, "calibrated_classifiers_"):
+                # Genuinely calibrated model:
+                # 1. Calibrated posterior probabilities from calibration layer
+                cal_probs = self.model.predict_proba(X)[0]
+
+                # 2. Raw uncalibrated probabilities directly from underlying base estimators
+                base_estimators = []
+                for clf in self.model.calibrated_classifiers_:
+                    estimator = getattr(clf, "estimator", getattr(clf, "base_estimator", None))
+                    if estimator is not None and hasattr(estimator, "predict_proba"):
+                        base_estimators.append(estimator)
+
+                if base_estimators:
+                    raw_probs = np.mean([est.predict_proba(X)[0] for est in base_estimators], axis=0)
+                else:
+                    raw_probs = cal_probs  # fallback if base estimator inaccessible
+
+                is_calibrated = True
+            else:
+                raw_probs = self.model.predict_proba(X)[0]
+                cal_probs = None
+
             if hasattr(self.model, "classes_"):
                 model_classes = list(self.model.classes_)
             else:
@@ -179,16 +205,34 @@ class ClassifierAdapter:
                 else:
                     prob_dict[cls_name] = 0.0
 
-            # Normalize probabilities if sum > 0
+            # Normalize raw probabilities if sum > 0
             total_p = sum(prob_dict.values())
             if total_p > 0.0:
                 prob_dict = {k: v / total_p for k, v in prob_dict.items()}
 
-            top_class = max(prob_dict, key=prob_dict.get)
+            if is_calibrated and cal_probs is not None:
+                cal_dict: Dict[str, float] = {}
+                for cls_name in self.classes:
+                    if cls_name in model_classes:
+                        idx = model_classes.index(cls_name)
+                        cal_dict[cls_name] = float(cal_probs[idx])
+                    else:
+                        cal_dict[cls_name] = 0.0
+                total_cal = sum(cal_dict.values())
+                if total_cal > 0.0:
+                    cal_dict = {k: v / total_cal for k, v in cal_dict.items()}
+
+                # Scikit-learn CalibratedClassifierCV.predict picks argmax of calibrated probabilities
+                top_class = max(cal_dict, key=cal_dict.get)
+                calibrated_top_prob = float(cal_dict[top_class])
+            else:
+                top_class = max(prob_dict, key=prob_dict.get)
+                calibrated_top_prob = None
         else:
             # Deterministic mock/fallback if no external weights mounted
             prob_dict = self._deterministic_fallback_predict(feat_dict)
             top_class = max(prob_dict, key=prob_dict.get)
+            calibrated_top_prob = None
 
         raw_contract = {
             "schema_version": "1.0.0",
@@ -196,7 +240,7 @@ class ClassifierAdapter:
             "window_id": window_id,
             "ml_prediction": top_class,
             "ml_probabilities": prob_dict,
-            "calibrated_probability": None,  # Strictly None until Phase 7
+            "calibrated_probability": calibrated_top_prob,
             "model_version": self.model_version,
             "feature_vector_used": feat_dict,
         }

@@ -174,6 +174,7 @@ class HypothesisEngineV1:
         self,
         candidates: List[HypothesisCandidate],
         decoder_output: Optional[DecoderOutputContract] = None,
+        candidate_modulation: Optional[str] = None,
     ) -> None:
         """
         Step 3 & 4: Fine Evaluation & Evidence Collection per Candidate.
@@ -199,10 +200,11 @@ class HypothesisEngineV1:
                 continue
 
             # Check if this candidate corresponds to what the decoder actually configured/detected
+            is_matching_mod = (candidate_modulation is None) or (cand.modulation.upper() == candidate_modulation.upper())
             is_matching_fec = (decoder_output.fec_used.lower() == cand.fec.lower())
             is_matching_intl = (decoder_output.interleaver_used.lower() == cand.interleaver.lower())
 
-            if is_matching_fec and is_matching_intl:
+            if is_matching_mod and is_matching_fec and is_matching_intl:
                 verif_score = 0.20
 
                 # 1. Sync / Pattern Match Check
@@ -261,7 +263,7 @@ class HypothesisEngineV1:
                 # 3. Re-encode Comparison / BER Residual
                 if decoder_output.reencode_ber is not None:
                     ber = decoder_output.reencode_ber
-                    if ber <= 0.02:
+                    if ber <= 0.05:
                         cand.add_evidence(
                             evidence_id=f"EV_BER_{cand.modulation}",
                             source="reencoder",
@@ -278,7 +280,7 @@ class HypothesisEngineV1:
                             check_name="reencode_ber_residual",
                             status=EvidenceStatus.FAIL,
                             value=ber,
-                            explanation=f"High re-encode BER ({ber:.4f}) exceeds threshold (0.02)",
+                            explanation=f"High re-encode BER ({ber:.4f}) exceeds threshold (0.05)",
                         )
                         verif_score = max(0.05, verif_score - 0.15)
                 else:

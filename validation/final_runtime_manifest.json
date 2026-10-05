@@ -42,5 +42,5 @@
   "stub_mode_guarded": true,
   "stub_mode_policy": "STUB only fires when NO file, NO replay cache, AND no Octave. Files always use Python DSP.",
   "truth_isolation": "Golden truth files never influence runtime inference. Used only in test/validation evaluation.",
-  "generated_at": "2026-10-04T17:19:44.359993+00:00"
+  "generated_at": "2026-10-05T06:02:40.436192+00:00"
 }
