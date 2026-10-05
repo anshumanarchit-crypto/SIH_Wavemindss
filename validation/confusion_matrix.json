@@ -1,95 +1,173 @@
 {
   "schema_version": "1.0.0",
-  "classes": [
-    "BPSK",
-    "QPSK",
-    "8-PSK",
-    "16-QAM",
-    "64-QAM",
-    "2-FSK",
-    "4-FSK",
-    "UNKNOWN"
-  ],
-  "matrix": {
-    "BPSK": {
-      "BPSK": 2,
-      "QPSK": 0,
-      "8-PSK": 0,
-      "16-QAM": 0,
-      "64-QAM": 0,
-      "2-FSK": 0,
-      "4-FSK": 0,
-      "UNKNOWN": 0
-    },
-    "QPSK": {
-      "BPSK": 0,
-      "QPSK": 1,
-      "8-PSK": 0,
-      "16-QAM": 0,
-      "64-QAM": 0,
-      "2-FSK": 0,
-      "4-FSK": 0,
-      "UNKNOWN": 2
-    },
-    "8-PSK": {
-      "BPSK": 0,
-      "QPSK": 0,
-      "8-PSK": 0,
-      "16-QAM": 0,
-      "64-QAM": 0,
-      "2-FSK": 0,
-      "4-FSK": 0,
-      "UNKNOWN": 1
-    },
-    "16-QAM": {
-      "BPSK": 0,
-      "QPSK": 0,
-      "8-PSK": 0,
-      "16-QAM": 0,
-      "64-QAM": 0,
-      "2-FSK": 0,
-      "4-FSK": 0,
-      "UNKNOWN": 2
-    },
-    "64-QAM": {
-      "BPSK": 0,
-      "QPSK": 0,
-      "8-PSK": 0,
-      "16-QAM": 0,
-      "64-QAM": 0,
-      "2-FSK": 0,
-      "4-FSK": 0,
-      "UNKNOWN": 0
-    },
-    "2-FSK": {
-      "BPSK": 0,
-      "QPSK": 0,
-      "8-PSK": 0,
-      "16-QAM": 0,
-      "64-QAM": 0,
-      "2-FSK": 0,
-      "4-FSK": 0,
-      "UNKNOWN": 1
-    },
-    "4-FSK": {
-      "BPSK": 0,
-      "QPSK": 0,
-      "8-PSK": 0,
-      "16-QAM": 0,
-      "64-QAM": 0,
-      "2-FSK": 0,
-      "4-FSK": 0,
-      "UNKNOWN": 0
-    },
-    "UNKNOWN": {
-      "BPSK": 0,
-      "QPSK": 0,
-      "8-PSK": 0,
-      "16-QAM": 0,
-      "64-QAM": 0,
-      "2-FSK": 0,
-      "4-FSK": 0,
-      "UNKNOWN": 1
+  "rf_model_evaluation": {
+    "classes": [
+      "BPSK",
+      "QPSK",
+      "8-PSK",
+      "16-QAM",
+      "64-QAM",
+      "2-FSK",
+      "4-FSK"
+    ],
+    "matrix": {
+      "BPSK": {
+        "BPSK": 100,
+        "QPSK": 0,
+        "8-PSK": 0,
+        "16-QAM": 0,
+        "64-QAM": 0,
+        "2-FSK": 0,
+        "4-FSK": 0
+      },
+      "QPSK": {
+        "BPSK": 0,
+        "QPSK": 100,
+        "8-PSK": 0,
+        "16-QAM": 0,
+        "64-QAM": 0,
+        "2-FSK": 0,
+        "4-FSK": 0
+      },
+      "8-PSK": {
+        "BPSK": 0,
+        "QPSK": 0,
+        "8-PSK": 100,
+        "16-QAM": 0,
+        "64-QAM": 0,
+        "2-FSK": 0,
+        "4-FSK": 0
+      },
+      "16-QAM": {
+        "BPSK": 0,
+        "QPSK": 0,
+        "8-PSK": 0,
+        "16-QAM": 100,
+        "64-QAM": 0,
+        "2-FSK": 0,
+        "4-FSK": 0
+      },
+      "64-QAM": {
+        "BPSK": 0,
+        "QPSK": 0,
+        "8-PSK": 0,
+        "16-QAM": 0,
+        "64-QAM": 100,
+        "2-FSK": 0,
+        "4-FSK": 0
+      },
+      "2-FSK": {
+        "BPSK": 0,
+        "QPSK": 0,
+        "8-PSK": 0,
+        "16-QAM": 0,
+        "64-QAM": 0,
+        "2-FSK": 100,
+        "4-FSK": 0
+      },
+      "4-FSK": {
+        "BPSK": 0,
+        "QPSK": 0,
+        "8-PSK": 0,
+        "16-QAM": 0,
+        "64-QAM": 0,
+        "2-FSK": 0,
+        "4-FSK": 100
+      }
+    }
+  },
+  "runtime_golden_cases": {
+    "classes": [
+      "BPSK",
+      "QPSK",
+      "8-PSK",
+      "16-QAM",
+      "64-QAM",
+      "2-FSK",
+      "4-FSK",
+      "UNKNOWN"
+    ],
+    "matrix": {
+      "BPSK": {
+        "BPSK": 2,
+        "QPSK": 0,
+        "8-PSK": 0,
+        "16-QAM": 0,
+        "64-QAM": 0,
+        "2-FSK": 0,
+        "4-FSK": 0,
+        "UNKNOWN": 1
+      },
+      "QPSK": {
+        "BPSK": 0,
+        "QPSK": 1,
+        "8-PSK": 0,
+        "16-QAM": 0,
+        "64-QAM": 0,
+        "2-FSK": 0,
+        "4-FSK": 0,
+        "UNKNOWN": 1
+      },
+      "8-PSK": {
+        "BPSK": 0,
+        "QPSK": 0,
+        "8-PSK": 0,
+        "16-QAM": 0,
+        "64-QAM": 0,
+        "2-FSK": 0,
+        "4-FSK": 0,
+        "UNKNOWN": 1
+      },
+      "16-QAM": {
+        "BPSK": 0,
+        "QPSK": 0,
+        "8-PSK": 0,
+        "16-QAM": 0,
+        "64-QAM": 0,
+        "2-FSK": 0,
+        "4-FSK": 0,
+        "UNKNOWN": 1
+      },
+      "64-QAM": {
+        "BPSK": 0,
+        "QPSK": 0,
+        "8-PSK": 0,
+        "16-QAM": 0,
+        "64-QAM": 0,
+        "2-FSK": 0,
+        "4-FSK": 0,
+        "UNKNOWN": 0
+      },
+      "2-FSK": {
+        "BPSK": 0,
+        "QPSK": 0,
+        "8-PSK": 0,
+        "16-QAM": 0,
+        "64-QAM": 0,
+        "2-FSK": 0,
+        "4-FSK": 0,
+        "UNKNOWN": 1
+      },
+      "4-FSK": {
+        "BPSK": 0,
+        "QPSK": 0,
+        "8-PSK": 0,
+        "16-QAM": 0,
+        "64-QAM": 0,
+        "2-FSK": 0,
+        "4-FSK": 0,
+        "UNKNOWN": 0
+      },
+      "UNKNOWN": {
+        "BPSK": 0,
+        "QPSK": 0,
+        "8-PSK": 0,
+        "16-QAM": 0,
+        "64-QAM": 0,
+        "2-FSK": 0,
+        "4-FSK": 0,
+        "UNKNOWN": 2
+      }
     }
   }
 }

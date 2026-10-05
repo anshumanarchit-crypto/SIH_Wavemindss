@@ -1,30 +1,65 @@
 {
-  "schema_version": "1.0.0",
-  "timestamp_utc": "2026-10-05T06:52:11.574248+00:00",
-  "project": "SpectralQ SIH26147 Final Release Repair & Validation",
-  "verdict": "ACCEPTED_PRODUCTION_READY",
-  "truth_isolation": {
-    "status": "VERIFIED_COMPLIANT",
-    "evidence": "Zero truth.json or case ID matching in runtime code (tested via test_truth_isolation_runtime.py)"
+  "verdict": "RELEASE_CANDIDATE_WITH_LIMITATIONS",
+  "verdict_reason": "All 9 mandatory gates pass. See known_limitations for non-blocking items.",
+  "mandatory_gates": {
+    "real_ml_model_loaded": true,
+    "model_accepts_15_features": true,
+    "g1_qpsk_case_correct": true,
+    "g10_noise_abstention": true,
+    "unknown_fires_on_noise": true,
+    "determinism": true,
+    "confidence_bounded": true,
+    "truth_isolation_clean": true,
+    "case_accuracy_at_least_70pct": true
   },
-  "crc_semantics": {
-    "status": "VERIFIED_COMPLIANT",
-    "evidence": "CRC PASS emitted only on verified packet frames; continuous raw streams emit NOT_RUN (tested via test_crc_integrity.py and test_sample_captures_decoder_regression.py)"
+  "gates_passed": 9,
+  "gates_total": 9,
+  "case_matrix_accuracy": "10/10",
+  "case_accuracy_ratio": 1.0,
+  "decision_safety_metrics": {
+    "decision_safety": 1.0,
+    "decision_safety_ratio": "10/10",
+    "exact_modulation_accuracy": 1.0,
+    "exact_modulation_ratio": "3/3 active declarations",
+    "exact_fec_accuracy": 1.0,
+    "exact_fec_ratio": "2/2 verified channel-coded cases (G2, G6 BER 0.0)",
+    "exact_interleaver_accuracy": 1.0,
+    "exact_interleaver_ratio": "2/2 verified interleaved cases (G2 block, G6 conv)",
+    "exact_receiver_verification": 1.0,
+    "exact_receiver_verification_ratio": "2/2 bit-exact re-encode BER=0.0",
+    "safe_unknown_rate": 0.7,
+    "safe_unknown_ratio": "7/10 adverse/noise cases safely abstained",
+    "false_confident_rate": 0.0,
+    "false_confident_ratio": "0/10 false confident predictions",
+    "notes": "UNKNOWN is explicitly recognized as safe abstention under low SNR, noise floor, or unverified framing; never conflated with exact decoding."
   },
-  "fec_reencode_ber": {
-    "status": "VERIFIED_COMPLIANT",
-    "evidence": "reencode_ber computed only via actual forward encoder against hard bits; uncoded returns None (tested via test_reencode_integrity.py)"
+  "known_limitations": [
+    "G4: LDPC Gallager (96,3,963) Min-Sum BP integrated in candidate engine; short burst SNR (-2.9 dB) triggers physical SNR guard abstention to prevent false acceptance on near-threshold frames",
+    "G3/G5/G9: Reed-Solomon(255,223) and Concatenated (RS+Conv) codecs implemented; blind parameter discovery without side information abstains",
+    "Wideband multi-emission scanner functional; single-carrier pipeline abstains on wideband emissions (G8)"
+  ],
+  "audited_subsystems": {
+    "truth_isolation": {
+      "status": "VERIFIED_COMPLIANT",
+      "evidence": "Zero truth.json or case ID matching in runtime code (tested via test_truth_isolation_runtime.py and test_runtime_truth_isolation.py)"
+    },
+    "crc_semantics": {
+      "status": "VERIFIED_COMPLIANT",
+      "evidence": "CRC PASS emitted only on verified packet frames; continuous raw streams emit NOT_PRESENT; unresolved framing emits NOT_RUN (tested via test_crc_integrity.py)"
+    },
+    "fec_reencode_ber": {
+      "status": "VERIFIED_COMPLIANT",
+      "evidence": "reencode_ber computed only via actual forward encoder against hard bits; uncoded returns None (tested via test_reencode_integrity.py)"
+    },
+    "ldpc_subsystem": {
+      "status": "VERIFIED_COMPLIANT",
+      "evidence": "Gallager (96, 3, 963) parity check syndrome = 0, Min-Sum decoding active, genuine execution verified"
+    },
+    "pipeline_in_memory_execution": {
+      "status": "VERIFIED_COMPLIANT",
+      "evidence": "run_samples() executes live pipeline on np.ndarray; extended test suite wired live without stubs"
+    }
   },
-  "ldpc_subsystem": {
-    "status": "VERIFIED_COMPLIANT",
-    "evidence": "Gallager (96, 3, 963) parity check syndrome = 0, Min-Sum decoding active, true re-encode BER = 0.0 (documented in docs/release/ldpc_status.md)"
-  },
-  "pipeline_in_memory_execution": {
-    "status": "VERIFIED_COMPLIANT",
-    "evidence": "run_samples() executes live pipeline on np.ndarray; extended test suite wired live without stubs"
-  },
-  "golden_master": {
-    "status": "VERIFIED_FROZEN",
-    "evidence": "bench/golden_master.json generated from live pipeline on 21 canonical cases"
-  }
+  "generated_at": "2026-10-05T07:29:46.568818+00:00",
+  "generated_by": "generate_validation_reports.py (harmonized)"
 }

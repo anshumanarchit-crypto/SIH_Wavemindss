@@ -34,7 +34,7 @@
       "modulation_classification_status": "PASS",
       "fec_identification_status": "UNVERIFIED",
       "interleaver_identification_status": "NOT_APPLICABLE",
-      "runtime_seconds": 7.183,
+      "runtime_seconds": 7.574,
       "validation_correct": true,
       "eval_notes": "QPSK uncoded verified (got QPSK+none)"
     },
@@ -72,7 +72,7 @@
       "modulation_classification_status": "PASS",
       "fec_identification_status": "VERIFIED",
       "interleaver_identification_status": "APPLIED",
-      "runtime_seconds": 7.929,
+      "runtime_seconds": 6.933,
       "validation_correct": true,
       "eval_notes": "Convolutional Viterbi decoded, BPSK correct (ber=0.0, dec=ok)"
     },
@@ -110,7 +110,7 @@
       "modulation_classification_status": "ABSTAIN",
       "fec_identification_status": "UNVERIFIED",
       "interleaver_identification_status": "UNVERIFIED",
-      "runtime_seconds": 6.972,
+      "runtime_seconds": 7.285,
       "validation_correct": true,
       "eval_notes": "RS diagonal: UNKNOWN (abstention/classification)"
     },
@@ -148,7 +148,7 @@
       "modulation_classification_status": "PASS",
       "fec_identification_status": "VERIFIED",
       "interleaver_identification_status": "UNVERIFIED",
-      "runtime_seconds": 1.77,
+      "runtime_seconds": 1.614,
       "validation_correct": true,
       "eval_notes": "LDPC pseudorandom: honest abstention"
     },
@@ -186,7 +186,7 @@
       "modulation_classification_status": "PASS",
       "fec_identification_status": "UNVERIFIED",
       "interleaver_identification_status": "UNVERIFIED",
-      "runtime_seconds": 20.196,
+      "runtime_seconds": 18.518,
       "validation_correct": true,
       "eval_notes": "Inferred UNKNOWN+none, truth=2-FSK"
     },
@@ -224,7 +224,7 @@
       "modulation_classification_status": "PASS",
       "fec_identification_status": "VERIFIED",
       "interleaver_identification_status": "APPLIED",
-      "runtime_seconds": 6.206,
+      "runtime_seconds": 5.558,
       "validation_correct": true,
       "eval_notes": "Convolutional Viterbi decoded, BPSK correct (ber=0.0, dec=ok)"
     },
@@ -262,7 +262,7 @@
       "modulation_classification_status": "PASS",
       "fec_identification_status": "UNVERIFIED",
       "interleaver_identification_status": "UNVERIFIED",
-      "runtime_seconds": 8.672,
+      "runtime_seconds": 6.614,
       "validation_correct": true,
       "eval_notes": "Near-threshold SNR (6.0 dB): abstention or correct classification acceptable"
     },
@@ -300,7 +300,7 @@
       "modulation_classification_status": "PASS",
       "fec_identification_status": "NOT_APPLICABLE",
       "interleaver_identification_status": "NOT_APPLICABLE",
-      "runtime_seconds": 4.616,
+      "runtime_seconds": 4.017,
       "validation_correct": true,
       "eval_notes": "Wideband multi-emission: multi-emission channelization / single-carrier abstention confirmed"
     },
@@ -338,7 +338,7 @@
       "modulation_classification_status": "PASS",
       "fec_identification_status": "NOT_APPLICABLE",
       "interleaver_identification_status": "NOT_APPLICABLE",
-      "runtime_seconds": 4.063,
+      "runtime_seconds": 3.721,
       "validation_correct": true,
       "eval_notes": "Headerless swapped IQ: UNKNOWN abstention confirmed (EVM failure / unverified stream)"
     },
@@ -376,10 +376,10 @@
       "modulation_classification_status": "PASS",
       "fec_identification_status": "NOT_APPLICABLE",
       "interleaver_identification_status": "NOT_APPLICABLE",
-      "runtime_seconds": 4.367,
+      "runtime_seconds": 6.224,
       "validation_correct": true,
       "eval_notes": "Noise floor: UNKNOWN abstention confirmed"
     }
   ],
-  "generated_at": "2026-10-05T06:50:32.309381+00:00"
+  "generated_at": "2026-10-05T07:28:09.094800+00:00"
 }

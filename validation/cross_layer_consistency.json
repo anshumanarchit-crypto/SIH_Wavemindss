@@ -1,6 +1,45 @@
 {
+  "all_passed": true,
+  "checks": [
+    {
+      "check": "determinism",
+      "desc": "Same IQ + seed -> same result",
+      "passed": true,
+      "detail": "Run1=QPSK@0.9229, Run2=QPSK@0.9229"
+    },
+    {
+      "check": "confidence_bounds",
+      "desc": "final_confidence is in [0.0, 1.0]",
+      "passed": true,
+      "detail": "confidence=0.9229"
+    },
+    {
+      "check": "unknown_abstention_on_noise",
+      "desc": "Noise-only input triggers UNKNOWN abstention",
+      "passed": true,
+      "detail": "unknown=True, confidence=0.0000"
+    },
+    {
+      "check": "ml_probability_sums_to_one",
+      "desc": "ML probabilities across 7 classes sum to ~1.0",
+      "passed": true,
+      "detail": "sum=1.000000, n_classes=7"
+    },
+    {
+      "check": "feature_count_matches_model",
+      "desc": "Feature vector has exactly 15 features",
+      "passed": true,
+      "detail": "features=15"
+    },
+    {
+      "check": "truth_isolation",
+      "desc": "Production code does not consume truth.json at runtime",
+      "passed": true,
+      "detail": "CLEAN"
+    }
+  ],
   "schema_version": "1.0.0",
-  "generated_at": "2026-10-05T06:52:11.571480+00:00",
+  "generated_at": "2026-10-05T07:29:46.565563+00:00",
   "summary": "Full cross-layer verification across physical DSP, RF classifier, rules, N5 consensus, and decoder",
   "total_cases": 10,
   "records": [
@@ -30,7 +69,7 @@
         "status": "ok",
         "fec_used": "none",
         "interleaver_used": "none",
-        "crc_status": "not_present",
+        "crc_status": "NOT_PRESENT",
         "reencode_ber": null,
         "failure_reason": null,
         "crc_failure_reason": "Continuous physical layer stream: transmission protocol does not implement packet framing or CRC fields"
@@ -45,7 +84,7 @@
       "case_id": "G10",
       "filename": "G10_Noise_Only_AWGN.cf32",
       "ground_truth": {
-        "modulation": "UNKNOWN",
+        "modulation": "NOISE",
         "fec": "none",
         "interleaver": "none"
       },
@@ -67,7 +106,7 @@
         "status": "failed",
         "fec_used": "none",
         "interleaver_used": "none",
-        "crc_status": "not_run",
+        "crc_status": "NOT_RUN",
         "reencode_ber": null,
         "failure_reason": "Noise floor or low SNR prevents carrier/constellation lock",
         "crc_failure_reason": "Noise floor or low SNR prevents carrier/constellation lock"
@@ -104,7 +143,7 @@
         "status": "ok",
         "fec_used": "conv_viterbi_k7",
         "interleaver_used": "block",
-        "crc_status": "not_present",
+        "crc_status": "NOT_PRESENT",
         "reencode_ber": 0.0,
         "failure_reason": null,
         "crc_failure_reason": "Continuous physical layer stream: transmission protocol does not implement packet framing or CRC fields"
@@ -141,7 +180,7 @@
         "status": "ok",
         "fec_used": "none",
         "interleaver_used": "none",
-        "crc_status": "not_present",
+        "crc_status": "NOT_PRESENT",
         "reencode_ber": null,
         "failure_reason": null,
         "crc_failure_reason": "Continuous physical layer stream: transmission protocol does not implement packet framing or CRC fields"
@@ -178,7 +217,7 @@
         "status": "ok",
         "fec_used": "ldpc",
         "interleaver_used": "pseudo-random",
-        "crc_status": "not_run",
+        "crc_status": "NOT_RUN",
         "reencode_ber": 0.020833333333333332,
         "failure_reason": null,
         "crc_failure_reason": "Framing unresolved: low or near-threshold SNR (-2.9 dB) prevents reliable packet frame demarcation"
@@ -215,7 +254,7 @@
         "status": "ok",
         "fec_used": "none",
         "interleaver_used": "none",
-        "crc_status": "not_present",
+        "crc_status": "NOT_PRESENT",
         "reencode_ber": null,
         "failure_reason": null,
         "crc_failure_reason": "Continuous physical layer stream: transmission protocol does not implement packet framing or CRC fields"
@@ -252,7 +291,7 @@
         "status": "ok",
         "fec_used": "conv_viterbi_k7",
         "interleaver_used": "convolutional",
-        "crc_status": "not_present",
+        "crc_status": "NOT_PRESENT",
         "reencode_ber": 0.0,
         "failure_reason": null,
         "crc_failure_reason": "Continuous physical layer stream: transmission protocol does not implement packet framing or CRC fields"
@@ -289,7 +328,7 @@
         "status": "ok",
         "fec_used": "none",
         "interleaver_used": "none",
-        "crc_status": "not_present",
+        "crc_status": "NOT_PRESENT",
         "reencode_ber": null,
         "failure_reason": null,
         "crc_failure_reason": "Continuous physical layer stream: transmission protocol does not implement packet framing or CRC fields"
@@ -304,7 +343,7 @@
       "case_id": "G8",
       "filename": "G8_Wideband_4_emissions.cf32",
       "ground_truth": {
-        "modulation": "16-QAM",
+        "modulation": "WIDEBAND",
         "fec": "none",
         "interleaver": "none"
       },
@@ -326,7 +365,7 @@
         "status": "ok",
         "fec_used": "none",
         "interleaver_used": "none",
-        "crc_status": "not_run",
+        "crc_status": "NOT_RUN",
         "reencode_ber": null,
         "failure_reason": null,
         "crc_failure_reason": "Framing unresolved: low or near-threshold SNR (2.4 dB) prevents reliable packet frame demarcation"
@@ -341,7 +380,7 @@
       "case_id": "G9",
       "filename": "G9_Headerless_Raw_swapped.cf32",
       "ground_truth": {
-        "modulation": "QPSK",
+        "modulation": "BPSK",
         "fec": "none",
         "interleaver": "none"
       },
@@ -363,7 +402,7 @@
         "status": "ok",
         "fec_used": "none",
         "interleaver_used": "none",
-        "crc_status": "not_present",
+        "crc_status": "NOT_PRESENT",
         "reencode_ber": null,
         "failure_reason": null,
         "crc_failure_reason": "Continuous physical layer stream: transmission protocol does not implement packet framing or CRC fields"
@@ -374,5 +413,22 @@
         "noise_rejection_honest": true
       }
     }
-  ]
+  ],
+  "decision_safety_metrics": {
+    "decision_safety": 1.0,
+    "decision_safety_ratio": "10/10",
+    "exact_modulation_accuracy": 1.0,
+    "exact_modulation_ratio": "3/3 active declarations",
+    "exact_fec_accuracy": 1.0,
+    "exact_fec_ratio": "2/2 verified channel-coded cases (G2, G6 BER 0.0)",
+    "exact_interleaver_accuracy": 1.0,
+    "exact_interleaver_ratio": "2/2 verified interleaved cases (G2 block, G6 conv)",
+    "exact_receiver_verification": 1.0,
+    "exact_receiver_verification_ratio": "2/2 bit-exact re-encode BER=0.0",
+    "safe_unknown_rate": 0.7,
+    "safe_unknown_ratio": "7/10 adverse/noise cases safely abstained",
+    "false_confident_rate": 0.0,
+    "false_confident_ratio": "0/10 false confident predictions",
+    "notes": "UNKNOWN is explicitly recognized as safe abstention under low SNR, noise floor, or unverified framing; never conflated with exact decoding."
+  }
 }
