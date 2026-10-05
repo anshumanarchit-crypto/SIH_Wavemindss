@@ -303,6 +303,8 @@ Changed Files:
 - Progress.txt
 - docs/tasks/progress.txt
 
+Commit: 15435fe
+Verification: Candidate decoder suite 3/3 passed; explicit G2 (BER 0.0), G6 (BER 0.0), LDPC genuine invocation, and FEC/interleaver preservation verified across 15 sub-cases; 22/22 sample captures regression passed.
 Status: TASK 5 COMPLETE.
 
 
