@@ -255,5 +255,7 @@ Changed Files:
 - Progress.txt
 - docs/tasks/progress.txt
 
+Commit: a7240ac
+Verification: Isolated fresh virtual environment installation verified; models/baseline_rf.joblib deserialized cleanly with zero serialization warnings under scikit-learn 1.8.0; 15/15 tests passed across targeted suites.
 Status: TASK 4 COMPLETE.
 
