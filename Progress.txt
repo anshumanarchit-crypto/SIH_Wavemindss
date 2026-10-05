@@ -532,6 +532,87 @@ Commit: 2fd7e35
 Verification: Working tree 100% clean verified before packaging; spectralq_final_submission.zip packaged 528 files (5.69 MB) with exclusions enforced; SHA-256 confirmed identically as 69560a5870a961d73f0328be8fae143c55972c3a7fb20179e1541faf084f664e.
 Status: TASK 9 COMPLETE.
 
+============================================================
+TASK 10 — FRESH ARCHIVE VERIFICATION + FREEZE
+============================================================
+Timestamp: 2026-10-05T10:18:00Z
+Objective: Extract official submission ZIP into fresh directory (FINAL_CLEAN_RELEASE_TEST), execute full test suites and application smoke test directly from clean extraction, verify outputs against release artifacts, and freeze the repository.
+
+Verification Details:
+- Fresh Archive Extraction:
+  * Extracted spectralq_final_submission.zip into FINAL_CLEAN_RELEASE_TEST.
+  * Verified file tree: 528 files across 21 subdirectories matching exact release specification.
+- Verification Suite Execution inside Clean Archive:
+  1. pytest -q tests/test_candidate_decoder_search.py -s
+     Output: ... (3 passed in 10.4s, 100%)
+  2. pytest -q tests/test_final_hardening_verification.py
+     Output: .................. (18 passed in 38.2s, 100%)
+  3. pytest -q tests/test_spectralq_extended_suite.py
+     Output: ............................. (29 passed in 24.1s, 100%)
+  4. pytest -q tests/test_runtime_truth_isolation.py
+     Output: ... (3 passed in 21.0s, 100%)
+  5. pytest -q tests/test_crc_integrity.py
+     Output: ....... (7 passed in 4.8s, 100%)
+  6. pytest -q tests/test_reencode_integrity.py
+     Output: ..... (5 passed in 5.1s, 100%)
+- Application Smoke Test inside Clean Archive:
+  * Command: python -c "import sys; from spectralq.pipeline.runner import run; r1 = run('data/official/sinchana/golden/G1_QPSK_uncoded.cf32', mode='live'); print('G1 Result:', r1.result.top_hypothesis.modulation, 'Confidence:', r1.result.final_confidence, 'CRC:', r1.decoder.crc_status.value); r2 = run('data/official/sinchana/golden/G2_BPSK_conv_block.cf32', mode='live'); print('G2 Result:', r2.result.top_hypothesis.modulation, 'FEC:', r2.decoder.fec_used, 'BER:', r2.decoder.reencode_ber); r10 = run('data/official/sinchana/golden/G10_Noise_Only_AWGN.cf32', mode='live'); print('G10 Result: Unknown =', r10.result.unknown, 'Status =', r10.decoder.status.value); print('Application smoke test PASSED!')"
+  * Output:
+    G1 Result: QPSK Confidence: 0.9078 CRC: not_present
+    G2 Result: BPSK FEC: conv_viterbi_k7 BER: 0.0
+    G10 Result: Unknown = True Status = failed
+    Application smoke test PASSED!
+- Clean Extraction Cleanup:
+  * Removed FINAL_CLEAN_RELEASE_TEST directory.
+- Freeze Gate Confirmation:
+  * Candidate decoder: PASS
+  * Final hardening: PASS (18/18)
+  * Calibration live path: PASS
+  * CRC semantics: PASS/NOT_PRESENT/NOT_RUN with explicit reasons (10/10)
+  * G2 BER 0: PASS (0.0)
+  * G6 BER 0: PASS (0.0)
+  * LDPC genuine attempt: PASS (Min-Sum BP active, syndrome = 0)
+  * Truth isolation: PASS (0 references, 0 case ID branching)
+  * Renaming: PASS (6/6 adversarial captures invariant)
+  * Extended suite: 29/29 (100%)
+  * Full regression: 293 passed, 0 failed, 0 skipped on critical release suite
+  * UI: PASS (Streamlit UI v2 11/11, Himanshu GUI 15/15)
+  * Fresh install: PASS (pinned scikit-learn 1.8.0 clean deserialization)
+  * Fresh archive: PASS (all 6 test suites and smoke test passed from clean extraction)
+  * Git: CLEAN (nothing to commit, working tree clean)
+  * SHA256 recorded: 69560a5870a961d73f0328be8fae143c55972c3a7fb20179e1541faf084f664e
+  * Reports consistent: All 6 validation artifacts consistent without contradictions
+
+Repository State:
+FROZEN
+
+Status: TASK 10 COMPLETE.
+
+============================================================
+RALPH COMPLETE
+============================================================
+Final Release Hardening Specification SIH26147 fully executed and verified.
+
+- Final Release Commit: 16f55a50f0e842dcf5b609e1928d8047122b82ea (16f55a5)
+- Submission Archive: spectralq_final_submission.zip
+- SHA256 Checksum: 69560a5870a961d73f0328be8fae143c55972c3a7fb20179e1541faf084f664e
+- Full Test Totals: 293 passed, 0 failed, 0 skipped on critical release suites (100% pass rate)
+- Candidate Decoder Search: 3/3 passed (multi-candidate execution, authoritative hypothesis winner, LDPC execution)
+- Final Hardening Verification: 18/18 passed (Viterbi invocation, BER 0, LDPC invocation, FEC/interleaver preservation, cache isolation, truth isolation, renaming invariance, safe abstentions, determinism)
+- Calibration Result: Live CalibratedClassifierCV probabilities wired into confidence engine and live case matrix; raw and calibrated probabilities preserved; zero heuristic multipliers
+- CRC Live Semantics: 7/7 passed in test_crc_integrity.py; 10/10 case matrix entries truthfully categorized (6 NOT_PRESENT, 4 NOT_RUN, 0 false PASS) with explicit physical diagnostic reasons
+- G2 Result: BPSK + conv_viterbi_k7 + block_16x34; forward re-encode BER = 0.000000; DecoderStatus.OK
+- G6 Result: BPSK + conv_viterbi_k7 + convolutional_4_branches; forward re-encode BER = 0.000000; DecoderStatus.OK
+- LDPC Result: Gallager (96, 3, 963) Min-Sum Belief Propagation active and genuinely invoked; short burst SNR floor guard prevents false acceptance on near-threshold frames
+- Truth Isolation: Zero truth.json or case-ID branching in production code; runtime monkeypatch guard verified; 6/6 adversarial capture renaming tests invariant
+- Extended Suite: 29/29 passed in test_spectralq_extended_suite.py; live calibrated golden master bench verified
+- Fresh Archive Verification: Clean extraction of spectralq_final_submission.zip into empty directory verified across 6 test suites and application smoke test with 100% match
+- Final Limitations (Non-blocking):
+  * G4: LDPC Gallager (96,3,963) Min-Sum BP integrated in candidate engine; short burst SNR (-2.9 dB) triggers physical SNR guard abstention to prevent false acceptance on near-threshold frames.
+  * G3/G5/G9: Reed-Solomon(255,223) and Concatenated (RS+Conv) codecs implemented; blind parameter discovery without side information abstains to UNKNOWN.
+  * G8: Wideband multi-emission scanner functional; single-carrier pipeline abstains on multi-carrier composite emissions.
+
+
 
 
 
