@@ -259,3 +259,50 @@ Commit: a7240ac
 Verification: Isolated fresh virtual environment installation verified; models/baseline_rf.joblib deserialized cleanly with zero serialization warnings under scikit-learn 1.8.0; 15/15 tests passed across targeted suites.
 Status: TASK 4 COMPLETE.
 
+============================================================
+TASK 5 — CANDIDATE DECODER REGRESSION LOCK
+============================================================
+Timestamp: 2026-10-05T07:15:00Z
+Objective: Lock candidate decoder regression without weakening test assertions. Explicitly verify G2 (BPSK+conv_viterbi_k7+block, BER=0.0), G6 (BPSK+conv_viterbi_k7+convolutional, BER=0.0), LDPC genuine decoder invocation, and guarantee requested FEC and interleaver never silently become none.
+
+Verification Details:
+- Candidate Decoder Search Verification (tests/test_candidate_decoder_search.py):
+  * test_candidate_search_multi_candidate_decoder_execution: Multi-candidate execution verified on G2. True parameters (BPSK, conv_viterbi_k7, block) produced reencode_ber = 0.0, DecoderStatus.OK, and outranked uncoded and non-interleaved competitors based on physical evidence.
+  * test_end_to_end_runner_uses_authoritative_hypothesis_winner: End-to-end runner verified to set top_hypothesis strictly from HypothesisEngine ranking.
+  * test_ldpc_candidate_decoder_execution: G4 16-QAM + ldpc + pseudo-random genuinely reached LDPC decoder, achieved DecoderStatus.OK, and reencode_ber <= 0.05.
+- Explicit Physical Assertions Verification (tests/test_final_hardening_verification.py):
+  * test_1_candidate_bpsk_conv_block_reaches_viterbi: PASS.
+  * test_2_candidate_bpsk_conv_block_returns_ber_zero: G2 reencode BER = 0.0 (PASS).
+  * test_3_candidate_bpsk_conv_convolutional_returns_ber_zero: G6 BPSK + conv_viterbi_k7 + convolutional reencode BER = 0.0 (PASS).
+  * test_4_candidate_ldpc_actually_invokes_ldpc: LDPC decoder confirmed invoked with genuine status OK (PASS).
+  * test_5_requested_fec_never_silently_becomes_none: Noise IQ verified across conv_viterbi_k7, ldpc, rs_255_223, concatenated; out.fec_used strictly equals requested FEC and never silently falls back to none (PASS).
+  * test_6_requested_interleaver_never_silently_becomes_none: Noise IQ verified across block, convolutional, pseudo-random, diagonal; out.interleaver_used strictly equals requested interleaver and never silently falls back to none (PASS).
+
+Exact Verification Commands and Actual Output:
+1. pytest -q tests/test_candidate_decoder_search.py -s
+Output:
+...
+Status: 3 passed in 10.65s (100%)
+
+2. pytest -q tests/test_final_hardening_verification.py -k "test_1 or test_2 or test_3 or test_4 or test_5 or test_6"
+Output:
+...............                                                          [100%]
+Status: 15 passed in 37.1s (100%)
+
+3. pytest -q tests/test_sample_captures_decoder_regression.py
+Output:
+......................                                                   [100%]
+Status: 22 passed in 10.2s (100%)
+
+4. pytest -q tests/test_reencode_integrity.py
+Output:
+.....                                                                    [100%]
+Status: 5 passed in 5.3s (100%)
+
+Changed Files:
+- Progress.txt
+- docs/tasks/progress.txt
+
+Status: TASK 5 COMPLETE.
+
+
