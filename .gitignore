@@ -19,3 +19,8 @@ result.json
 _incoming/
 _staging/
 *.zip
+.agent/
+.agents/
+.gemini/
+.gsd/
+
