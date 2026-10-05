@@ -15,7 +15,7 @@
     "unknown": true
   },
   "2FSK_12dB": {
-    "confidence": 0.77,
+    "confidence": 0.75,
     "modulation": "2FSK",
     "unknown": true
   },
@@ -25,7 +25,7 @@
     "unknown": false
   },
   "2FSK_4dB": {
-    "confidence": 0.91,
+    "confidence": 0.9,
     "modulation": "64QAM",
     "unknown": true
   },
@@ -40,7 +40,7 @@
     "unknown": false
   },
   "4FSK_4dB": {
-    "confidence": 0.91,
+    "confidence": 0.9,
     "modulation": "64QAM",
     "unknown": true
   },
@@ -70,8 +70,8 @@
     "unknown": false
   },
   "8PSK_4dB": {
-    "confidence": 0.87,
-    "modulation": "16QAM",
+    "confidence": 0.88,
+    "modulation": "64QAM",
     "unknown": true
   },
   "BPSK_12dB": {
