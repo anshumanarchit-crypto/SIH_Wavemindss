@@ -356,6 +356,8 @@ Changed Files:
 - Progress.txt
 - docs/tasks/progress.txt
 
+Commit: 27c582c
+Verification: Zero truth file references; zero case ID branching in production; invariant under adversarial renaming across 6 captures; runtime truth read blocker confirmed; cache isolation verified across all targeted suites.
 Status: TASK 6 COMPLETE.
 
 
